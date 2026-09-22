@@ -1,0 +1,45 @@
+<svg width="400" height="400" viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Background -->
+  <rect width="680" height="400" fill="#f8f9ff" rx="16"/>
+
+  <!-- Outer circle ring -->
+  <circle cx="340" cy="170" r="90" fill="#1a237e"/>
+  
+  <!-- Inner circle gold -->
+  <circle cx="340" cy="170" r="75" fill="#ffd700"/>
+
+  <!-- Nest arcs -->
+  <path d="M 295 190 Q 340 225 385 190" stroke="#1a237e" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M 302 200 Q 340 235 378 200" stroke="#1a237e" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M 310 208 Q 340 238 370 208" stroke="#1a237e" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+  <!-- Magnifying glass handle -->
+  <line x1="368" y1="198" x2="392" y2="222" stroke="#1a237e" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Magnifying glass circle -->
+  <circle cx="348" cy="178" r="28" fill="none" stroke="#1a237e" stroke-width="7"/>
+  <circle cx="348" cy="178" r="20" fill="white" fill-opacity="0.5"/>
+
+  <!-- Search inside glass -->
+  <circle cx="348" cy="175" r="8" fill="none" stroke="#1a237e" stroke-width="3"/>
+  <line x1="353" y1="181" x2="359" y2="187" stroke="#1a237e" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Dots in nest -->
+  <circle cx="325" cy="188" r="6" fill="#1a237e"/>
+  <circle cx="340" cy="192" r="6" fill="#1a237e"/>
+  <circle cx="355" cy="188" r="6" fill="#1a237e"/>
+
+  <!-- FINDNEST Text -->
+  <text x="340" y="298" text-anchor="middle" font-family="Arial Black, sans-serif" font-weight="900" font-size="48" fill="#1a237e" letter-spacing="6">FIND<tspan fill="#c8960c">NEST</tspan></text>
+
+  <!-- Tagline -->
+  <text x="340" y="334" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#555" letter-spacing="2">LOST &amp; FOUND · AI POWERED · CAMPUS SYSTEM</text>
+
+  <!-- Decorative line -->
+  <line x1="220" y1="348" x2="460" y2="348" stroke="#1a237e" stroke-width="1.5" opacity="0.3"/>
+  <circle cx="340" cy="348" r="3" fill="#ffd700"/>
+  <circle cx="220" cy="348" r="3" fill="#1a237e" opacity="0.4"/>
+  <circle cx="460" cy="348" r="3" fill="#1a237e" opacity="0.4"/>
+
+</svg>
