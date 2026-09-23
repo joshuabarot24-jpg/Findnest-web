@@ -1,23 +1,175 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { setAuth } from "@/lib/auth";
+
+type ModalStep = "closed" | "roles" | "super_admin" | "admin" | "student" | "student_otp";
 
 export default function Home() {
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [step, setStep] = useState<ModalStep>("closed");
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const [studentId, setStudentId] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otpError, setOtpError] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  function closeModal() {
+    setStep("closed");
+    setUsername("");
+    setPassword("");
+    setStudentId("");
+    setOtp(["", "", "", "", "", ""]);
+    setError("");
+    setOtpError("");
+    setShowPassword(false);
+  }
+
+  useEffect(() => {
+    if (step !== "closed") {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [step]);
+
+  function openRoleSelect() {
+    closeModal();
+    setStep("roles");
+  }
+
+  function selectRole(role: "super_admin" | "admin" | "student") {
+    setUsername("");
+    setPassword("");
+    setStudentId("");
+    setError("");
+    setStep(role);
+  }
+
+  const startResendTimer = () => {
+    setResendTimer(60);
+    const interval = setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) { clearInterval(interval); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleSuperAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await api.post("/auth/super-admin/login", { email: username, password });
+      setAuth(response.data.token, response.data.user);
+      window.location.href = "/user-management";
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await api.post("/auth/admin/login", { email: username, password });
+      setAuth(response.data.token, response.data.user);
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStudentLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await api.post("/auth/student/login", { school_id: studentId, password });
+      setMaskedEmail(response.data.email);
+      setStep("student_otp");
+      startResendTimer();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    if (value && index < 5) {
+      document.getElementById(`landing-otp-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      document.getElementById(`landing-otp-${index - 1}`)?.focus();
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const otpCode = otp.join("");
+    if (otpCode.length !== 6) {
+      setOtpError("Please enter all 6 digits");
+      return;
+    }
+    setOtpError("");
+    setOtpLoading(true);
+    try {
+      const response = await api.post("/auth/student/verify-otp", { school_id: studentId, otp: otpCode });
+      setAuth(response.data.token, response.data.user);
+      window.location.href = "/student-home";
+    } catch (err: any) {
+      setOtpError(err.response?.data?.message || "Invalid OTP code");
+      setOtp(["", "", "", "", "", ""]);
+      document.getElementById("landing-otp-0")?.focus();
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    try {
+      await api.post("/auth/student/resend-otp", { school_id: studentId });
+      startResendTimer();
+      setOtp(["", "", "", "", "", ""]);
+      setOtpError("");
+    } catch (err: any) {
+      setOtpError("Failed to resend code. Please try again.");
+    }
+  };
 
   return (
     <main className="min-h-screen bg-[#fafbff] font-sans overflow-x-hidden scroll-smooth">
 
-      {showLoginModal && (
+      {step === "roles" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
-            <button
-              onClick={() => setShowLoginModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
-            >
-              &times;
-            </button>
+            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
             <div className="text-center mb-8">
               <h2 className="text-2xl font-black text-[#1a237e] mb-1">Welcome Back</h2>
@@ -25,59 +177,205 @@ export default function Home() {
             </div>
 
             <div className="space-y-4">
-              <a
-                href="/login"
-                className="flex items-center gap-4 w-full border-2 border-[#1a237e]/20 hover:border-[#1a237e] hover:bg-[#1a237e]/5 rounded-2xl p-4 transition-all duration-200 group"
-              >
+              <button onClick={() => selectRole("super_admin")} className="flex items-center gap-4 w-full border-2 border-[#1a237e]/20 hover:border-[#1a237e] hover:bg-[#1a237e]/5 rounded-2xl p-4 transition-all duration-200 group text-left">
                 <div className="w-12 h-12 bg-[#1a237e] rounded-xl flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                <div className="text-left">
+                <div>
                   <p className="font-black text-[#1a237e] text-base">Super Admin</p>
                   <p className="text-gray-400 text-xs">CCI IT Coordinator — Full system access</p>
                 </div>
                 <span className="ml-auto text-[#1a237e]/40 group-hover:text-[#1a237e] text-xl transition">→</span>
-              </a>
+              </button>
 
-              <a
-                href="/admin-login"
-                className="flex items-center gap-4 w-full border-2 border-[#ffd700]/40 hover:border-[#ffd700] hover:bg-[#ffd700]/5 rounded-2xl p-4 transition-all duration-200 group"
-              >
+              <button onClick={() => selectRole("admin")} className="flex items-center gap-4 w-full border-2 border-[#ffd700]/40 hover:border-[#ffd700] hover:bg-[#ffd700]/5 rounded-2xl p-4 transition-all duration-200 group text-left">
                 <div className="w-12 h-12 bg-[#ffd700] rounded-xl flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-[#1a237e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <div className="text-left">
+                <div>
                   <p className="font-black text-[#1a237e] text-base">Admin</p>
                   <p className="text-gray-400 text-xs">Guidance Counselor — Manage items &amp; claims</p>
                 </div>
                 <span className="ml-auto text-[#ffd700]/60 group-hover:text-[#ffd700] text-xl transition">→</span>
-              </a>
+              </button>
 
-              <a
-                href="/student-login"
-                className="flex items-center gap-4 w-full border-2 border-red-400/30 hover:border-red-500 hover:bg-red-50 rounded-2xl p-4 transition-all duration-200 group"
-              >
+              <button onClick={() => selectRole("student")} className="flex items-center gap-4 w-full border-2 border-red-400/30 hover:border-red-500 hover:bg-red-50 rounded-2xl p-4 transition-all duration-200 group text-left">
                 <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path d="M12 14l9-5-9-5-9 5 9 5z" />
                     <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                   </svg>
                 </div>
-                <div className="text-left">
+                <div>
                   <p className="font-black text-[#1a237e] text-base">Student</p>
                   <p className="text-gray-400 text-xs">Report &amp; track lost or found items</p>
                 </div>
                 <span className="ml-auto text-red-400/60 group-hover:text-red-500 text-xl transition">→</span>
-              </a>
+              </button>
             </div>
 
             <p className="text-center text-gray-400 text-xs mt-6">
               Not sure which to pick? Contact your school administrator.
             </p>
+          </div>
+        </div>
+      )}
+
+      {step === "super_admin" && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
+            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+            <button onClick={() => setStep("roles")} className="text-gray-400 hover:text-[#1a237e] text-sm font-medium mb-4">&larr; Back</button>
+
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-black text-[#1a237e]">Super Admin Login</h2>
+              <p className="text-gray-400 text-sm mt-1">Secure Access for System Administrators</p>
+            </div>
+
+            <form onSubmit={handleSuperAdminLogin} className="space-y-4" autoComplete="off">
+              <div>
+                <label className="block text-sm font-bold text-gray-600 mb-2">ID Username</label>
+                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" autoComplete="off" name="fnd-user-field" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700" required />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-600 mb-2">Password</label>
+                <div className="relative">
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" autoComplete="new-password" name="fnd-pass-field" className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700" required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold">
+                    {showPassword ? "HIDE" : "SHOW"}
+                  </button>
+                </div>
+              </div>
+              {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
+              <button type="submit" disabled={loading} className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+                {loading ? "Logging in..." : "Sign In"}
+              </button>
+              <div className="text-center">
+                <a href="/forgot-password" className="text-gray-400 hover:text-[#1a237e] text-sm transition font-medium">Forgot Password?</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {step === "admin" && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
+            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+            <button onClick={() => setStep("roles")} className="text-gray-400 hover:text-[#1a237e] text-sm font-medium mb-4">&larr; Back</button>
+
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-black text-[#ffd700]">Admin Login</h2>
+              <p className="text-gray-400 text-sm mt-1">Secure Access for School Personnel</p>
+            </div>
+
+            <form onSubmit={handleAdminLogin} className="space-y-4" autoComplete="off">
+              <div>
+                <label className="block text-sm font-bold text-gray-600 mb-2">Employee Username</label>
+                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" autoComplete="off" name="fnd-user-field" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#ffd700] focus:outline-none transition text-gray-700" required />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-600 mb-2">Password</label>
+                <div className="relative">
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" autoComplete="new-password" name="fnd-pass-field" className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-[#ffd700] focus:outline-none transition text-gray-700" required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold">
+                    {showPassword ? "HIDE" : "SHOW"}
+                  </button>
+                </div>
+              </div>
+              {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
+              <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-[#1a237e] to-[#1565c0] hover:from-[#283593] hover:to-[#1976d2] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+                {loading ? "Logging in..." : "Login to Dashboard"}
+              </button>
+              <div className="text-center">
+                <a href="/forgot-password" className="text-gray-400 hover:text-[#1a237e] text-sm transition font-medium">Forgot Password?</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {step === "student" && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
+            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+            <button onClick={() => setStep("roles")} className="text-gray-400 hover:text-[#1a237e] text-sm font-medium mb-4">&larr; Back</button>
+
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-black text-red-500">Student Login</h2>
+              <p className="text-gray-400 text-sm mt-1">Use your school credentials</p>
+            </div>
+
+            <form onSubmit={handleStudentLogin} className="space-y-4" autoComplete="off">
+              <div>
+                <label className="block text-sm font-bold text-gray-600 mb-2">Student ID</label>
+                <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="e.g. 2022-10043" autoComplete="off" name="fnd-user-field" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition text-gray-700" required />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-600 mb-2">Password</label>
+                <div className="relative">
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" autoComplete="new-password" name="fnd-pass-field" className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition text-gray-700" required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition text-xs font-bold">
+                    {showPassword ? "HIDE" : "SHOW"}
+                  </button>
+                </div>
+              </div>
+              {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
+              <button type="submit" disabled={loading} className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+                {loading ? "Sending OTP..." : "Sign In"}
+              </button>
+              <div className="text-center">
+                <a href="/forgot-password" className="text-gray-400 hover:text-red-500 text-sm transition font-medium">Forgot Password?</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {step === "student_otp" && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
+            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-black text-red-500">Check Your Email</h2>
+              <p className="text-gray-400 text-sm mt-1">We sent a 6-digit code to</p>
+              <p className="text-red-500 font-bold text-sm mt-1">{maskedEmail}</p>
+            </div>
+
+            <div className="space-y-5">
+              <div className="flex gap-2 justify-center">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    id={`landing-otp-${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    className="w-11 h-13 text-center text-xl font-black border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition text-gray-700"
+                  />
+                ))}
+              </div>
+              {otpError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{otpError}</div>}
+              <button onClick={handleVerifyOtp} disabled={otpLoading} className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+                {otpLoading ? "Verifying..." : "Verify OTP"}
+              </button>
+              <div className="text-center">
+                <button onClick={handleResendOtp} disabled={resendTimer > 0} className="text-sm font-bold text-red-500 disabled:text-gray-400 hover:underline transition">
+                  {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend Code"}
+                </button>
+              </div>
+              <div className="text-center">
+                <button onClick={() => setStep("student")} className="text-gray-400 hover:text-red-500 text-sm transition font-medium">&larr; Back to Login</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -90,10 +388,10 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-10">
           <a href="/" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOME</a>
-          <button onClick={() => setShowLoginModal(true)} className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">LOST</button>
-          <button onClick={() => setShowLoginModal(true)} className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">FOUND</button>
+          <a href="#about" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">ABOUT FINDNEST</a>
+          <a href="#how-it-works" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOW IT WORKS</a>
           <button
-            onClick={() => setShowLoginModal(true)}
+            onClick={openRoleSelect}
             className="bg-[#ffd700] text-[#1a237e] font-bold px-6 py-2 rounded-full hover:bg-yellow-300 transition shadow-md text-sm"
           >
             LOG IN
@@ -131,13 +429,13 @@ export default function Home() {
 
             <div className="flex gap-4 mb-12">
               <button
-                onClick={() => setShowLoginModal(true)}
+                onClick={openRoleSelect}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-4 rounded-2xl transition shadow-xl shadow-red-500/20 hover:-translate-y-1"
               >
                 Report Lost Item
               </button>
               <button
-                onClick={() => setShowLoginModal(true)}
+                onClick={openRoleSelect}
                 className="flex items-center gap-2 bg-white hover:bg-gray-50 border-2 border-[#1a237e]/10 text-[#1a237e] font-bold px-8 py-4 rounded-2xl transition hover:-translate-y-1"
               >
                 Found Something?
@@ -169,31 +467,31 @@ export default function Home() {
               <Image
                 src="/images/findnest-logo.svg"
                 alt="FindNest Logo"
-                width={140}
-                height={140}
+                width={170}
+                height={160}
                 className="rounded-2xl mb-4"
                 priority
               />
               <h3 className="text-[#1a237e] font-black text-lg text-center">SJDM Cornerstone</h3>
-              <p className="text-gray-400 text-sm text-center mb-6">College Inc.</p>
+              <p className="text-gray-600 text-sm text-center mb-6">College Inc.</p>
 
               <div className="space-y-3 w-full">
                 <div className="flex items-center gap-3 bg-[#f5f7ff] rounded-xl p-3">
                   <div>
                     <p className="text-[#1a237e] text-sm font-semibold">AI Image Matching</p>
-                    <p className="text-gray-400 text-xs">Smart item recognition to instantly identify lost items and accelerate the recovery process!</p>
+                    <p className="text-blue-600 text-xs">Smart item recognition to instantly identify lost items and accelerate the recovery process!</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 bg-[#f5f7ff] rounded-xl p-3">
                   <div>
                     <p className="text-[#1a237e] text-sm font-semibold">Instant Notifications</p>
-                    <p className="text-gray-400 text-xs">Real-time push alerts to keep users immediately informed whenever a matching item is found!</p>
+                    <p className="text-blue-600 text-xs">Real-time push alerts to keep users immediately informed whenever a matching item is found!</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 bg-[#f5f7ff] rounded-xl p-3">
                   <div>
                     <p className="text-[#1a237e] text-sm font-semibold">Claim Verification</p>
-                    <p className="text-gray-400 text-xs">5-layer security check to ensure authenticity and prevent fraudulent claims!</p>
+                    <p className="text-blue-600 text-xs">5-layer security check to ensure authenticity and prevent fraudulent claims!</p>
                   </div>
                 </div>
               </div>
@@ -358,7 +656,7 @@ export default function Home() {
           <h2 className="text-4xl font-black text-white mb-4">Lost Something on Campus?</h2>
           <p className="text-blue-200 text-lg mb-10">Report it now and let our AI do the work for you.</p>
           <button
-            onClick={() => setShowLoginModal(true)}
+            onClick={openRoleSelect}
             className="bg-[#ffd700] text-[#1a237e] font-black px-10 py-4 rounded-2xl hover:bg-yellow-300 transition shadow-xl text-lg"
           >
             Get Started Now
@@ -366,47 +664,31 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="bg-[#0d1757] px-20 py-12">
-        <div className="flex justify-between items-start">
-          <div className="max-w-xs">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-xl font-black text-white">
-                FIND<span className="text-[#ffd700]">NEST</span>
-              </span>
-            </div>
-            <p className="text-blue-300 text-sm leading-relaxed">
-              A Multi-Platform Lost & Found Record Management System with Image Recognition & Description Based Matching and Claim Verification for San Jose Del Monte Cornerstone College Inc.
-            </p>
-          </div>
-          <div>
-            <p className="font-bold mb-4 text-[#ffd700] text-sm tracking-wide uppercase">Site</p>
-            <button onClick={() => setShowLoginModal(true)} className="block text-blue-300 text-sm hover:text-white mb-2">Lost Items</button>
-            <button onClick={() => setShowLoginModal(true)} className="block text-blue-300 text-sm hover:text-white mb-2">Found Items</button>
-            <button onClick={() => setShowLoginModal(true)} className="block text-blue-300 text-sm hover:text-white mb-2">Report Item</button>
-          </div>
-          <div>
-            <p className="font-bold mb-4 text-[#ffd700] text-sm tracking-wide uppercase">Help</p>
-            <a href="#about" className="block text-blue-300 text-sm hover:text-white mb-2">About FindNest</a>
-            <a href="#how-it-works" className="block text-blue-300 text-sm hover:text-white mb-2">How It Works</a>
-          </div>
-          <div>
-            <p className="font-bold mb-4 text-[#ffd700] text-sm tracking-wide uppercase">Connect</p>
+      <footer className="bg-[#0d1757] px-8 py-14">
+        <div className="max-w-3xl mx-auto text-center">
+          <span className="text-2xl font-black text-white">
+            FIND<span className="text-[#ffd700]">NEST</span>
+          </span>
+          <p className="text-blue-300 text-sm leading-relaxed mt-4 max-w-lg mx-auto">
+            A Multi-Platform Lost &amp; Found Record Management System with Image Recognition &amp; Description Based Matching and Claim Verification for San Jose Del Monte Cornerstone College Inc.
+          </p>
+
+          <div className="flex items-center justify-center gap-8 mt-8 flex-wrap">
             <a
               href="https://www.facebook.com/sjdmcci.2023"
-              className="block text-blue-300 text-sm hover:text-white mb-2 transition-colors"
+              className="text-blue-300 text-sm hover:text-white transition-colors font-medium"
               target="_blank"
-              rel="noopener noreferrer">
-                Facebook
+              rel="noopener noreferrer"
+            >
+              Facebook
             </a>
+            <span className="text-blue-300 text-sm font-medium">0917 700 4758</span>
+            <span className="text-blue-300 text-sm font-medium">sjdmcornerstonecollege.inc@gmail.com</span>
           </div>
-          <div>
-            <p className="font-bold mb-4 text-[#ffd700] text-sm tracking-wide uppercase">Contact</p>
-            <p className="text-blue-300 text-sm mb-2">0917 700 4758</p>
-            <p className="text-blue-300 text-sm">sjdmcornerstonecollege.inc@gmail.com</p>
+
+          <div className="border-t border-white/10 mt-8 pt-6">
+            <p className="text-blue-400 text-sm">© 2026 FindNest — SJDM Cornerstone College Inc. All rights reserved.</p>
           </div>
-        </div>
-        <div className="border-t border-white/10 mt-10 pt-6 text-center">
-          <p className="text-blue-400 text-sm">© 2026 FindNest — SJDM Cornerstone College Inc. All rights reserved.</p>
         </div>
       </footer>
     </main>
