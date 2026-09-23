@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface Hotspot {
   area: string;
@@ -20,6 +21,14 @@ interface TopLocation {
 type FilterType = "both" | "lost" | "found";
 
 export default function LocationAnalytics() {
+  return (
+    <AuthGate allowedRole="admin">
+      <LocationAnalyticsContent />
+    </AuthGate>
+  );
+}
+
+function LocationAnalyticsContent() {
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("both");

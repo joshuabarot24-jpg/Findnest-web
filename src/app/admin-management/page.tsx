@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface AdminUser {
   id: number;
@@ -55,7 +56,16 @@ function formatRole(role: string) {
   return role.replace("_", " ");
 }
 
+
 export default function AdminManagement() {
+  return (
+    <AuthGate allowedRole="super_admin">
+      <AdminManagementContent />
+    </AuthGate>
+  );
+}
+
+function AdminManagementContent() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

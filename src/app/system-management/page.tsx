@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface LogEntry {
   action: string;
@@ -10,6 +11,14 @@ interface LogEntry {
 }
 
 export default function SystemManagement() {
+  return (
+    <AuthGate allowedRole="super_admin">
+      <SystemManagementContent />
+    </AuthGate>
+  );
+}
+
+function SystemManagementContent() {
   const [sensitivity, setSensitivity] = useState(75);
   const [savedSensitivity, setSavedSensitivity] = useState(75);
   const [sensitivityLoading, setSensitivityLoading] = useState(true);

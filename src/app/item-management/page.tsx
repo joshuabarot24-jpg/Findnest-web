@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 type ItemStatus = "unclaimed" | "claimed" | "for_disposal" | "confiscated" | "found_item";
 type LostStatus = "searching" | "matched" | "returned";
@@ -57,6 +58,14 @@ function formatDateTime(dateStr: string) {
 }
 
 export default function ItemManagement() {
+  return (
+    <AuthGate allowedRole="admin">
+      <ItemManagementContent />
+    </AuthGate>
+  );
+}
+
+function ItemManagementContent() {
   const [mainTab, setMainTab] = useState<"found" | "lost">("found");
 
   const [foundItems, setFoundItems] = useState<FoundItem[]>([]);

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface AuditRecord {
   id: number;
@@ -79,6 +80,14 @@ function formatTime(dateStr: string) {
 }
 
 export default function SuperAdminRecords() {
+  return (
+    <AuthGate allowedRole="super_admin">
+      <SuperAdminRecordsContent />
+    </AuthGate>
+  );
+}
+
+function SuperAdminRecordsContent() {
   const [view, setView] = useState<"activity" | "cases" | "appeals">("activity");
 
   const [records, setRecords] = useState<AuditRecord[]>([]);

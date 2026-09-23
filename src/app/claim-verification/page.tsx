@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface OwnershipQuestion {
   id: number;
@@ -89,8 +90,15 @@ function questionScore(questions: OwnershipQuestion[]) {
   const correct = answered.filter((q) => q.student_answer === q.correct_option).length;
   return { correct, total: answered.length };
 }
-
 export default function ClaimVerification() {
+  return (
+    <AuthGate allowedRole="admin">
+      <ClaimVerificationContent />
+    </AuthGate>
+  );
+}
+
+function ClaimVerificationContent() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

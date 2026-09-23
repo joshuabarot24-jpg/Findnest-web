@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface SupportMessage {
   id: number;
@@ -24,6 +25,15 @@ function formatTime(dateStr: string) {
 }
 
 export default function SupportInbox() {
+  return (
+    <AuthGate allowedRole="admin">
+      <SupportInboxContent />
+    </AuthGate>
+  );
+}
+
+function SupportInboxContent() {
+
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);

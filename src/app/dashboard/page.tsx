@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface ActivityItem {
   item: string;
@@ -12,6 +13,14 @@ interface ActivityItem {
 }
 
 export default function Dashboard() {
+  return (
+    <AuthGate allowedRole="admin">
+      <DashboardContent />
+    </AuthGate>
+  );
+}
+
+function DashboardContent() {
   const [stats, setStats] = useState({ found_today: 0, lost_today: 0, pending_claims: 0, total_reports: 0 });
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);

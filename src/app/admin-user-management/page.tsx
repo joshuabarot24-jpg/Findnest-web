@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface SystemUser {
   id: number;
@@ -34,6 +35,14 @@ function educationLabel(value: string | null) {
 }
 
 export default function AdminUserManagement() {
+  return (
+    <AuthGate allowedRole="admin">
+      <AdminUserManagementContent />
+    </AuthGate>
+  );
+}
+
+function AdminUserManagementContent() {
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

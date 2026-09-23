@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface AuditRecord {
   id: number;
@@ -86,6 +87,15 @@ function formatTime(dateStr: string) {
 }
 
 export default function DigitalRecords() {
+  return (
+    <AuthGate allowedRole="admin">
+      <DigitalRecordsContent />
+    </AuthGate>
+  );
+}
+
+function DigitalRecordsContent() {
+
   const [view, setView] = useState<"activity" | "cases">("activity");
   const [filterType, setFilterType] = useState<FilterType>("all");
 
