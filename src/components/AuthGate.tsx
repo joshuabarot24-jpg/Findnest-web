@@ -1,0 +1,57 @@
+"use client";
+import { useState, useEffect, ReactNode } from "react";
+
+interface AuthGateProps {
+  allowedRole: "super_admin" | "admin" | "student";
+  children: ReactNode;
+}
+
+export default function AuthGate({ allowedRole, children }: AuthGateProps) {
+  const [status, setStatus] = useState<"checking" | "ok">("checking");
+
+  function checkAuth() {
+    const token = localStorage.getItem("findnest_token");
+    const userStr = localStorage.getItem("findnest_user");
+
+    if (!token || !userStr) {
+      window.location.href = "/";
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userStr);
+      if (user.role !== allowedRole) {
+        window.location.href = "/";
+        return;
+      }
+      setStatus("ok");
+    } catch {
+      window.location.href = "/";
+    }
+  }
+
+  useEffect(() => {
+    checkAuth();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "findnest_token" || e.key === "findnest_user") {
+        checkAuth();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  if (status === "checking") {
+    return (
+      <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-[#1a237e]/20 border-t-[#1a237e] rounded-full animate-spin" />
+          <p className="text-gray-400 text-sm font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
