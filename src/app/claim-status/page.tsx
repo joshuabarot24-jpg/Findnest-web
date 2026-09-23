@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface Claim {
   id: number;
@@ -104,6 +105,14 @@ function daysRemaining(deadline: string): number {
 }
 
 export default function ClaimStatusPage() {
+  return (
+    <AuthGate allowedRole="student">
+      <ClaimStatusContent />
+    </AuthGate>
+  );
+}
+
+function ClaimStatusContent() {
   const [userInitial, setUserInitial] = useState("");
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);

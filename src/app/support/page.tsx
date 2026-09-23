@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 const faqs = [
   { question: "How do I report a lost item?", answer: "Go to the Home page and click 'Report Lost Items'. Fill in the details and upload a clear photo of your item. Our AI will automatically search for potential matches among found items." },
@@ -32,6 +33,14 @@ function formatTime(dateStr: string) {
 }
 
 export default function SupportPage() {
+  return (
+    <AuthGate allowedRole="student">
+      <SupportContent />
+    </AuthGate>
+  );
+}
+
+function SupportContent() {
   const [userInitial, setUserInitial] = useState("");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [name, setName] = useState("");

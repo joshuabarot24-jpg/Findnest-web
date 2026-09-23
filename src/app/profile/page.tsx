@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface User {
   id: number;
@@ -19,6 +20,14 @@ interface User {
 }
 
 export default function ProfilePage() {
+  return (
+    <AuthGate allowedRole="student">
+      <ProfileContent />
+    </AuthGate>
+  );
+}
+
+function ProfileContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface NotificationItem {
   id: number;
@@ -37,6 +38,14 @@ function typeColor(type: string) {
 }
 
 export default function NotificationsPage() {
+  return (
+    <AuthGate allowedRole="student">
+      <NotificationsContent />
+    </AuthGate>
+  );
+}
+
+function NotificationsContent() {
   const [userInitial, setUserInitial] = useState("");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);

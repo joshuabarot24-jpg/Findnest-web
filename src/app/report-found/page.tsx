@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 const categories = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Others"];
 const MAX_PHOTOS = 4;
@@ -12,6 +13,14 @@ interface PhotoItem {
 }
 
 export default function ReportFoundPage() {
+  return (
+    <AuthGate allowedRole="student">
+      <ReportFoundContent />
+    </AuthGate>
+  );
+}
+
+function ReportFoundContent() {
   const [userInitial, setUserInitial] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
 

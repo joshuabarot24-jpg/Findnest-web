@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import AuthGate from "@/components/AuthGate";
 
 interface LostReport {
   id: number;
@@ -45,6 +46,14 @@ function statusLabel(status: string) {
 }
 
 export default function StudentHome() {
+  return (
+    <AuthGate allowedRole="student">
+      <StudentHomeContent />
+    </AuthGate>
+  );
+}
+
+function StudentHomeContent() {
   const [userName, setUserName] = useState("");
   const [userInitial, setUserInitial] = useState("?");
 
