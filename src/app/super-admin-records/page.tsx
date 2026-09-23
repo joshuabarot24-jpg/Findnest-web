@@ -225,7 +225,7 @@ export default function SuperAdminRecords() {
         </div>
       )}
 
-      <aside className="w-72 bg-[#1a237e] min-h-screen flex flex-col fixed left-0 top-0 bottom-0">
+      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
         <div className="flex items-center gap-3 px-6 py-6">
           <div>
             <a href="/user-management" className="text-white font-black text-lg block hover:opacity-80 transition">
