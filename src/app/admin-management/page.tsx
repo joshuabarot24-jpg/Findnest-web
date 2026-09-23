@@ -73,8 +73,13 @@ function AdminManagementContent() {
   const [mainTab, setMainTab] = useState<"admin" | "super_admin">("admin");
 
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showAssignConfirm, setShowAssignConfirm] = useState(false);
+  const [showAssignPassword, setShowAssignPassword] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
+  const [restrictingAdmin, setRestrictingAdmin] = useState<AdminUser | null>(null);
+  const [restrictActionLoading, setRestrictActionLoading] = useState(false);
   const [revokingAdmin, setRevokingAdmin] = useState<AdminUser | null>(null);
+  const [revokeActionLoading, setRevokeActionLoading] = useState(false);
   const [editTab, setEditTab] = useState<"credentials" | "privileges" | "restrictions">("credentials");
 
   const [formData, setFormData] = useState({
@@ -118,12 +123,29 @@ function AdminManagementContent() {
     return users.filter((u) => u.role === mainTab);
   }, [users, mainTab]);
 
+  const idNumberMap = useMemo(() => {
+    const sorted = [...users].sort((a, b) => a.id - b.id);
+    const map = new Map<number, number>();
+    sorted.forEach((u, idx) => map.set(u.id, idx + 1));
+    return map;
+  }, [users]);
+
+  function displayId(userId: number) {
+    const num = idNumberMap.get(userId) ?? userId;
+    return `ADM-${String(num).padStart(2, "0")}`;
+  }
+
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().trim();
+    if (!q) return baseFiltered;
     return baseFiltered.filter(
-      (a) => a.name.toLowerCase().includes(q) || a.email.toLowerCase().includes(q)
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        a.email.toLowerCase().includes(q) ||
+        formatRole(a.role).toLowerCase().includes(q) ||
+        displayId(a.id).toLowerCase().includes(q)
     );
-  }, [baseFiltered, search]);
+  }, [baseFiltered, search, idNumberMap]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -138,6 +160,7 @@ function AdminManagementContent() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const activeCount = users.filter((a) => a.is_active).length;
+  const restrictedCount = users.filter((a) => a.is_restricted && a.is_active).length;
   const revokedCount = users.filter((a) => !a.is_active).length;
 
   function resetForm() {
@@ -196,22 +219,28 @@ function AdminManagementContent() {
     return null;
   }
 
-  async function handleAssignSubmit() {
+  function handleReviewAssign() {
     const validationError = validateAssignForm();
     if (validationError) {
       setFormError(validationError);
       return;
     }
     setFormError("");
+    setShowAssignConfirm(true);
+  }
+
+  async function handleAssignSubmit() {
     setFormLoading(true);
     try {
       await api.post("/users", formData);
+      setShowAssignConfirm(false);
       setShowAssignModal(false);
       setPage(1);
       setToast(`${formData.name} was assigned as ${formatRole(formData.role)}.`);
       resetForm();
       fetchUsers();
     } catch (err: any) {
+      setShowAssignConfirm(false);
       setFormError(
         err.response?.data?.message ||
           Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
@@ -251,21 +280,39 @@ function AdminManagementContent() {
     }
   }
 
+  async function handleRestrictConfirm() {
+    if (!restrictingAdmin) return;
+    setRestrictActionLoading(true);
+    try {
+      await api.post(`/users/${restrictingAdmin.id}/toggle-restriction`, {
+        is_restricted: !restrictingAdmin.is_restricted,
+      });
+      setToast(
+        !restrictingAdmin.is_restricted
+          ? `${restrictingAdmin.name} was restricted and can no longer log in.`
+          : `${restrictingAdmin.name}'s restriction was lifted.`
+      );
+      setRestrictingAdmin(null);
+      fetchUsers();
+    } catch (err) {
+      console.error("Error updating restriction:", err);
+    } finally {
+      setRestrictActionLoading(false);
+    }
+  }
+
   async function handleRevokeConfirm() {
     if (!revokingAdmin) return;
+    setRevokeActionLoading(true);
     try {
-      if (revokingAdmin.is_active) {
-        await api.post(`/users/${revokingAdmin.id}/revoke`);
-        setToast(`${revokingAdmin.name}'s admin access was revoked.`);
-      } else {
-        await api.post(`/users/${revokingAdmin.id}/restore`);
-        setToast(`${revokingAdmin.name}'s admin access was restored.`);
-      }
+      await api.post(`/users/${revokingAdmin.id}/revoke`);
+      setToast(`${revokingAdmin.name}'s admin access was permanently revoked.`);
       setRevokingAdmin(null);
       fetchUsers();
     } catch (err) {
-      console.error("Error updating admin status:", err);
-      setRevokingAdmin(null);
+      console.error("Error revoking admin:", err);
+    } finally {
+      setRevokeActionLoading(false);
     }
   }
 
@@ -352,7 +399,7 @@ function AdminManagementContent() {
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">Total Admins</p>
             <p className="text-4xl font-black text-[#1a237e] mt-1">{users.length}</p>
@@ -361,6 +408,11 @@ function AdminManagementContent() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">Active Admins</p>
             <p className="text-4xl font-black text-green-600 mt-1">{activeCount}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <p className="text-gray-400 text-sm font-medium">Restricted Admins</p>
+            <p className="text-4xl font-black text-orange-500 mt-1">{restrictedCount}</p>
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -431,7 +483,7 @@ function AdminManagementContent() {
                         </div>
                         <div>
                           <p className="font-bold text-gray-700">{admin.name}</p>
-                          <p className="text-gray-400 text-xs mt-0.5">ID: ADM-{String(admin.id).padStart(3, "0")}</p>
+                          <p className="text-gray-400 text-xs mt-0.5">ID: {displayId(admin.id)}</p>
                         </div>
                       </div>
                     </td>
@@ -449,35 +501,43 @@ function AdminManagementContent() {
                       <p className="text-gray-500 text-sm">{admin.email}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${admin.is_active ? "bg-green-500" : "bg-red-500"}`}></div>
-                        <span
-                          className={`text-xs font-bold px-3 py-1.5 rounded-lg ${
-                            admin.is_active ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
-                          }`}
-                        >
-                          {admin.is_active ? "ACTIVE" : "REVOKED"}
-                        </span>
-                      </div>
+                      {!admin.is_active ? (
+                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600">REVOKED</span>
+                      ) : admin.is_restricted ? (
+                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600">RESTRICTED</span>
+                      ) : (
+                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-50 text-green-700">ACTIVE</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openEditModal(admin)}
-                          className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                          disabled={!admin.is_active}
+                          className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Edit
                         </button>
-                        <button
-                          onClick={() => setRevokingAdmin(admin)}
-                          className={
-                            admin.is_active
-                              ? "bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                              : "bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                          }
-                        >
-                          {admin.is_active ? "Revoke" : "Restore"}
-                        </button>
+                        {admin.is_active && (
+                          <button
+                            onClick={() => setRestrictingAdmin(admin)}
+                            className={
+                              admin.is_restricted
+                                ? "bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                                : "bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                            }
+                          >
+                            {admin.is_restricted ? "Unrestrict" : "Restrict"}
+                          </button>
+                        )}
+                        {admin.is_active && (
+                          <button
+                            onClick={() => setRevokingAdmin(admin)}
+                            className="bg-red-50 hover:bg-red-600 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                          >
+                            Revoke
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -573,14 +633,23 @@ function AdminManagementContent() {
 
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Password</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Minimum 8 characters"
-                  autoComplete="new-password"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type={showAssignPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                    className="w-full mt-1 px-4 py-3 pr-16 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAssignPassword(!showAssignPassword)}
+                    className="absolute right-4 top-1/2 mt-0.5 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold"
+                  >
+                    {showAssignPassword ? "HIDE" : "SHOW"}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -606,11 +675,56 @@ function AdminManagementContent() {
                 Cancel
               </button>
               <button
+                onClick={handleReviewAssign}
+                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
+              >
+                Review & Assign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAssignConfirm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h2 className="text-xl font-black text-[#1a237e] mb-1">Confirm New Admin</h2>
+            <p className="text-gray-400 text-sm mb-6">Please review the details before assigning this role</p>
+
+            <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5 text-sm mb-6">
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">Personnel Name</span>
+                <span className="font-bold text-gray-700 text-right">{formData.name}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">Email</span>
+                <span className="font-bold text-gray-700 text-right">{formData.email}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">Password</span>
+                <span className="font-bold text-gray-700 text-right">{formData.password}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">Role</span>
+                <span className="font-bold text-gray-700 text-right capitalize">{formatRole(formData.role)}</span>
+              </div>
+            </div>
+
+            <p className="text-gray-400 text-xs text-center mb-4">Double-check the details above are correct before proceeding.</p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAssignConfirm(false)}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Go Back
+              </button>
+              <button
                 onClick={handleAssignSubmit}
                 disabled={formLoading}
                 className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
               >
-                {formLoading ? "Assigning..." : "Assign Admin"}
+                {formLoading ? "Assigning..." : "Confirm & Assign"}
               </button>
             </div>
           </div>
@@ -798,17 +912,49 @@ function AdminManagementContent() {
         </div>
       )}
 
-      {revokingAdmin && (
+      {restrictingAdmin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">
-              {revokingAdmin.is_active ? "Revoke Admin Access?" : "Restore Admin Access?"}
+              {restrictingAdmin.is_restricted ? "Lift Restriction?" : "Restrict This Account?"}
             </h2>
             <p className="text-gray-400 text-sm mb-8">
-              {revokingAdmin.is_active
-                ? `${revokingAdmin.name} will lose access to the admin panel immediately.`
-                : `${revokingAdmin.name} will regain access to the admin panel.`}
+              {restrictingAdmin.is_restricted
+                ? `${restrictingAdmin.name} will regain the ability to log in.`
+                : `${restrictingAdmin.name} will be blocked from logging in until you unrestrict them.`}
             </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRestrictingAdmin(null)}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRestrictConfirm}
+                disabled={restrictActionLoading}
+                className={`flex-1 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50 ${
+                  restrictingAdmin.is_restricted ? "bg-green-600 hover:bg-green-700" : "bg-orange-500 hover:bg-orange-600"
+                }`}
+              >
+                {restrictActionLoading ? "Processing..." : restrictingAdmin.is_restricted ? "Lift Restriction" : "Restrict"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {revokingAdmin && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+            <h2 className="text-xl font-black text-[#1a237e] mb-2">Permanently Revoke Access?</h2>
+            <p className="text-gray-400 text-sm mb-3">
+              {revokingAdmin.name} will permanently lose access to their account — use this when someone has left the school.
+            </p>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-6">
+              <p className="text-red-600 text-xs font-bold">This action CANNOT be undone. There is no restore option once revoked.</p>
+            </div>
 
             <div className="flex gap-3">
               <button
@@ -819,11 +965,10 @@ function AdminManagementContent() {
               </button>
               <button
                 onClick={handleRevokeConfirm}
-                className={`flex-1 text-white font-bold py-3 rounded-2xl transition ${
-                  revokingAdmin.is_active ? "bg-red-500 hover:bg-red-600" : "bg-green-600 hover:bg-green-700"
-                }`}
+                disabled={revokeActionLoading}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
               >
-                {revokingAdmin.is_active ? "Revoke" : "Restore"}
+                {revokeActionLoading ? "Revoking..." : "Permanently Revoke"}
               </button>
             </div>
           </div>
