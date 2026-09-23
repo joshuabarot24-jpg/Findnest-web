@@ -91,9 +91,11 @@ function UserManagementContent() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school" | "revoked" | "password_requests">("all");
+  const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school" | "revoked" | "password_requests" | "restricted">("all");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [approvingPassword, setApprovingPassword] = useState(false);
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
   const [revokingUser, setRevokingUser] = useState<SystemUser | null>(null);
@@ -141,18 +143,36 @@ function UserManagementContent() {
     if (studentSubTab === "all") return users.filter((u) => u.is_active);
     if (studentSubTab === "revoked") return users.filter((u) => !u.is_active);
     if (studentSubTab === "password_requests") return users.filter((u) => u.password_change_requested);
+    if (studentSubTab === "restricted") return users.filter((u) => u.is_restricted && u.is_active);
     return users.filter((u) => u.education_level === studentSubTab && u.is_active);
   }, [users, studentSubTab]);
 
+  const idNumberMap = useMemo(() => {
+    const sorted = [...users].sort((a, b) => a.id - b.id);
+    const map = new Map<number, number>();
+    sorted.forEach((u, idx) => map.set(u.id, idx + 1));
+    return map;
+  }, [users]);
+
+  function displayId(userId: number) {
+    const num = idNumberMap.get(userId) ?? userId;
+    return `USR-${String(num).padStart(2, "0")}`;
+  }
+
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().trim();
+    if (!q) return baseFiltered;
     return baseFiltered.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        (u.school_id || "").toLowerCase().includes(q)
+        (u.school_id || "").toLowerCase().includes(q) ||
+        (u.course || "").toLowerCase().includes(q) ||
+        (u.year_level || "").toLowerCase().includes(q) ||
+        educationLabel(u.education_level).toLowerCase().includes(q) ||
+        displayId(u.id).toLowerCase().includes(q)
     );
-  }, [baseFiltered, search]);
+  }, [baseFiltered, search, idNumberMap]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -169,6 +189,7 @@ function UserManagementContent() {
   const activeCount = users.filter((u) => u.is_active).length;
   const inactiveCount = users.filter((u) => !u.is_active).length;
   const pendingPasswordCount = users.filter((u) => u.password_change_requested).length;
+  const restrictedCount = users.filter((u) => u.is_restricted && u.is_active).length;
 
   function resetForm() {
     setFormData({
@@ -219,22 +240,28 @@ function UserManagementContent() {
     return null;
   }
 
-  async function handleCreateSubmit() {
+  function handleReviewCreate() {
     const validationError = validateForm();
     if (validationError) {
       setFormError(validationError);
       return;
     }
     setFormError("");
+    setShowCreateConfirm(true);
+  }
+
+  async function handleCreateSubmit() {
     setFormLoading(true);
     try {
       await api.post("/users", formData);
+      setShowCreateConfirm(false);
       setShowCreateModal(false);
       setPage(1);
       setToast(`${formData.name} was added successfully.`);
       resetForm();
       fetchUsers();
     } catch (err: any) {
+      setShowCreateConfirm(false);
       setFormError(
         err.response?.data?.message ||
           Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
@@ -329,6 +356,7 @@ function UserManagementContent() {
     if (tab === "all") return "All";
     if (tab === "revoked") return "Revoked";
     if (tab === "password_requests") return "Password Requests";
+    if (tab === "restricted") return "Restricted";
     return educationLabel(tab);
   };
 
@@ -440,7 +468,7 @@ function UserManagementContent() {
         </div>
 
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-          {(["all", "college", "senior_high_school", "junior_high_school", "revoked", "password_requests"] as const).map((level) => (
+          {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "revoked", "password_requests"] as const).map((level) => (
             <button
               key={level}
               onClick={() => setStudentSubTab(level)}
@@ -450,6 +478,8 @@ function UserManagementContent() {
                     ? "bg-red-500 text-white shadow-md"
                     : level === "password_requests"
                     ? "bg-orange-500 text-white shadow-md"
+                    : level === "restricted"
+                    ? "bg-yellow-500 text-white shadow-md"
                     : "bg-[#1a237e] text-white shadow-md"
                   : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
               }`}
@@ -554,7 +584,7 @@ function UserManagementContent() {
                             )}
                           </div>
                           <p className="text-gray-400 text-xs mt-0.5">
-                            ID: USR-{String(user.id).padStart(3, "0")}
+                            ID: {displayId(user.id)}
                           </p>
                         </div>
                       </div>
@@ -711,14 +741,23 @@ function UserManagementContent() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Password
                 </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Minimum 8 characters"
-                  autoComplete="new-password"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type={showCreatePassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                    className="w-full mt-1 px-4 py-3 pr-16 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePassword(!showCreatePassword)}
+                    className="absolute right-4 top-1/2 mt-0.5 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold"
+                  >
+                    {showCreatePassword ? "HIDE" : "SHOW"}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -849,11 +888,72 @@ function UserManagementContent() {
                 Cancel
               </button>
               <button
+                onClick={handleReviewCreate}
+                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
+              >
+                Review & Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateConfirm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h2 className="text-xl font-black text-[#1a237e] mb-1">Confirm New Student</h2>
+            <p className="text-gray-400 text-sm mb-6">Please review the details before creating this account</p>
+
+            <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5 text-sm mb-6">
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">Full Name</span>
+                <span className="font-bold text-gray-700 text-right">{formData.name}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">Email</span>
+                <span className="font-bold text-gray-700 text-right">{formData.email}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">Password</span>
+                <span className="font-bold text-gray-700 text-right">{formData.password}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">Education Level</span>
+                <span className="font-bold text-gray-700 text-right">{educationLabel(formData.education_level)}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">School ID</span>
+                <span className="font-bold text-gray-700 text-right">{formData.school_id || "—"}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">
+                  {formData.education_level === "college" ? "Course" : formData.education_level === "senior_high_school" ? "Strand" : "Section"}
+                </span>
+                <span className="font-bold text-gray-700 text-right">{formData.course || "—"}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400 font-medium">
+                  {formData.education_level === "college" ? "Year Level" : "Grade Level"}
+                </span>
+                <span className="font-bold text-gray-700 text-right">{formData.year_level || "—"}</span>
+              </div>
+            </div>
+
+            <p className="text-gray-400 text-xs text-center mb-4">Double-check the details above are correct before proceeding.</p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCreateConfirm(false)}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Go Back
+              </button>
+              <button
                 onClick={handleCreateSubmit}
                 disabled={formLoading}
                 className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
               >
-                {formLoading ? "Creating..." : "Create Student"}
+                {formLoading ? "Creating..." : "Confirm & Create"}
               </button>
             </div>
           </div>
