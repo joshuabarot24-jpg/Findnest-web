@@ -39,6 +39,13 @@ interface Claim {
     id: number;
     confidence_score: number | null;
     match_status: string;
+    attributes: {
+      description_score?: number;
+      photo_score?: number;
+      category_score?: number;
+      date_score?: number;
+      location_score?: number;
+    } | null;
     lost_report: {
       id: number;
       item_name: string;
@@ -805,6 +812,29 @@ function ClaimVerificationContent() {
                 </div>
               </div>
             </div>
+
+            {comparingClaim.match?.attributes && (
+              <div className="grid grid-cols-5 gap-3 mb-6">
+                {[
+                  { label: "Description", value: comparingClaim.match.attributes.description_score },
+                  { label: "Photo", value: comparingClaim.match.attributes.photo_score },
+                  { label: "Category", value: comparingClaim.match.attributes.category_score },
+                  { label: "Date", value: comparingClaim.match.attributes.date_score },
+                  { label: "Location", value: comparingClaim.match.attributes.location_score },
+                ].map((field) => (
+                  <div key={field.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+                    <p className="text-gray-400 text-[10px] font-bold uppercase mb-1">{field.label}</p>
+                    <p className={`text-lg font-black ${
+                      field.value == null ? "text-gray-300" :
+                      field.value >= 80 ? "text-green-600" :
+                      field.value >= 50 ? "text-yellow-600" : "text-red-500"
+                    }`}>
+                      {field.value != null ? `${field.value}%` : "—"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className={`text-center rounded-2xl p-5 ${
               comparingClaim.match?.confidence_score != null
