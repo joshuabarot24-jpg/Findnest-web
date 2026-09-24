@@ -3,17 +3,6 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 
-const faqs = [
-  { question: "How do I report a lost item?", answer: "Go to the Home page and click 'Report Lost Items'. Fill in the details and upload a clear photo of your item. Our AI will automatically search for potential matches among found items." },
-  { question: "How do I report a found item?", answer: "Click 'Report Found Item' on the Home page. Fill in the details of where you found it and upload a photo. The item will be reviewed by the Guidance Counselor before being posted publicly." },
-  { question: "How does the AI matching work?", answer: "Our AI uses image recognition to compare photos of lost and found items. When a potential match is found, both the student who lost the item and the admin are notified automatically." },
-  { question: "How do I claim a found item?", answer: "If the AI finds a match for your lost report, you will receive a notification. You can then submit a claim by providing a written description of identifying features and a supporting photo. The admin will verify your claim through a 5-layer process." },
-  { question: "What is a Trust Score?", answer: "Your Trust Score reflects your reliability in the FindNest system. It decreases when a claim you submitted is rejected. A low trust score may restrict your ability to submit new claims. Visit the school office if your account is restricted." },
-  { question: "How long does the admin take to approve a found item?", answer: "The Guidance Counselor reviews found item reports as soon as the physical item is surrendered to the office. Once approved, the item will appear publicly in the found items list." },
-  { question: "What happens if my claim is rejected?", answer: "If your claim is rejected, your Trust Score will decrease and you will be notified with the reason. You may appeal with new evidence. Repeated false claims may result in account restrictions." },
-  { question: "How do I contact the Guidance Office?", answer: "You can visit the Guidance Office at SJDM Cornerstone College Inc. during school hours, or send an email to the contact below." },
-];
-
 interface SupportMessage {
   id: number;
   message: string;
@@ -42,13 +31,6 @@ export default function SupportPage() {
 
 function SupportContent() {
   const [userInitial, setUserInitial] = useState("");
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const [myMessages, setMyMessages] = useState<SupportMessage[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(true);
@@ -110,33 +92,11 @@ function SupportContent() {
       await api.post(`/support/${id}/reply`, { message: replyText.trim() });
       setReplyText("");
       fetchThread(id);
+      fetchMyMessages();
     } catch (err) {
       console.error("Error sending reply:", err);
     } finally {
       setReplySending(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      await api.post("/support", {
-        name: name.trim(),
-        email: email.trim(),
-        message: message.trim(),
-      });
-      setSubmitted(true);
-      fetchMyMessages();
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
-          "Failed to send message. Please try again."
-      );
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -150,7 +110,6 @@ function SupportContent() {
         <div className="flex items-center gap-8">
           <a href="/student-home" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Home</a>
           <a href="/claim-status" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Claim Status</a>
-          <a href="/support" className="text-[#1a237e] font-bold text-sm border-b-2 border-[#1a237e] pb-1">Support</a>
         </div>
         <div className="flex items-center gap-4">
           <a href="/notifications" className="relative w-10 h-10 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center justify-center transition">
@@ -165,48 +124,22 @@ function SupportContent() {
       <main className="px-8 py-10 max-w-4xl mx-auto">
 
         <div className="mb-10">
-          <h1 className="text-3xl font-black text-[#1a237e]">Help & Support</h1>
-          <p className="text-gray-400 text-sm mt-1">Find answers to common questions or contact the Guidance Office</p>
+          <h1 className="text-3xl font-black text-[#1a237e]">Support Conversations</h1>
+          <p className="text-gray-400 text-sm mt-1">Continue your conversation with the Guidance Office &mdash; to start a new message, use the FAQ widget on Home</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mb-10">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
-            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-[#1a237e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <p className="font-black text-gray-700 text-sm">Visit Us</p>
-            <p className="text-gray-400 text-xs mt-2 leading-relaxed">Guidance Office, SJDM Cornerstone College Inc., San Jose Del Monte, Bulacan</p>
+        {conversationsLoading ? (
+          <div className="text-center py-20 text-gray-400 text-sm">Loading conversations...</div>
+        ) : myMessages.length === 0 ? (
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center py-16">
+            <p className="font-bold text-gray-700 text-lg">No conversations yet</p>
+            <p className="text-gray-400 text-sm mt-2">Send a message from the Home page to start a conversation with the Guidance Office</p>
+            <a href="/student-home" className="inline-block mt-5 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-xl transition">
+              Go to Home
+            </a>
           </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
-            <div className="w-12 h-12 bg-yellow-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-[#ffd700]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <p className="font-black text-gray-700 text-sm">Email Us</p>
-            <p className="text-gray-400 text-xs mt-2">findnest@sjdmcci.edu.ph</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
-            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="font-black text-gray-700 text-sm">Office Hours</p>
-            <p className="text-gray-400 text-xs mt-2 leading-relaxed">Monday to Friday<br />8:00 AM — 5:00 PM</p>
-          </div>
-        </div>
-
-        {!conversationsLoading && myMessages.length > 0 && (
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-6">
-            <h2 className="text-xl font-black text-[#1a237e] mb-2">Your Conversations</h2>
-            <p className="text-gray-400 text-sm mb-6">Messages you've sent and replies from the Guidance Office</p>
-
+        ) : (
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
             <div className="space-y-3">
               {myMessages.map((msg) => (
                 <div key={msg.id} className="border border-gray-100 rounded-2xl overflow-hidden">
@@ -271,110 +204,6 @@ function SupportContent() {
             </div>
           </div>
         )}
-
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-6">
-          <h2 className="text-xl font-black text-[#1a237e] mb-6">Frequently Asked Questions</h2>
-          <div className="space-y-3">
-            {faqs.map((faq, index) => (
-              <div key={index} className="border border-gray-100 rounded-2xl overflow-hidden">
-                <button
-                  onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                  className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition"
-                >
-                  <p className="font-bold text-gray-700 text-sm pr-4">{faq.question}</p>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform ${openIndex === index ? "rotate-180" : ""}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openIndex === index && (
-                  <div className="px-6 pb-4 border-t border-gray-100">
-                    <p className="text-gray-500 text-sm leading-relaxed pt-3">{faq.answer}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-          <h2 className="text-xl font-black text-[#1a237e] mb-2">Send a Message</h2>
-          <p className="text-gray-400 text-sm mb-6">Can't find what you're looking for? Send us a message and the Guidance Office will get back to you.</p>
-
-          {submitted ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <p className="font-black text-gray-700 text-lg">Message Sent!</p>
-              <p className="text-gray-400 text-sm mt-2">The Guidance Office will get back to you within 1-2 school days.</p>
-              <button
-                onClick={() => { setSubmitted(false); setName(""); setEmail(""); setMessage(""); setError(""); }}
-                className="mt-6 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-8 py-3 rounded-xl transition"
-              >
-                Send Another
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Your Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Juan Dela Cruz"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Email Address</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 text-sm"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Message</label>
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe your concern or question..."
-                  rows={4}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 text-sm resize-none"
-                  required
-                />
-              </div>
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                  <p className="text-red-600 text-sm font-semibold">{error}</p>
-                </div>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-4 rounded-xl transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "Sending..." : "Send Message"}
-              </button>
-            </form>
-          )}
-        </div>
       </main>
     </div>
   );
