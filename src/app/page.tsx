@@ -10,11 +10,28 @@ type ModalStep = "closed" | "login" | "otp";
 export default function Home() {
   const [step, setStep] = useState<ModalStep>("closed");
 
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
+  function loadDraft() {
+    if (typeof window === "undefined") return { identifier: "", password: "", rememberMe: false };
+    try {
+      const remembered = localStorage.getItem("findnest_remember_me") === "true";
+      if (!remembered) return { identifier: "", password: "", rememberMe: false };
+      const draft = localStorage.getItem("findnest_login_draft");
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        return { identifier: parsed.identifier || "", password: parsed.password || "", rememberMe: true };
+      }
+    } catch (err) {
+      console.error("Failed to restore login draft:", err);
+    }
+    return { identifier: "", password: "", rememberMe: false };
+  }
+
+  const [identifier, setIdentifier] = useState(() => loadDraft().identifier);
+  const [password, setPassword] = useState(() => loadDraft().password);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => loadDraft().rememberMe);
 
   const [maskedEmail, setMaskedEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -43,24 +60,17 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const draft = localStorage.getItem("findnest_login_draft");
-      if (draft) {
-        const { identifier: savedId, password: savedPw } = JSON.parse(draft);
-        if (savedId) setIdentifier(savedId);
-        if (savedPw) setPassword(savedPw);
+      if (rememberMe) {
+        localStorage.setItem("findnest_login_draft", JSON.stringify({ identifier, password }));
+        localStorage.setItem("findnest_remember_me", "true");
+      } else {
+        localStorage.removeItem("findnest_login_draft");
+        localStorage.removeItem("findnest_remember_me");
       }
-    } catch (err) {
-      console.error("Failed to restore login draft:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("findnest_login_draft", JSON.stringify({ identifier, password }));
     } catch (err) {
       console.error("Failed to save login draft:", err);
     }
-  }, [identifier, password]);
+  }, [identifier, password, rememberMe]);
 
   function openLogin() {
     closeModal();
@@ -174,7 +184,8 @@ export default function Home() {
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="you@email.com or 2022-10043"
-                  autoComplete="username"
+                  autoComplete="off"
+                  name="fnd-user-field"
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                   required
                 />
@@ -187,7 +198,8 @@ export default function Home() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    autoComplete="current-password"
+                    autoComplete="new-password"
+                    name="fnd-pass-field"
                     className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                     required
                   />
@@ -196,6 +208,15 @@ export default function Home() {
                   </button>
                 </div>
               </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 accent-[#1a237e] cursor-pointer"
+                />
+                <span className="text-sm text-gray-600 font-medium">Remember Me</span>
+              </label>
               {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
               <button type="submit" disabled={loading} className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
                 {loading ? "Signing in..." : "Sign In"}

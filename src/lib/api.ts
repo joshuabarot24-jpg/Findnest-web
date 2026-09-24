@@ -38,7 +38,10 @@ export async function logoutUser() {
   }
   localStorage.removeItem("findnest_token");
   localStorage.removeItem("findnest_user");
-  localStorage.removeItem("findnest_login_draft");
+  const remembered = localStorage.getItem("findnest_remember_me") === "true";
+  if (!remembered) {
+    localStorage.removeItem("findnest_login_draft");
+  }
   window.location.href = "/";
 }
 
