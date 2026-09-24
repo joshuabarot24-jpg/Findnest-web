@@ -114,6 +114,7 @@ function UserManagementContent() {
   });
   const [formError, setFormError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
+  const [confirmEditPassword, setConfirmEditPassword] = useState("");
 
   const [toast, setToast] = useState<string | null>(null);
 
@@ -1023,6 +1024,23 @@ function UserManagementContent() {
                 />
                 <p className="text-xs text-gray-400 mt-1">Give this password directly to the student.</p>
               </div>
+              {formData.password && (
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmEditPassword}
+                    onChange={(e) => setConfirmEditPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  />
+                  {confirmEditPassword && formData.password !== confirmEditPassword && (
+                    <p className="text-red-500 text-xs mt-1">Passwords do not match.</p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">

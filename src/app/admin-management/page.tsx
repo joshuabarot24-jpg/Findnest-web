@@ -75,6 +75,7 @@ function AdminManagementContent() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAssignConfirm, setShowAssignConfirm] = useState(false);
   const [showAssignPassword, setShowAssignPassword] = useState(false);
+  const [confirmEditPassword, setConfirmEditPassword] = useState("");
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [restrictingAdmin, setRestrictingAdmin] = useState<AdminUser | null>(null);
   const [restrictActionLoading, setRestrictActionLoading] = useState(false);
@@ -255,6 +256,10 @@ function AdminManagementContent() {
     if (!editingAdmin) return;
     if (!formData.name.trim() || !NAME_REGEX.test(formData.name)) {
       setFormError("Personnel name must contain letters only.");
+      return;
+    }
+    if (formData.password && formData.password !== confirmEditPassword) {
+      setFormError("Passwords do not match.");
       return;
     }
     if (!EMAIL_REGEX.test(formData.email.trim())) {
@@ -807,6 +812,23 @@ function AdminManagementContent() {
                     className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
                   />
                 </div>
+                {formData.password && (
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmEditPassword}
+                      onChange={(e) => setConfirmEditPassword(e.target.value)}
+                      autoComplete="new-password"
+                      className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                    />
+                    {confirmEditPassword && formData.password !== confirmEditPassword && (
+                      <p className="text-red-500 text-xs mt-1">Passwords do not match.</p>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Role</label>
