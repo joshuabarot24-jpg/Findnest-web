@@ -202,14 +202,28 @@ function ItemManagementContent() {
       const formData = new FormData();
       formData.append("image", file);
       formData.append("folder", "found-items");
+      formData.append("analyze", "true");
       const res = await api.post("/upload/image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFormPhotoUrl(res.data.url);
-    } catch (err) {
-      console.error("Photo upload failed:", err);
-      setFormPhotoPreview(null);
-      alert("Photo upload failed. Please try again.");
+
+      if (res.data.ai_item_name) setFormName(res.data.ai_item_name);
+      if (res.data.ai_category) setFormCategory(res.data.ai_category);
+      if (res.data.ai_description) setFormDescription(res.data.ai_description);
+    } catch (err: any) {
+      if (err.response?.status === 422 && err.response?.data?.multiple_items) {
+        setFormPhotoUrl(err.response.data.url);
+        alert("Multiple items detected in this photo. Please crop or retake a photo focused on one item, or fill in the details manually.");
+      } else if (err.response?.status === 422) {
+        console.error("Photo upload failed:", err);
+        setFormPhotoPreview(null);
+        alert(err.response?.data?.message || "Photo upload failed. Please try again.");
+      } else {
+        console.error("Photo upload failed:", err);
+        setFormPhotoPreview(null);
+        alert("Photo upload failed. Please try again.");
+      }
     } finally {
       setFormUploading(false);
     }
@@ -227,6 +241,7 @@ function ItemManagementContent() {
         item_name: formName.trim(),
         category: formCategory,
         description: formDescription.trim() || null,
+        ai_description: formDescription.trim() || null,
         location_found: formLocationFound.trim(),
         date_found: formDateFound,
         photo_url: formPhotoUrl,
