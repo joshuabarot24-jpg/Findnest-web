@@ -41,6 +41,7 @@ interface Question {
   option_c: string;
   option_d: string;
   student_answer: string | null;
+  is_correct: boolean | null;
 }
 
 const TIMELINE_STEPS = [
@@ -322,8 +323,8 @@ function ClaimStatusContent() {
 
       const alreadyAnswered = fetchedQuestions.every((q) => q.student_answer !== null);
       if (alreadyAnswered && fetchedQuestions.length > 0) {
-        const correct = fetchedQuestions.filter((q) => q.student_answer !== null).length;
-        setAnswersResult({ correct, total: fetchedQuestions.length, passed: true });
+        const correct = fetchedQuestions.filter((q) => q.is_correct === true).length;
+        setAnswersResult({ correct, total: fetchedQuestions.length, passed: correct >= 2 });
       }
     } catch (err) {
       console.error("Error fetching questions:", err);
