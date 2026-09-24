@@ -5,18 +5,17 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { setAuth } from "@/lib/auth";
 
-type ModalStep = "closed" | "roles" | "super_admin" | "admin" | "student" | "student_otp";
+type ModalStep = "closed" | "login" | "otp";
 
 export default function Home() {
   const [step, setStep] = useState<ModalStep>("closed");
 
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [studentId, setStudentId] = useState("");
   const [maskedEmail, setMaskedEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [otpError, setOtpError] = useState("");
@@ -25,9 +24,6 @@ export default function Home() {
 
   function closeModal() {
     setStep("closed");
-    setUsername("");
-    setPassword("");
-    setStudentId("");
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setOtpError("");
@@ -45,17 +41,30 @@ export default function Home() {
     };
   }, [step]);
 
-  function openRoleSelect() {
-    closeModal();
-    setStep("roles");
-  }
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem("findnest_login_draft");
+      if (draft) {
+        const { identifier: savedId, password: savedPw } = JSON.parse(draft);
+        if (savedId) setIdentifier(savedId);
+        if (savedPw) setPassword(savedPw);
+      }
+    } catch (err) {
+      console.error("Failed to restore login draft:", err);
+    }
+  }, []);
 
-  function selectRole(role: "super_admin" | "admin" | "student") {
-    setUsername("");
-    setPassword("");
-    setStudentId("");
-    setError("");
-    setStep(role);
+  useEffect(() => {
+    try {
+      localStorage.setItem("findnest_login_draft", JSON.stringify({ identifier, password }));
+    } catch (err) {
+      console.error("Failed to save login draft:", err);
+    }
+  }, [identifier, password]);
+
+  function openLogin() {
+    closeModal();
+    setStep("login");
   }
 
   const startResendTimer = () => {
@@ -68,45 +77,26 @@ export default function Home() {
     }, 1000);
   };
 
-  const handleSuperAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const response = await api.post("/auth/super-admin/login", { email: username, password });
-      setAuth(response.data.token, response.data.user);
-      window.location.href = "/user-management";
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid credentials");
-    } finally {
-      setLoading(false);
-    }
-  };
+  function redirectByRole(role: string) {
+    if (role === "super_admin") window.location.href = "/user-management";
+    else if (role === "admin") window.location.href = "/dashboard";
+    else window.location.href = "/student-home";
+  }
 
-  const handleAdminLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const response = await api.post("/auth/admin/login", { email: username, password });
-      setAuth(response.data.token, response.data.user);
-      window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid credentials");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStudentLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const response = await api.post("/auth/student/login", { school_id: studentId, password });
-      setMaskedEmail(response.data.email);
-      setStep("student_otp");
-      startResendTimer();
+      const response = await api.post("/auth/login", { identifier: identifier.trim(), password });
+      if (response.data.requires_otp) {
+        setMaskedEmail(response.data.email);
+        setStep("otp");
+        startResendTimer();
+      } else {
+        setAuth(response.data.token, response.data.user);
+        redirectByRole(response.data.user.role);
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || "Invalid credentials");
     } finally {
@@ -139,7 +129,7 @@ export default function Home() {
     setOtpError("");
     setOtpLoading(true);
     try {
-      const response = await api.post("/auth/student/verify-otp", { school_id: studentId, otp: otpCode });
+      const response = await api.post("/auth/student/verify-otp", { school_id: identifier.trim(), otp: otpCode });
       setAuth(response.data.token, response.data.user);
       window.location.href = "/student-home";
     } catch (err: any) {
@@ -154,7 +144,7 @@ export default function Home() {
   const handleResendOtp = async () => {
     if (resendTimer > 0) return;
     try {
-      await api.post("/auth/student/resend-otp", { school_id: studentId });
+      await api.post("/auth/student/resend-otp", { school_id: identifier.trim() });
       startResendTimer();
       setOtp(["", "", "", "", "", ""]);
       setOtpError("");
@@ -166,85 +156,41 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fafbff] font-sans overflow-x-hidden scroll-smooth">
 
-      {step === "roles" && (
+      {step === "login" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
-
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-black text-[#1a237e] mb-1">Welcome Back</h2>
-              <p className="text-gray-400 text-sm">Choose your account type to continue</p>
-            </div>
-
-            <div className="space-y-4">
-              <button onClick={() => selectRole("super_admin")} className="flex items-center gap-4 w-full border-2 border-[#1a237e]/20 hover:border-[#1a237e] hover:bg-[#1a237e]/5 rounded-2xl p-4 transition-all duration-200 group text-left">
-                <div className="w-12 h-12 bg-[#1a237e] rounded-xl flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-black text-[#1a237e] text-base">Super Admin</p>
-                  <p className="text-gray-400 text-xs">CCI IT Coordinator — Full system access</p>
-                </div>
-                <span className="ml-auto text-[#1a237e]/40 group-hover:text-[#1a237e] text-xl transition">→</span>
-              </button>
-
-              <button onClick={() => selectRole("admin")} className="flex items-center gap-4 w-full border-2 border-[#ffd700]/40 hover:border-[#ffd700] hover:bg-[#ffd700]/5 rounded-2xl p-4 transition-all duration-200 group text-left">
-                <div className="w-12 h-12 bg-[#ffd700] rounded-xl flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-[#1a237e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-black text-[#1a237e] text-base">Admin</p>
-                  <p className="text-gray-400 text-xs">Guidance Counselor — Manage items &amp; claims</p>
-                </div>
-                <span className="ml-auto text-[#ffd700]/60 group-hover:text-[#ffd700] text-xl transition">→</span>
-              </button>
-
-              <button onClick={() => selectRole("student")} className="flex items-center gap-4 w-full border-2 border-red-400/30 hover:border-red-500 hover:bg-red-50 rounded-2xl p-4 transition-all duration-200 group text-left">
-                <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path d="M12 14l9-5-9-5-9 5 9 5z" />
-                    <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-black text-[#1a237e] text-base">Student</p>
-                  <p className="text-gray-400 text-xs">Report &amp; track lost or found items</p>
-                </div>
-                <span className="ml-auto text-red-400/60 group-hover:text-red-500 text-xl transition">→</span>
-              </button>
-            </div>
-
-            <p className="text-center text-gray-400 text-xs mt-6">
-              Not sure which to pick? Contact your school administrator.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {step === "super_admin" && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
-            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
-            <button onClick={() => setStep("roles")} className="text-gray-400 hover:text-[#1a237e] text-sm font-medium mb-4">&larr; Back</button>
 
             <div className="text-center mb-6">
-              <h2 className="text-xl font-black text-[#1a237e]">Super Admin Login</h2>
-              <p className="text-gray-400 text-sm mt-1">Secure Access for System Administrators</p>
+              <h2 className="text-xl font-black text-[#1a237e]">Welcome Back</h2>
+              <p className="text-gray-400 text-sm mt-1">Sign in with your email or Student ID</p>
             </div>
 
-            <form onSubmit={handleSuperAdminLogin} className="space-y-4" autoComplete="off">
+            <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
               <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">ID Username</label>
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" autoComplete="off" name="fnd-user-field" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700" required />
+                <label className="block text-sm font-bold text-gray-600 mb-2">Email or Student ID</label>
+                <input
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="you@email.com or 2022-10043"
+                  autoComplete="username"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-600 mb-2">Password</label>
                 <div className="relative">
-                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" autoComplete="new-password" name="fnd-pass-field" className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700" required />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
+                    required
+                  />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold">
                     {showPassword ? "HIDE" : "SHOW"}
                   </button>
@@ -252,7 +198,7 @@ export default function Home() {
               </div>
               {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
               <button type="submit" disabled={loading} className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
-                {loading ? "Logging in..." : "Sign In"}
+                {loading ? "Signing in..." : "Sign In"}
               </button>
               <div className="text-center">
                 <a href="/forgot-password" className="text-gray-400 hover:text-[#1a237e] text-sm transition font-medium">Forgot Password?</a>
@@ -262,81 +208,7 @@ export default function Home() {
         </div>
       )}
 
-      {step === "admin" && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
-            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
-            <button onClick={() => setStep("roles")} className="text-gray-400 hover:text-[#1a237e] text-sm font-medium mb-4">&larr; Back</button>
-
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-black text-[#ffd700]">Admin Login</h2>
-              <p className="text-gray-400 text-sm mt-1">Secure Access for School Personnel</p>
-            </div>
-
-            <form onSubmit={handleAdminLogin} className="space-y-4" autoComplete="off">
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Employee Username</label>
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" autoComplete="off" name="fnd-user-field" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#ffd700] focus:outline-none transition text-gray-700" required />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Password</label>
-                <div className="relative">
-                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" autoComplete="new-password" name="fnd-pass-field" className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-[#ffd700] focus:outline-none transition text-gray-700" required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold">
-                    {showPassword ? "HIDE" : "SHOW"}
-                  </button>
-                </div>
-              </div>
-              {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
-              <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-[#1a237e] to-[#1565c0] hover:from-[#283593] hover:to-[#1976d2] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
-                {loading ? "Logging in..." : "Login to Dashboard"}
-              </button>
-              <div className="text-center">
-                <a href="/forgot-password" className="text-gray-400 hover:text-[#1a237e] text-sm transition font-medium">Forgot Password?</a>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {step === "student" && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
-            <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
-            <button onClick={() => setStep("roles")} className="text-gray-400 hover:text-[#1a237e] text-sm font-medium mb-4">&larr; Back</button>
-
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-black text-red-500">Student Login</h2>
-              <p className="text-gray-400 text-sm mt-1">Use your school credentials</p>
-            </div>
-
-            <form onSubmit={handleStudentLogin} className="space-y-4" autoComplete="off">
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Student ID</label>
-                <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="e.g. 2022-10043" autoComplete="off" name="fnd-user-field" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition text-gray-700" required />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Password</label>
-                <div className="relative">
-                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" autoComplete="new-password" name="fnd-pass-field" className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition text-gray-700" required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition text-xs font-bold">
-                    {showPassword ? "HIDE" : "SHOW"}
-                  </button>
-                </div>
-              </div>
-              {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
-              <button type="submit" disabled={loading} className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
-                {loading ? "Sending OTP..." : "Sign In"}
-              </button>
-              <div className="text-center">
-                <a href="/forgot-password" className="text-gray-400 hover:text-red-500 text-sm transition font-medium">Forgot Password?</a>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {step === "student_otp" && (
+      {step === "otp" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
@@ -373,7 +245,7 @@ export default function Home() {
                 </button>
               </div>
               <div className="text-center">
-                <button onClick={() => setStep("student")} className="text-gray-400 hover:text-red-500 text-sm transition font-medium">&larr; Back to Login</button>
+                <button onClick={() => setStep("login")} className="text-gray-400 hover:text-red-500 text-sm transition font-medium">&larr; Back to Login</button>
               </div>
             </div>
           </div>
@@ -391,7 +263,7 @@ export default function Home() {
           <a href="#about" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">ABOUT FINDNEST</a>
           <a href="#how-it-works" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOW IT WORKS</a>
           <button
-            onClick={openRoleSelect}
+            onClick={openLogin}
             className="bg-[#ffd700] text-[#1a237e] font-bold px-6 py-2 rounded-full hover:bg-yellow-300 transition shadow-md text-sm"
           >
             LOG IN
@@ -429,13 +301,13 @@ export default function Home() {
 
             <div className="flex gap-4 mb-12">
               <button
-                onClick={openRoleSelect}
+                onClick={openLogin}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-4 rounded-2xl transition shadow-xl shadow-red-500/20 hover:-translate-y-1"
               >
                 Report Lost Item
               </button>
               <button
-                onClick={openRoleSelect}
+                onClick={openLogin}
                 className="flex items-center gap-2 bg-white hover:bg-gray-50 border-2 border-[#1a237e]/10 text-[#1a237e] font-bold px-8 py-4 rounded-2xl transition hover:-translate-y-1"
               >
                 Found Something?
@@ -656,7 +528,7 @@ export default function Home() {
           <h2 className="text-4xl font-black text-white mb-4">Lost Something on Campus?</h2>
           <p className="text-blue-200 text-lg mb-10">Report it now and let our AI do the work for you.</p>
           <button
-            onClick={openRoleSelect}
+            onClick={openLogin}
             className="bg-[#ffd700] text-[#1a237e] font-black px-10 py-4 rounded-2xl hover:bg-yellow-300 transition shadow-xl text-lg"
           >
             Get Started Now
