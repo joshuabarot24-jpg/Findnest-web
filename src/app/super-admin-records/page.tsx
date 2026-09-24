@@ -88,7 +88,7 @@ export default function SuperAdminRecords() {
 }
 
 function SuperAdminRecordsContent() {
-  const [view, setView] = useState<"activity" | "cases" | "appeals">("activity");
+  const [view, setView] = useState<"activity" | "cases" | "appeals" | "archive">("activity");
 
   const [records, setRecords] = useState<AuditRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(true);
@@ -107,6 +107,32 @@ function SuperAdminRecordsContent() {
 
   const [appeals, setAppeals] = useState<AppealClaim[]>([]);
   const [appealsLoading, setAppealsLoading] = useState(true);
+
+  interface ArchiveClaim {
+    id: number;
+    student: { name: string; school_id: string | null } | null;
+    match: {
+      lostReport: { item_name: string } | null;
+      foundRecord: { item_name: string } | null;
+    } | null;
+    admin_notes: string | null;
+    collected_at: string | null;
+    updated_at: string;
+  }
+  interface ArchiveUser {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    school_id: string | null;
+    updated_at: string;
+  }
+
+  const [archiveCompleted, setArchiveCompleted] = useState<ArchiveClaim[]>([]);
+  const [archiveRejected, setArchiveRejected] = useState<ArchiveClaim[]>([]);
+  const [archiveRevoked, setArchiveRevoked] = useState<ArchiveUser[]>([]);
+  const [archiveLoading, setArchiveLoading] = useState(true);
+  const [archiveSection, setArchiveSection] = useState<"completed" | "rejected" | "revoked">("completed");
   const [resolvingAppeal, setResolvingAppeal] = useState<AppealClaim | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [resolving, setResolving] = useState(false);
@@ -174,6 +200,20 @@ function SuperAdminRecordsContent() {
     }
   };
 
+  const fetchArchive = async () => {
+    setArchiveLoading(true);
+    try {
+      const response = await api.get("/claims/archive");
+      setArchiveCompleted(response.data.completed_transactions || []);
+      setArchiveRejected(response.data.rejected_claims || []);
+      setArchiveRevoked(response.data.revoked_accounts || []);
+    } catch (err) {
+      console.error("Error fetching archive:", err);
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (view === "activity") fetchRecords(page, search);
   }, [view, page]);
@@ -201,6 +241,10 @@ function SuperAdminRecordsContent() {
 
   useEffect(() => {
     if (view === "appeals") fetchAppeals();
+  }, [view]);
+
+  useEffect(() => {
+    if (view === "archive") fetchArchive();
   }, [view]);
 
   const handleResolve = async (decision: "uphold" | "overturn") => {
@@ -311,6 +355,14 @@ function SuperAdminRecordsContent() {
                 {appeals.length}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setView("archive")}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
+              view === "archive" ? "bg-gray-700 text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
+            }`}
+          >
+            Archive
           </button>
         </div>
 
@@ -551,7 +603,7 @@ function SuperAdminRecordsContent() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : view === "appeals" ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100">
               <h2 className="font-black text-gray-700">Pending Appeals</h2>
@@ -611,6 +663,108 @@ function SuperAdminRecordsContent() {
                   );
                 })}
               </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <h2 className="font-black text-gray-700">Archive</h2>
+              <p className="text-gray-400 text-xs">Completed and closed records from the last 30 days &mdash; nothing is ever deleted, older entries simply roll off this view</p>
+            </div>
+
+            <div className="flex items-center gap-2 px-6 pt-5">
+              <button
+                onClick={() => setArchiveSection("completed")}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
+                  archiveSection === "completed" ? "bg-green-600 text-white" : "bg-gray-50 text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Completed Transactions ({archiveCompleted.length})
+              </button>
+              <button
+                onClick={() => setArchiveSection("rejected")}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
+                  archiveSection === "rejected" ? "bg-red-500 text-white" : "bg-gray-50 text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Rejected Claims ({archiveRejected.length})
+              </button>
+              <button
+                onClick={() => setArchiveSection("revoked")}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
+                  archiveSection === "revoked" ? "bg-gray-700 text-white" : "bg-gray-50 text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Revoked Accounts ({archiveRevoked.length})
+              </button>
+            </div>
+
+            {archiveLoading ? (
+              <div className="text-center py-16 text-gray-400 text-sm">Loading archive...</div>
+            ) : archiveSection === "completed" ? (
+              archiveCompleted.length === 0 ? (
+                <div className="text-center py-16 text-gray-400 text-sm mt-4">No completed transactions in the last 30 days.</div>
+              ) : (
+                <div className="divide-y divide-gray-50 mt-4">
+                  {archiveCompleted.map((c) => {
+                    const itemName = c.match?.foundRecord?.item_name || c.match?.lostReport?.item_name || "Unknown Item";
+                    return (
+                      <div key={c.id} className="px-6 py-4 flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-gray-700 text-sm">{itemName}</p>
+                          <p className="text-gray-400 text-xs mt-0.5">{c.student?.name} &middot; {c.student?.school_id}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-lg">Returned</span>
+                          <p className="text-gray-400 text-xs mt-1">{c.collected_at ? formatTime(c.collected_at) : "—"}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : archiveSection === "rejected" ? (
+              archiveRejected.length === 0 ? (
+                <div className="text-center py-16 text-gray-400 text-sm mt-4">No rejected claims in the last 30 days.</div>
+              ) : (
+                <div className="divide-y divide-gray-50 mt-4">
+                  {archiveRejected.map((c) => {
+                    const itemName = c.match?.foundRecord?.item_name || c.match?.lostReport?.item_name || "Unknown Item";
+                    return (
+                      <div key={c.id} className="px-6 py-4 flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-gray-700 text-sm">{itemName}</p>
+                          <p className="text-gray-400 text-xs mt-0.5">{c.student?.name} &middot; {c.student?.school_id}</p>
+                          {c.admin_notes && <p className="text-red-500 text-xs mt-1">Reason: {c.admin_notes}</p>}
+                        </div>
+                        <div className="text-right">
+                          <span className="bg-red-50 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg">Rejected</span>
+                          <p className="text-gray-400 text-xs mt-1">{formatTime(c.updated_at)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              archiveRevoked.length === 0 ? (
+                <div className="text-center py-16 text-gray-400 text-sm mt-4">No revoked accounts in the last 30 days.</div>
+              ) : (
+                <div className="divide-y divide-gray-50 mt-4">
+                  {archiveRevoked.map((u) => (
+                    <div key={u.id} className="px-6 py-4 flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-gray-700 text-sm">{u.name}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">{u.email} &middot; {u.school_id || "—"}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg capitalize">{u.role.replace("_", " ")}</span>
+                        <p className="text-gray-400 text-xs mt-1">{formatTime(u.updated_at)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         )}
