@@ -1,6 +1,10 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+
+function filterLettersOnly(value: string) {
+  return value.replace(/[^A-Za-z\s.'-]/g, "");
+}
 import AuthGate from "@/components/AuthGate";
 
 type ItemStatus = "unclaimed" | "claimed" | "for_disposal" | "confiscated" | "found_item";
@@ -599,7 +603,7 @@ function ItemManagementContent() {
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Item Name</label>
-                <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Grey Backpack" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+                <input type="text" value={formName} onChange={(e) => setFormName(filterLettersOnly(e.target.value))} placeholder="e.g. Grey Backpack" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Category</label>
