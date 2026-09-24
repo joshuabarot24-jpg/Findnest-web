@@ -81,12 +81,17 @@ function AdminUserManagementContent() {
   }, [users, studentSubTab]);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().trim();
+    if (!q) return baseFiltered;
     return baseFiltered.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        (u.school_id || "").toLowerCase().includes(q)
+        (u.school_id || "").toLowerCase().includes(q) ||
+        (u.course || "").toLowerCase().includes(q) ||
+        (u.year_level || "").toLowerCase().includes(q) ||
+        (u.education_level || "").toLowerCase().includes(q) ||
+        educationLabel(u.education_level).toLowerCase().includes(q)
     );
   }, [baseFiltered, search]);
 
