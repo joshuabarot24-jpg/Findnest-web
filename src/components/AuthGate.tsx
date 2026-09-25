@@ -6,8 +6,24 @@ interface AuthGateProps {
   children: ReactNode;
 }
 
+function getInitialStatus(allowedRole: string): "checking" | "ok" {
+  if (typeof window === "undefined") return "checking";
+
+  const token = localStorage.getItem("findnest_token");
+  const userStr = localStorage.getItem("findnest_user");
+
+  if (!token || !userStr) return "checking";
+
+  try {
+    const user = JSON.parse(userStr);
+    return user.role === allowedRole ? "ok" : "checking";
+  } catch {
+    return "checking";
+  }
+}
+
 export default function AuthGate({ allowedRole, children }: AuthGateProps) {
-  const [status, setStatus] = useState<"checking" | "ok">("checking");
+  const [status, setStatus] = useState<"checking" | "ok">(() => getInitialStatus(allowedRole));
 
   function checkAuth() {
     const token = localStorage.getItem("findnest_token");
