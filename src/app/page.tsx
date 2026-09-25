@@ -279,13 +279,13 @@ export default function Home() {
             FIND<span className="text-[#ffd700]">NEST</span>
           </a>
         </div>
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-6">
           <a href="/" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOME</a>
           <a href="#about" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">ABOUT FINDNEST</a>
           <a href="#how-it-works" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOW IT WORKS</a>
           <button
             onClick={openLogin}
-            className="bg-[#ffd700] text-[#1a237e] font-bold px-6 py-2 rounded-full hover:bg-yellow-300 transition shadow-md text-sm"
+            className="bg-[#ffd700] text-[#1a237e] font-bold px-6 py-2 rounded-full hover:bg-yellow-300 transition shadow-md text-sm ml-4 cursor-pointer"
           >
             LOG IN
           </button>
@@ -323,13 +323,13 @@ export default function Home() {
             <div className="flex gap-4 mb-12">
               <button
                 onClick={openLogin}
-                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-4 rounded-2xl transition shadow-xl shadow-red-500/20 hover:-translate-y-1"
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-4 rounded-2xl transition shadow-xl shadow-red-500/20 hover:-translate-y-1 cursor-pointer"
               >
                 Report Lost Item
               </button>
               <button
                 onClick={openLogin}
-                className="flex items-center gap-2 bg-white hover:bg-gray-50 border-2 border-[#1a237e]/10 text-[#1a237e] font-bold px-8 py-4 rounded-2xl transition hover:-translate-y-1"
+                className="flex items-center gap-2 bg-white hover:bg-gray-50 border-2 border-[#1a237e]/10 text-[#1a237e] font-bold px-8 py-4 rounded-2xl transition hover:-translate-y-1 cursor-pointer"
               >
                 Found Something?
               </button>
@@ -550,7 +550,7 @@ export default function Home() {
           <p className="text-blue-200 text-lg mb-10">Report it now and let our AI do the work for you.</p>
           <button
             onClick={openLogin}
-            className="bg-[#ffd700] text-[#1a237e] font-black px-10 py-4 rounded-2xl hover:bg-yellow-300 transition shadow-xl text-lg"
+            className="bg-[#ffd700] text-[#1a237e] font-black px-10 py-4 rounded-2xl hover:bg-yellow-300 transition shadow-xl text-lg cursor-pointer"
           >
             Get Started Now
           </button>
