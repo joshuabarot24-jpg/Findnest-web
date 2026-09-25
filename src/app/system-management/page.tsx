@@ -58,6 +58,18 @@ function SystemManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  useEffect(() => {
+    const anyModalOpen = showMaintenanceConfirm || showBackupsList || showAllLogs || !!importPreview;
+    if (anyModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showMaintenanceConfirm, showBackupsList, showAllLogs, importPreview]);
+
   const fetchSettings = async () => {
     try {
       const response = await api.get("/system-settings");
