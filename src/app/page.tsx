@@ -186,6 +186,7 @@ export default function Home() {
                   placeholder="you@email.com or 00000001"
                   autoComplete="off"
                   name="fnd-user-field"
+                  maxLength={50}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                   required
                 />
@@ -200,6 +201,7 @@ export default function Home() {
                     placeholder="Enter your password"
                     autoComplete="new-password"
                     name="fnd-pass-field"
+                    maxLength={50}
                     className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                     required
                   />
