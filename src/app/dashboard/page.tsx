@@ -184,7 +184,7 @@ function DashboardContent() {
               <h2 className="font-black text-gray-700">Recent Activity</h2>
               <p className="text-gray-400 text-xs">Latest lost and found reports</p>
             </div>
-            <button className="text-sm font-bold text-[#1a237e] hover:underline">View All</button>
+            <Link href="/item-management" className="text-sm font-bold text-[#1a237e] hover:underline">View All</Link>
           </div>
 
           {loading ? (
