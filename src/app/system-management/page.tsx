@@ -35,6 +35,8 @@ function SystemManagementContent() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [dbSizeGb, setDbSizeGb] = useState(0);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [breakdown, setBreakdown] = useState<Record<string, number>>({});
+  const [lastRefreshed, setLastRefreshed] = useState<string>("");
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
@@ -66,6 +68,8 @@ function SystemManagementContent() {
       const response = await api.get("/system-stats");
       setTotalRecords(response.data.total_records || 0);
       setDbSizeGb(response.data.db_size_gb || 0);
+      setBreakdown(response.data.breakdown || {});
+      setLastRefreshed(new Date().toLocaleTimeString());
     } catch (err) {
       console.error("Error fetching system stats:", err);
     } finally {
@@ -112,6 +116,13 @@ function SystemManagementContent() {
     fetchLogs();
     fetchBackups();
     fetchMaintenanceMode();
+
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchLogs();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   async function handleSaveSensitivity() {
@@ -349,6 +360,24 @@ function SystemManagementContent() {
                 </span>
               </div>
 
+              {!statsLoading && Object.keys(breakdown).length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { key: "students", label: "Students" },
+                    { key: "admins", label: "Admins" },
+                    { key: "lost_reports", label: "Lost Reports" },
+                    { key: "found_items", label: "Found Items" },
+                    { key: "ai_matches", label: "AI Matches" },
+                    { key: "claims", label: "Claims" },
+                  ].map((item) => (
+                    <div key={item.key} className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between">
+                      <span className="text-gray-400 text-xs">{item.label}</span>
+                      <span className="font-bold text-gray-700 text-xs">{breakdown[item.key] ?? 0}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
                   <p className="font-bold text-gray-700 text-sm">Database Size</p>
@@ -358,6 +387,10 @@ function SystemManagementContent() {
                   {statsLoading ? "..." : `${dbSizeGb} GB`}
                 </span>
               </div>
+
+              {lastRefreshed && (
+                <p className="text-center text-gray-300 text-[10px]">Auto-refreshes every 30s &middot; Last updated {lastRefreshed}</p>
+              )}
 
               <button
                 onClick={handleBackupNow}
