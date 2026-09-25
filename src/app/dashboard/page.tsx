@@ -81,6 +81,28 @@ function DashboardContent() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const anyModalOpen = !!previewItem || showAllActivity;
+    if (anyModalOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.overflow = "hidden";
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.overflow = "";
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0") * -1);
+      }
+    }
+  }, [previewItem, showAllActivity]);
+
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex">
 
@@ -294,7 +316,7 @@ function DashboardContent() {
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">All Activity</h2>
             <p className="text-gray-400 text-sm mb-6">{recentActivity.length} total lost and found reports</p>
 
-            <div className="overflow-y-auto flex-1 border border-gray-100 rounded-2xl">
+            <div className="overflow-y-auto overflow-x-auto flex-1 border border-gray-100 rounded-2xl">
               <table className="w-full">
                 <thead className="sticky top-0 bg-gray-50">
                   <tr className="border-b border-gray-100">
@@ -325,10 +347,10 @@ function DashboardContent() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="bg-purple-50 text-purple-700 text-xs font-bold px-2 py-1 rounded-lg">{activity.reported_by}</span>
+                          <span className="bg-purple-50 text-purple-700 text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap inline-block">{activity.reported_by}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`text-xs font-bold px-2 py-1 rounded-lg ${activity.type === "found" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                          <span className={`text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap inline-block ${activity.type === "found" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
                             {activity.status}
                           </span>
                         </td>
