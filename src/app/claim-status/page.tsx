@@ -204,6 +204,7 @@ function ClaimStatusContent() {
         const formData = new FormData();
         formData.append("image", file);
         formData.append("folder", "appeal-evidence");
+        formData.append("analyze", "false");
         const res = await api.post("/upload/image", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
@@ -269,6 +270,7 @@ function ClaimStatusContent() {
       const formData = new FormData();
       formData.append("image", file);
       formData.append("folder", "appeal-evidence");
+      formData.append("analyze", "false");
 
       const res = await api.post("/upload/image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
