@@ -144,13 +144,20 @@ function ClaimVerificationContent() {
   useEffect(() => { fetchClaims(); }, []);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return claims.filter(
-      (c) =>
+    const q = search.toLowerCase().trim();
+    if (!q) return claims;
+    return claims.filter((c) => {
+      const dateStr = new Date(c.created_at).toLocaleDateString().toLowerCase();
+      return (
         (c.student?.name || "").toLowerCase().includes(q) ||
+        (c.student?.school_id || "").toLowerCase().includes(q) ||
         (c.match?.found_record?.item_name || "").toLowerCase().includes(q) ||
-        c.claim_status.toLowerCase().includes(q)
-    );
+        (c.match?.found_record?.category || "").toLowerCase().includes(q) ||
+        c.claim_status.toLowerCase().includes(q) ||
+        (c.match?.confidence_score != null ? `${c.match.confidence_score}%` : "").includes(q) ||
+        dateStr.includes(q)
+      );
+    });
   }, [claims, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
