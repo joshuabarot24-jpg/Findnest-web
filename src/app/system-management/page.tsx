@@ -42,6 +42,14 @@ function SystemManagementContent() {
   const [logsLoading, setLogsLoading] = useState(true);
   const [showAllLogs, setShowAllLogs] = useState(false);
 
+  const [pendingCleanup, setPendingCleanup] = useState(false);
+  const [pendingCleanupFilename, setPendingCleanupFilename] = useState("");
+  const [cleanupProcessing, setCleanupProcessing] = useState(false);
+
+  const [importPreview, setImportPreview] = useState<{ backup_created_at: string; backup_type: string; summary: Record<string, number> } | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState("");
+
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,12 +118,23 @@ function SystemManagementContent() {
     }
   };
 
+  const fetchPendingCleanup = async () => {
+    try {
+      const response = await api.get("/system/pending-cleanup");
+      setPendingCleanup(response.data.pending);
+      setPendingCleanupFilename(response.data.filename || "");
+    } catch (err) {
+      console.error("Error checking pending cleanup:", err);
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
     fetchStats();
     fetchLogs();
     fetchBackups();
     fetchMaintenanceMode();
+    fetchPendingCleanup();
 
     const interval = setInterval(() => {
       fetchStats();
@@ -185,6 +204,41 @@ function SystemManagementContent() {
 
   function formatTime(dateStr: string) {
     return new Date(dateStr).toLocaleString();
+  }
+
+  async function handleCleanupDecision(confirm: boolean) {
+    setCleanupProcessing(true);
+    try {
+      await api.post("/system/confirm-cleanup", { confirm });
+      setPendingCleanup(false);
+      setToast(confirm ? "Records cleared successfully." : "Records retained.");
+      fetchStats();
+    } catch (err) {
+      console.error("Error confirming cleanup:", err);
+      setToast("Failed to process your decision.");
+    } finally {
+      setCleanupProcessing(false);
+    }
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError("");
+    setImportLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await api.post("/system/import-backup-preview", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setImportPreview(response.data);
+    } catch (err: any) {
+      setImportError(err.response?.data?.message || "Failed to read this backup file.");
+    } finally {
+      setImportLoading(false);
+      e.target.value = "";
+    }
   }
 
   const hasUnsavedChange = sensitivity !== savedSensitivity;
@@ -267,6 +321,31 @@ function SystemManagementContent() {
         {maintenanceMode && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold px-5 py-3 rounded-xl">
             Maintenance mode is currently active. Students and admins cannot access the system.
+          </div>
+        )}
+
+        {pendingCleanup && (
+          <div className="mb-6 bg-orange-50 border border-orange-200 rounded-xl px-5 py-4">
+            <p className="text-orange-700 font-bold text-sm mb-1">Automatic 30-Day Backup Completed</p>
+            <p className="text-orange-600 text-xs mb-3">
+              A fresh backup ({pendingCleanupFilename}) was just created. Would you like to clear current transactional records (reports, claims, matches) now that they're safely backed up? Student, Admin, and Super Admin accounts will NOT be affected.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleCleanupDecision(false)}
+                disabled={cleanupProcessing}
+                className="border-2 border-orange-200 text-orange-600 hover:bg-orange-100 font-bold px-4 py-2 rounded-xl transition text-xs disabled:opacity-50"
+              >
+                Keep Records
+              </button>
+              <button
+                onClick={() => handleCleanupDecision(true)}
+                disabled={cleanupProcessing}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-xl transition text-xs disabled:opacity-50"
+              >
+                {cleanupProcessing ? "Processing..." : "Clear Records Now"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -409,6 +488,16 @@ function SystemManagementContent() {
                 </button>
               )}
 
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-gray-200 hover:border-[#1a237e] rounded-xl p-3 text-center transition">
+                  <p className="text-gray-400 text-xs font-semibold">
+                    {importLoading ? "Reading file..." : "Import a downloaded backup JSON to view its contents"}
+                  </p>
+                </div>
+                <input type="file" accept="application/json" onChange={handleImportFile} className="hidden" disabled={importLoading} />
+              </label>
+              {importError && <p className="text-red-500 text-xs font-semibold">{importError}</p>}
+
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
                   <p className="font-bold text-gray-700 text-sm">Maintenance Mode</p>
@@ -530,6 +619,32 @@ function SystemManagementContent() {
                 <div className="px-6 py-16 text-center text-gray-400 text-sm">No backups yet.</div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {importPreview && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <button
+              onClick={() => setImportPreview(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-black text-[#1a237e] mb-1">Backup File Contents</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Created: {formatTime(importPreview.backup_created_at)} &middot; Type: {importPreview.backup_type}
+            </p>
+            <div className="space-y-2">
+              {Object.entries(importPreview.summary).map(([key, count]) => (
+                <div key={key} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <span className="text-gray-500 text-sm capitalize">{key.replace(/_/g, " ")}</span>
+                  <span className="font-bold text-[#1a237e] text-sm">{count}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-gray-400 text-xs mt-4 text-center">This is a read-only preview. Nothing was restored to the live system.</p>
           </div>
         </div>
       )}
