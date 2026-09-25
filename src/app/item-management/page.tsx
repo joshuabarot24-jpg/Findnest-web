@@ -106,6 +106,28 @@ function ItemManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  useEffect(() => {
+    const anyModalOpen = showAddModal || !!viewingFoundItem || !!viewingLostItem || !!deletingItem;
+    if (anyModalOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.overflow = "hidden";
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.overflow = "";
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0") * -1);
+      }
+    }
+  }, [showAddModal, viewingFoundItem, viewingLostItem, deletingItem]);
+
   const fetchFoundItems = async () => {
     try {
       const res = await api.get("/found-items");
@@ -142,23 +164,39 @@ function ItemManagementContent() {
   }, [mainTab, search]);
 
   const filteredFound = useMemo(() => {
-    const q = search.toLowerCase();
-    return foundItems.filter(
-      (i) =>
+    const q = search.toLowerCase().trim();
+    if (!q) return foundItems;
+    return foundItems.filter((i) => {
+      const itmId = `itm-${String(i.id).padStart(3, "0")}`;
+      const dateStr = new Date(i.created_at).toLocaleString().toLowerCase();
+      return (
         i.item_name.toLowerCase().includes(q) ||
         i.category.toLowerCase().includes(q) ||
-        (i.storage_location || "").toLowerCase().includes(q)
-    );
+        (i.storage_location || "").toLowerCase().includes(q) ||
+        (i.status || "").toLowerCase().includes(q) ||
+        itmId.includes(q) ||
+        String(i.id).includes(q) ||
+        dateStr.includes(q)
+      );
+    });
   }, [foundItems, search]);
 
   const filteredLost = useMemo(() => {
-    const q = search.toLowerCase();
-    return lostItems.filter(
-      (i) =>
+    const q = search.toLowerCase().trim();
+    if (!q) return lostItems;
+    return lostItems.filter((i) => {
+      const itmId = `lst-${String(i.id).padStart(3, "0")}`;
+      const dateStr = new Date(i.created_at).toLocaleString().toLowerCase();
+      return (
         i.item_name.toLowerCase().includes(q) ||
         i.category.toLowerCase().includes(q) ||
-        (i.location_lost || "").toLowerCase().includes(q)
-    );
+        (i.location_lost || "").toLowerCase().includes(q) ||
+        (i.status || "").toLowerCase().includes(q) ||
+        itmId.includes(q) ||
+        String(i.id).includes(q) ||
+        dateStr.includes(q)
+      );
+    });
   }, [lostItems, search]);
 
   const activeFiltered = mainTab === "found" ? filteredFound : filteredLost;
