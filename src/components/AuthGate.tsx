@@ -1,35 +1,24 @@
 "use client";
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useLayoutEffect, ReactNode } from "react";
 
 interface AuthGateProps {
   allowedRole: "super_admin" | "admin" | "student";
   children: ReactNode;
 }
 
-function getInitialStatus(allowedRole: string): "checking" | "ok" {
-  if (typeof window === "undefined") return "checking";
-
-  const token = localStorage.getItem("findnest_token");
-  const userStr = localStorage.getItem("findnest_user");
-
-  if (!token || !userStr) return "checking";
-
-  try {
-    const user = JSON.parse(userStr);
-    return user.role === allowedRole ? "ok" : "checking";
-  } catch {
-    return "checking";
-  }
-}
+let verifiedRoleThisSession: string | null = null;
 
 export default function AuthGate({ allowedRole, children }: AuthGateProps) {
-  const [status, setStatus] = useState<"checking" | "ok">(() => getInitialStatus(allowedRole));
+  const [status, setStatus] = useState<"checking" | "ok">(
+    verifiedRoleThisSession === allowedRole ? "ok" : "checking"
+  );
 
   function checkAuth() {
     const token = localStorage.getItem("findnest_token");
     const userStr = localStorage.getItem("findnest_user");
 
     if (!token || !userStr) {
+      verifiedRoleThisSession = null;
       window.location.href = "/";
       return;
     }
@@ -37,16 +26,18 @@ export default function AuthGate({ allowedRole, children }: AuthGateProps) {
     try {
       const user = JSON.parse(userStr);
       if (user.role !== allowedRole) {
+        verifiedRoleThisSession = null;
         window.location.href = "/";
         return;
       }
+      verifiedRoleThisSession = allowedRole;
       setStatus("ok");
     } catch {
       window.location.href = "/";
     }
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     checkAuth();
 
     const handleStorageChange = (e: StorageEvent) => {

@@ -115,6 +115,8 @@ function UserManagementContent() {
   const [formError, setFormError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
   const [confirmEditPassword, setConfirmEditPassword] = useState("");
+  const [showCreatePasswordConfirm, setShowCreatePasswordConfirm] = useState(false);
+  const [passwordFieldLocked, setPasswordFieldLocked] = useState(false);
 
   const [toast, setToast] = useState<string | null>(null);
 
@@ -747,6 +749,11 @@ function UserManagementContent() {
                     type={showCreatePassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onBlur={() => {
+                      if (formData.password.trim() && !passwordFieldLocked) {
+                        setShowCreatePasswordConfirm(true);
+                      }
+                    }}
                     placeholder="Minimum 8 characters"
                     autoComplete="new-password"
                     className="w-full mt-1 px-4 py-3 pr-16 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
@@ -893,6 +900,38 @@ function UserManagementContent() {
                 className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
               >
                 Review & Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreatePasswordConfirm && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+            <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
+            <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <p className="font-mono font-bold text-gray-700 text-lg break-all">{formData.password}</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setFormData({ ...formData, password: "" });
+                  setShowCreatePasswordConfirm(false);
+                }}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Re-type
+              </button>
+              <button
+                onClick={() => {
+                  setPasswordFieldLocked(true);
+                  setShowCreatePasswordConfirm(false);
+                }}
+                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
+              >
+                Confirm
               </button>
             </div>
           </div>
