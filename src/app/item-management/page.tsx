@@ -22,6 +22,7 @@ interface FoundItem {
   description: string | null;
   date_found: string | null;
   created_at: string;
+  admin?: { name: string } | null;
 }
 
 interface LostItem {
@@ -174,6 +175,7 @@ function ItemManagementContent() {
         i.category.toLowerCase().includes(q) ||
         (i.storage_location || "").toLowerCase().includes(q) ||
         (i.status || "").toLowerCase().includes(q) ||
+        (i.admin?.name || "").toLowerCase().includes(q) ||
         itmId.includes(q) ||
         String(i.id).includes(q) ||
         dateStr.includes(q)
@@ -192,6 +194,7 @@ function ItemManagementContent() {
         i.category.toLowerCase().includes(q) ||
         (i.location_lost || "").toLowerCase().includes(q) ||
         (i.status || "").toLowerCase().includes(q) ||
+        (i.user?.name || "").toLowerCase().includes(q) ||
         itmId.includes(q) ||
         String(i.id).includes(q) ||
         dateStr.includes(q)
