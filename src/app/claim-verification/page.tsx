@@ -20,6 +20,7 @@ interface Claim {
   claim_status: "pending" | "approved" | "rejected" | "abandoned";
   proof_description: string | null;
   proof_photo_url: string | null;
+  proof_photo_urls: string[] | null;
   photo_similarity_score: number | null;
   competing_claims_count?: number;
   admin_notes: string | null;
@@ -682,8 +683,24 @@ function ClaimVerificationContent() {
               </div>
             </div>
 
-            <p className="text-xs font-bold text-gray-400 uppercase mb-2">Claim Evidence Photo</p>
-            {viewingEvidence.proof_photo_url ? (
+            <p className="text-xs font-bold text-gray-400 uppercase mb-2">
+              Claim Evidence Photos
+              {viewingEvidence.proof_photo_urls && viewingEvidence.proof_photo_urls.length > 1 && (
+                <span className="text-gray-400 font-normal normal-case ml-1">({viewingEvidence.proof_photo_urls.length} photos)</span>
+              )}
+            </p>
+            {viewingEvidence.proof_photo_urls && viewingEvidence.proof_photo_urls.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {viewingEvidence.proof_photo_urls.map((url, idx) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt={`Claim evidence ${idx + 1}`}
+                    className="w-full aspect-square object-cover rounded-2xl border border-gray-100"
+                  />
+                ))}
+              </div>
+            ) : viewingEvidence.proof_photo_url ? (
               <img src={viewingEvidence.proof_photo_url} alt="Claim evidence" className="w-full max-h-64 object-cover rounded-2xl mb-4" />
             ) : (
               <div className="w-full h-32 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 text-sm mb-4">No evidence photo submitted</div>
