@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
+import Link from "next/link";
 
 interface AuditRecord {
   id: number;
@@ -292,18 +293,18 @@ function SuperAdminRecordsContent() {
 
         <nav className="flex flex-col gap-1 px-4 flex-1">
           <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">Management</p>
-          <a href="/user-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
+          <Link href="/user-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
             <span>User Management</span>
-          </a>
-          <a href="/admin-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
+          </Link>
+          <Link href="/admin-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
             <span>Admin Management</span>
-          </a>
-          <a href="/system-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
+          </Link>
+          <Link href="/system-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
             <span>System Management</span>
-          </a>
-          <a href="/super-admin-records" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20">
+          </Link>
+          <Link href="/super-admin-records" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20">
             <span>Digital Records</span>
-          </a>
+          </Link>
         </nav>
 
         <div className="px-4 py-6">
