@@ -261,10 +261,15 @@ function DigitalRecordsContent() {
     if (!matchesFilter(r.action, filterType)) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
+    const recId = `rec-${String(r.id).padStart(3, "0")}`;
+    const dateStr = formatTime(r.created_at).toLowerCase();
     return (
       r.action.toLowerCase().includes(q) ||
       (r.details || "").toLowerCase().includes(q) ||
-      (r.performed_by || "").toLowerCase().includes(q)
+      (r.performed_by || "").toLowerCase().includes(q) ||
+      recId.includes(q) ||
+      String(r.id).includes(q) ||
+      dateStr.includes(q)
     );
   });
 
