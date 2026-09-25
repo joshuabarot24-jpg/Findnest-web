@@ -280,7 +280,7 @@ function ReportLostContent() {
 
             <form onSubmit={handleReview} className="p-8 space-y-5">
 
-              <label className="block">
+              <div className="block">
                 <p className="text-sm font-bold text-gray-600 mb-2">
                   Upload Photos <span className="text-red-500">*</span>
                   <span className="text-gray-400 font-normal text-xs ml-1">(up to {MAX_PHOTOS}, different angles help)</span>
@@ -301,7 +301,7 @@ function ReportLostContent() {
                         {!p.uploading && (
                           <button
                             type="button"
-                            onClick={() => removePhoto(idx)}
+                            onClick={(e) => { e.stopPropagation(); e.preventDefault(); removePhoto(idx); }}
                             className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow"
                           >
                             &times;
@@ -316,21 +316,21 @@ function ReportLostContent() {
                 )}
 
                 {photos.length < MAX_PHOTOS && (
-                  <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition cursor-pointer ${
+                  <label className={`block border-2 border-dashed rounded-2xl p-6 text-center transition cursor-pointer ${
                     photoError ? "border-red-400 bg-red-50" : "border-gray-200 hover:border-red-300 bg-gray-50"
                   }`}>
                     <p className={`font-bold text-sm ${photoError ? "text-red-600" : "text-gray-600"}`}>
                       {photos.length === 0 ? "Click to upload photos" : `Add more (${MAX_PHOTOS - photos.length} left)`}
                     </p>
-                  </div>
+                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                  </label>
                 )}
-                <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
                 {photoError && (
                   <p className="text-red-500 text-xs font-bold mt-2">
                     {photoErrorMessage || "At least one photo is required for better evidence before you can submit your report!"}
                   </p>
                 )}
-              </label>
+              </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-600 mb-2">
