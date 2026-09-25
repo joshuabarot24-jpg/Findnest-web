@@ -15,6 +15,8 @@ function ResetPasswordForm() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPasswordCheck, setShowPasswordCheck] = useState(false);
+  const [passwordLocked, setPasswordLocked] = useState(false);
 
   useEffect(() => {
     setToken(searchParams.get("token") || "");
@@ -106,6 +108,11 @@ function ResetPasswordForm() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => {
+                    if (password.trim() && !passwordLocked) {
+                      setShowPasswordCheck(true);
+                    }
+                  }}
                   placeholder="Minimum 8 characters"
                   className="w-full pl-5 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                   required
@@ -157,6 +164,38 @@ function ResetPasswordForm() {
           </form>
         )}
       </div>
+
+      {showPasswordCheck && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+            <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
+            <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <p className="font-mono font-bold text-gray-700 text-lg break-all">{password}</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setPassword("");
+                  setShowPasswordCheck(false);
+                }}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Re-type
+              </button>
+              <button
+                onClick={() => {
+                  setPasswordLocked(true);
+                  setShowPasswordCheck(false);
+                }}
+                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
