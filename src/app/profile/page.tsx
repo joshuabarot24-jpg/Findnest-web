@@ -41,6 +41,11 @@ function ProfileContent() {
   const [setPasswordLoading, setSetPasswordLoading] = useState(false);
   const [setPasswordError, setSetPasswordError] = useState("");
 
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailSaving, setEmailSaving] = useState(false);
+
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,6 +124,25 @@ function ProfileContent() {
       );
     } finally {
       setSetPasswordLoading(false);
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    setEmailError("");
+    setEmailSaving(true);
+    try {
+      await api.put("/profile", { email: emailInput.trim() });
+      setToast("Email updated successfully.");
+      setEditingEmail(false);
+      fetchProfile();
+    } catch (err: any) {
+      setEmailError(
+        err.response?.data?.message ||
+          Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
+          "Failed to update email."
+      );
+    } finally {
+      setEmailSaving(false);
     }
   };
 
@@ -210,9 +234,47 @@ function ProfileContent() {
                   <span className="text-gray-400 font-medium text-sm">Full Name</span>
                   <span className="font-bold text-gray-700 text-sm">{user?.name}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-400 font-medium text-sm">Email Address</span>
-                  <span className="font-bold text-gray-700 text-sm">{user?.email}</span>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 font-medium text-sm">Email Address</span>
+                    {!editingEmail && (
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-gray-700 text-sm">{user?.email}</span>
+                        <button
+                          onClick={() => { setEmailInput(user?.email || ""); setEmailError(""); setEditingEmail(true); }}
+                          className="text-[#1a237e] text-xs font-bold hover:underline"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {editingEmail && (
+                    <div className="mt-3 space-y-2">
+                      <input
+                        type="email"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 text-sm"
+                      />
+                      {emailError && <p className="text-red-500 text-xs font-semibold">{emailError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingEmail(false)}
+                          className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2 rounded-xl hover:bg-gray-100 transition text-xs"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSaveEmail}
+                          disabled={emailSaving}
+                          className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-2 rounded-xl transition text-xs disabled:opacity-50"
+                        >
+                          {emailSaving ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <span className="text-gray-400 font-medium text-sm">School ID</span>
