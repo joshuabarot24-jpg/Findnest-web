@@ -77,6 +77,9 @@ function SuperAdminRecordsContent() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [actionTypeFilter, setActionTypeFilter] = useState("");
+  const [actionTypes, setActionTypes] = useState<string[]>([]);
 
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [casesLoading, setCasesLoading] = useState(true);
@@ -123,7 +126,12 @@ function SuperAdminRecordsContent() {
     setRecordsLoading(true);
     try {
       const response = await api.get("/audit-logs", {
-        params: { page: pageNum, action: searchTerm || undefined },
+        params: {
+          page: pageNum,
+          action: searchTerm || undefined,
+          action_type: actionTypeFilter || undefined,
+          sort: sortOrder,
+        },
       });
       const data = response.data.logs;
       setRecords(data.data || []);
@@ -133,6 +141,15 @@ function SuperAdminRecordsContent() {
       console.error("Error fetching audit logs:", err);
     } finally {
       setRecordsLoading(false);
+    }
+  };
+
+  const fetchActionTypes = async () => {
+    try {
+      const response = await api.get("/audit-logs/action-types");
+      setActionTypes(response.data.action_types || []);
+    } catch (err) {
+      console.error("Error fetching action types:", err);
     }
   };
 
@@ -178,7 +195,10 @@ function SuperAdminRecordsContent() {
   };
 
   useEffect(() => {
-    if (view === "activity") fetchRecords(page, search);
+    if (view === "activity") {
+      fetchRecords(page, search);
+      fetchActionTypes();
+    }
   }, [view, page]);
 
   useEffect(() => {
@@ -186,6 +206,12 @@ function SuperAdminRecordsContent() {
     const t = setTimeout(() => { setPage(1); fetchRecords(1, search); }, 400);
     return () => clearTimeout(t);
   }, [search]);
+
+  useEffect(() => {
+    if (view !== "activity") return;
+    setPage(1);
+    fetchRecords(1, search);
+  }, [sortOrder, actionTypeFilter]);
 
   useEffect(() => {
     if (view === "cases") fetchCases(caseSearch);
@@ -315,18 +341,46 @@ function SuperAdminRecordsContent() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
                 <div>
                   <h2 className="font-black text-gray-700">System-Wide Audit Log</h2>
                   <p className="text-gray-400 text-xs">All entries are permanent and cannot be modified</p>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search logs by action keyword..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-72"
-                />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setSortOrder("oldest")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                      sortOrder === "oldest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                    }`}
+                  >
+                    Oldest Report
+                  </button>
+                  <button
+                    onClick={() => setSortOrder("newest")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                      sortOrder === "newest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                    }`}
+                  >
+                    Newest Report
+                  </button>
+                  <select
+                    value={actionTypeFilter}
+                    onChange={(e) => setActionTypeFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+                  >
+                    <option value="">All Action Types</option>
+                    {actionTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Search logs..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-56"
+                  />
+                </div>
               </div>
 
               {recordsLoading ? (
