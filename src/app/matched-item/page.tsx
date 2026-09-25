@@ -45,6 +45,8 @@ export default function MatchedItemPage() {
   const [claimSubmitting, setClaimSubmitting] = useState(false);
   const [claimError, setClaimError] = useState("");
   const [showClaimForm, setShowClaimForm] = useState(false);
+  const [claimPhotos, setClaimPhotos] = useState<{ preview: string; url: string | null; uploading: boolean }[]>([]);
+  const CLAIM_MAX_PHOTOS = 4;
 
   useEffect(() => {
     if (!matchId) {
@@ -66,6 +68,53 @@ export default function MatchedItemPage() {
     fetchMatch();
   }, [matchId]);
 
+  const claimUploadedUrls = claimPhotos.filter((p) => p.url).map((p) => p.url as string);
+  const claimAnyUploading = claimPhotos.some((p) => p.uploading);
+
+  const handleClaimPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const remainingSlots = CLAIM_MAX_PHOTOS - claimPhotos.length;
+    const filesToAdd = files.slice(0, remainingSlots);
+    if (filesToAdd.length === 0) return;
+
+    const startIndex = claimPhotos.length;
+    const newEntries = filesToAdd.map((file) => ({
+      preview: URL.createObjectURL(file),
+      url: null as string | null,
+      uploading: true,
+    }));
+    setClaimPhotos((prev) => [...prev, ...newEntries]);
+
+    for (let i = 0; i < filesToAdd.length; i++) {
+      const file = filesToAdd[i];
+      const idx = startIndex + i;
+      try {
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("folder", "appeal-evidence");
+        formData.append("analyze", "false");
+        const res = await api.post("/upload/image", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setClaimPhotos((prev) => {
+          const next = [...prev];
+          next[idx] = { ...next[idx], url: res.data.url, uploading: false };
+          return next;
+        });
+      } catch (err: any) {
+        console.error("Claim photo upload failed:", err);
+        setClaimPhotos((prev) => prev.filter((_, i2) => i2 !== idx));
+        setClaimError(err.response?.data?.message || "One of your photos failed to upload. Please try again.");
+      }
+    }
+    e.target.value = "";
+  };
+
+  const removeClaimPhoto = (index: number) => {
+    setClaimPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmitClaim = async () => {
     if (!matchId) return;
     if (!proofDescription.trim()) {
@@ -79,6 +128,8 @@ export default function MatchedItemPage() {
       await api.post("/claims", {
         match_id: Number(matchId),
         proof_description: proofDescription.trim(),
+        proof_photo_url: claimUploadedUrls[0] || null,
+        proof_photo_urls: claimUploadedUrls,
       });
       router.push("/claim-status");
     } catch (err: any) {
@@ -197,6 +248,48 @@ export default function MatchedItemPage() {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 resize-none mb-4"
                 />
 
+                <label className="block text-sm font-bold text-gray-600 mb-2">
+                  Evidence Photos (Optional)
+                  <span className="text-gray-400 font-normal text-xs ml-1">(up to {CLAIM_MAX_PHOTOS})</span>
+                </label>
+
+                {claimPhotos.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    {claimPhotos.map((p, idx) => (
+                      <div key={idx} className="relative">
+                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-gray-100 border-2 border-gray-200">
+                          <img src={p.preview} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover" />
+                          {p.uploading && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            </div>
+                          )}
+                        </div>
+                        {!p.uploading && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeClaimPhoto(idx); }}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow"
+                          >
+                            &times;
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {claimPhotos.length < CLAIM_MAX_PHOTOS && (
+                  <label className="block cursor-pointer mb-4">
+                    <div className="border-2 border-dashed border-gray-200 hover:border-[#1a237e] rounded-xl p-4 text-center transition">
+                      <p className="text-gray-400 text-xs">
+                        {claimPhotos.length === 0 ? "Click to add evidence photos" : `Add more (${CLAIM_MAX_PHOTOS - claimPhotos.length} left)`}
+                      </p>
+                    </div>
+                    <input type="file" accept="image/*" multiple onChange={handleClaimPhotoUpload} className="hidden" />
+                  </label>
+                )}
+
                 {claimError && (
                   <p className="text-red-500 text-xs font-semibold mb-4">{claimError}</p>
                 )}
@@ -210,10 +303,10 @@ export default function MatchedItemPage() {
                   </button>
                   <button
                     onClick={handleSubmitClaim}
-                    disabled={claimSubmitting}
+                    disabled={claimSubmitting || claimAnyUploading}
                     className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-black py-3 rounded-xl transition disabled:opacity-50"
                   >
-                    {claimSubmitting ? "Submitting..." : "Submit Claim"}
+                    {claimSubmitting ? "Submitting..." : claimAnyUploading ? "Uploading..." : "Submit Claim"}
                   </button>
                 </div>
               </div>
