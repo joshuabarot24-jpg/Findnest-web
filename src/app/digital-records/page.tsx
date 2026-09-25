@@ -33,6 +33,26 @@ interface CaseLogEntry {
   created_at: string;
 }
 
+interface AppealClaim {
+  id: number;
+  proof_description: string;
+  admin_notes: string | null;
+  appeal_message: string | null;
+  appeal_photo_url: string | null;
+  appeal_submitted_at: string | null;
+  photo_similarity_score: number | null;
+  student: {
+    name: string;
+    email: string;
+    school_id: string | null;
+    trust_score: number;
+  } | null;
+  match: {
+    foundRecord: { item_name: string; photo_url: string | null } | null;
+    lostReport: { item_name: string; photo_url: string | null } | null;
+  } | null;
+}
+
 type FilterType = "all" | "lost" | "found" | "release";
 
 function actionBadgeClass(action: string) {
@@ -97,7 +117,7 @@ export default function DigitalRecords() {
 
 function DigitalRecordsContent() {
 
-  const [view, setView] = useState<"activity" | "cases">("activity");
+  const [view, setView] = useState<"activity" | "cases" | "appeals">("activity");
   const [filterType, setFilterType] = useState<FilterType>("all");
 
   const [records, setRecords] = useState<AuditRecord[]>([]);
@@ -114,6 +134,19 @@ function DigitalRecordsContent() {
   const [caseLogs, setCaseLogs] = useState<CaseLogEntry[]>([]);
   const [caseLogsLoading, setCaseLogsLoading] = useState(false);
   const [previewCase, setPreviewCase] = useState<CaseSummary | null>(null);
+
+  const [appeals, setAppeals] = useState<AppealClaim[]>([]);
+  const [appealsLoading, setAppealsLoading] = useState(true);
+  const [resolvingAppeal, setResolvingAppeal] = useState<AppealClaim | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState("");
+  const [resolving, setResolving] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const fetchRecords = async (pageNum: number) => {
     setLoading(true);
@@ -166,6 +199,22 @@ function DigitalRecordsContent() {
     }
   };
 
+  const fetchAppeals = async () => {
+    setAppealsLoading(true);
+    try {
+      const response = await api.get("/claims/appeals");
+      setAppeals(response.data.claims || []);
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        setAccessDenied(true);
+      } else {
+        console.error("Error fetching appeals:", err);
+      }
+    } finally {
+      setAppealsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (view === "activity") fetchRecords(page);
   }, [view, page]);
@@ -185,6 +234,29 @@ function DigitalRecordsContent() {
     else setCaseLogs([]);
   }, [selectedCase]);
 
+  useEffect(() => {
+    if (view === "appeals") fetchAppeals();
+  }, [view]);
+
+  const handleResolve = async (decision: "uphold" | "overturn") => {
+    if (!resolvingAppeal) return;
+    setResolving(true);
+    try {
+      await api.post(`/claims/${resolvingAppeal.id}/resolve-appeal`, {
+        decision,
+        resolution_notes: resolutionNotes.trim() || null,
+      });
+      setToast(decision === "overturn" ? "Appeal upheld — claim approved." : "Original rejection upheld.");
+      setResolvingAppeal(null);
+      setResolutionNotes("");
+      fetchAppeals();
+    } catch (err) {
+      console.error("Error resolving appeal:", err);
+    } finally {
+      setResolving(false);
+    }
+  };
+
   const displayed = records.filter((r) => {
     if (!matchesFilter(r.action, filterType)) return false;
     if (!search.trim()) return true;
@@ -198,6 +270,11 @@ function DigitalRecordsContent() {
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex">
+      {toast && (
+        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
+          {toast}
+        </div>
+      )}
 
       <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
         <div className="flex items-center gap-3 px-6 py-6">
@@ -288,6 +365,19 @@ function DigitalRecordsContent() {
           >
             By Case
           </button>
+          <button
+            onClick={() => setView("appeals")}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition relative ${
+              view === "appeals" ? "bg-[#1a237e] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
+            }`}
+          >
+            Appeals
+            {appeals.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                {appeals.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {view === "activity" ? (
@@ -337,13 +427,14 @@ function DigitalRecordsContent() {
               {loading ? (
                 <div className="text-center py-16 text-gray-400 text-sm">Loading records...</div>
               ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Log ID</th>
-                      <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
+                      <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Action</th>
                       <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Details</th>
-                      <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Performed By</th>
+                      <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Performed By</th>
                       <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Timestamp</th>
                     </tr>
                   </thead>
@@ -354,13 +445,13 @@ function DigitalRecordsContent() {
                           <span className="font-black text-[#1a237e] text-sm">#REC-{String(record.id).padStart(3, "0")}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${actionBadgeClass(record.action)}`}>{record.action}</span>
+                          <span className={`text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap inline-block ${actionBadgeClass(record.action)}`}>{record.action}</span>
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-semibold text-gray-700 text-sm">{record.details}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg">{record.performed_by}</span>
+                          <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap inline-block">{record.performed_by}</span>
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-gray-400 text-sm">{formatTime(record.created_at)}</p>
@@ -369,6 +460,7 @@ function DigitalRecordsContent() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
 
               {!loading && displayed.length === 0 && (
@@ -400,7 +492,7 @@ function DigitalRecordsContent() {
               </div>
             </div>
           </>
-        ) : (
+        ) : view === "cases" ? (
           <div className="grid grid-cols-3 gap-6">
             <div className="col-span-1">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -523,6 +615,68 @@ function DigitalRecordsContent() {
               </div>
             </div>
           </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <h2 className="font-black text-gray-700">Pending Appeals</h2>
+              <p className="text-gray-400 text-xs">Rejected claims escalated by students &mdash; you make the final decision</p>
+            </div>
+
+            {appealsLoading ? (
+              <div className="text-center py-16 text-gray-400 text-sm">Loading appeals...</div>
+            ) : appeals.length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <p className="font-bold text-lg">No pending appeals</p>
+                <p className="text-sm mt-1">Appealed claims will appear here for your review</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {appeals.map((claim) => {
+                  const itemName = claim.match?.foundRecord?.item_name || claim.match?.lostReport?.item_name || "Unknown Item";
+                  return (
+                    <div key={claim.id} className="px-6 py-5">
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div>
+                          <p className="font-black text-gray-700">{itemName}</p>
+                          <p className="text-gray-400 text-xs mt-0.5">
+                            {claim.student?.name} &middot; {claim.student?.school_id} &middot; Trust Score: {claim.student?.trust_score}
+                          </p>
+                          {claim.appeal_submitted_at && (
+                            <p className="text-gray-400 text-xs mt-0.5">Appealed {formatTime(claim.appeal_submitted_at)}</p>
+                          )}
+                        </div>
+                        {claim.photo_similarity_score != null && (
+                          <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap">
+                            {claim.photo_similarity_score}% AI Score
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-2">
+                        <p className="text-red-400 text-[10px] font-bold uppercase mb-1">Original Rejection Reason</p>
+                        <p className="text-red-700 text-sm">{claim.admin_notes || "No reason provided."}</p>
+                      </div>
+
+                      <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-4">
+                        <p className="text-orange-400 text-[10px] font-bold uppercase mb-1">Student's Appeal</p>
+                        <p className="text-orange-700 text-sm">{claim.appeal_message}</p>
+                        {claim.appeal_photo_url && (
+                          <img src={claim.appeal_photo_url} alt="Appeal evidence" className="w-24 h-24 object-cover rounded-xl mt-3" />
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => { setResolvingAppeal(claim); setResolutionNotes(""); }}
+                        className="bg-[#1a237e] hover:bg-[#283593] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition"
+                      >
+                        Review Appeal
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
       </main>
       )}
@@ -561,6 +715,63 @@ function DigitalRecordsContent() {
             )}
             <p className="text-gray-400 text-sm mt-1">Case ID: {previewCase.case_id}</p>
             <p className="text-gray-400 text-sm mt-1">{formatTime(previewCase.created_at)}</p>
+          </div>
+        </div>
+      )}
+
+      {resolvingAppeal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <button
+              onClick={() => setResolvingAppeal(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-xl font-black text-[#1a237e] mb-1">Resolve Appeal</h2>
+            <p className="text-gray-400 text-sm mb-6">
+              For {resolvingAppeal.student?.name}'s claim
+            </p>
+
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-2">
+              <p className="text-red-400 text-[10px] font-bold uppercase mb-1">Original Rejection</p>
+              <p className="text-red-700 text-sm">{resolvingAppeal.admin_notes || "No reason provided."}</p>
+            </div>
+
+            <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-5">
+              <p className="text-orange-400 text-[10px] font-bold uppercase mb-1">Student's Appeal</p>
+              <p className="text-orange-700 text-sm">{resolvingAppeal.appeal_message}</p>
+              {resolvingAppeal.appeal_photo_url && (
+                <img src={resolvingAppeal.appeal_photo_url} alt="Appeal evidence" className="w-full max-h-48 object-cover rounded-xl mt-3" />
+              )}
+            </div>
+
+            <label className="block text-sm font-bold text-gray-600 mb-2">Resolution Notes (Optional)</label>
+            <textarea
+              value={resolutionNotes}
+              onChange={(e) => setResolutionNotes(e.target.value)}
+              placeholder="Explain your final decision..."
+              rows={3}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 resize-none mb-5"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleResolve("uphold")}
+                disabled={resolving}
+                className="flex-1 border-2 border-red-200 text-red-500 hover:bg-red-500 hover:text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+              >
+                Uphold Rejection
+              </button>
+              <button
+                onClick={() => handleResolve("overturn")}
+                disabled={resolving}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+              >
+                {resolving ? "Processing..." : "Overturn & Approve"}
+              </button>
+            </div>
           </div>
         </div>
       )}
