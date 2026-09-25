@@ -26,6 +26,9 @@ function DashboardContent() {
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewItem, setPreviewItem] = useState<ActivityItem | null>(null);
+  const [showAllActivity, setShowAllActivity] = useState(false);
+  const [allActivityPage, setAllActivityPage] = useState(1);
+  const ALL_ACTIVITY_PAGE_SIZE = 20;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,7 +70,7 @@ function DashboardContent() {
           })),
         ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
-        setRecentActivity(activity.slice(0, 12));
+        setRecentActivity(activity);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {
@@ -184,7 +187,7 @@ function DashboardContent() {
               <h2 className="font-black text-gray-700">Recent Activity</h2>
               <p className="text-gray-400 text-xs">Latest lost and found reports</p>
             </div>
-            <Link href="/item-management" className="text-sm font-bold text-[#1a237e] hover:underline">View All</Link>
+            <button onClick={() => { setShowAllActivity(true); setAllActivityPage(1); }} className="text-sm font-bold text-[#1a237e] hover:underline">View All</button>
           </div>
 
           {loading ? (
@@ -274,6 +277,96 @@ function DashboardContent() {
             </span>
             <p className="text-gray-400 text-sm mt-2">Reported by {previewItem.reported_by}</p>
             <p className="text-gray-400 text-sm mt-1">{previewItem.time}</p>
+          </div>
+        </div>
+      )}
+
+      {showAllActivity && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-3xl p-8 max-h-[85vh] flex flex-col">
+            <button
+              onClick={() => setShowAllActivity(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-2xl font-black text-[#1a237e] mb-1">All Activity</h2>
+            <p className="text-gray-400 text-sm mb-6">{recentActivity.length} total lost and found reports</p>
+
+            <div className="overflow-y-auto flex-1 border border-gray-100 rounded-2xl">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-gray-50">
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Item</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Reported By</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {recentActivity
+                    .slice((allActivityPage - 1) * ALL_ACTIVITY_PAGE_SIZE, allActivityPage * ALL_ACTIVITY_PAGE_SIZE)
+                    .map((activity, index) => (
+                      <tr key={index} className="hover:bg-gray-50 transition">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setPreviewItem(activity)}
+                              className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 hover:ring-2 hover:ring-[#1a237e] transition cursor-zoom-in"
+                            >
+                              {activity.photo_url ? (
+                                <img src={activity.photo_url} alt={activity.item} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-[9px]">N/A</div>
+                              )}
+                            </button>
+                            <p className="font-semibold text-gray-700 text-sm">{activity.item}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="bg-purple-50 text-purple-700 text-xs font-bold px-2 py-1 rounded-lg">{activity.reported_by}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-bold px-2 py-1 rounded-lg ${activity.type === "found" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                            {activity.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-gray-400 text-xs">{activity.time}</p>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+              {recentActivity.length === 0 && (
+                <div className="text-center py-16 text-gray-400 text-sm">No activity yet.</div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-gray-400 text-sm">
+                Showing {recentActivity.length === 0 ? 0 : (allActivityPage - 1) * ALL_ACTIVITY_PAGE_SIZE + 1}
+                &ndash;{Math.min(allActivityPage * ALL_ACTIVITY_PAGE_SIZE, recentActivity.length)} of {recentActivity.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAllActivityPage((p) => Math.max(1, p - 1))}
+                  disabled={allActivityPage === 1}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="px-3 py-1.5 bg-[#1a237e] rounded-lg text-white text-sm font-bold">{allActivityPage}</span>
+                <button
+                  onClick={() => setAllActivityPage((p) => Math.min(Math.ceil(recentActivity.length / ALL_ACTIVITY_PAGE_SIZE) || 1, p + 1))}
+                  disabled={allActivityPage >= Math.ceil(recentActivity.length / ALL_ACTIVITY_PAGE_SIZE)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
