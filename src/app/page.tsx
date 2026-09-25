@@ -183,7 +183,7 @@ export default function Home() {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="you@email.com or 2022-10043"
+                  placeholder="you@email.com or 00000001"
                   autoComplete="off"
                   name="fnd-user-field"
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
