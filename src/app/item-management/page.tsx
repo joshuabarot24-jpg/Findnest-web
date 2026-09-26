@@ -23,6 +23,10 @@ interface FoundItem {
   date_found: string | null;
   created_at: string;
   admin?: { name: string } | null;
+  unclaimed_flagged_at?: string | null;
+  needs_disposal_review?: boolean;
+  disposal_notes?: string | null;
+  disposed_at?: string | null;
 }
 
 interface LostItem {
@@ -84,6 +88,9 @@ function ItemManagementContent() {
   const [viewingFoundItem, setViewingFoundItem] = useState<FoundItem | null>(null);
   const [viewingLostItem, setViewingLostItem] = useState<LostItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<FoundItem | null>(null);
+  const [documentingDisposal, setDocumentingDisposal] = useState<FoundItem | null>(null);
+  const [disposalNotes, setDisposalNotes] = useState("");
+  const [disposalSubmitting, setDisposalSubmitting] = useState(false);
 
   const [formName, setFormName] = useState("");
   const [formCategory, setFormCategory] = useState(CATEGORY_OPTIONS[0]);
@@ -215,6 +222,7 @@ function ItemManagementContent() {
   const unclaimedCount = foundItems.filter((i) => i.status === "unclaimed").length;
   const claimedCount = foundItems.filter((i) => i.status === "claimed").length;
   const disposalCount = foundItems.filter((i) => i.status === "for_disposal").length;
+  const disposalReviewCount = foundItems.filter((i) => i.needs_disposal_review && i.status !== "for_disposal").length;
   const searchingCount = lostItems.filter((i) => i.status === "searching").length;
   const matchedCount = lostItems.filter((i) => i.status === "matched").length;
   const returnedCount = lostItems.filter((i) => i.status === "returned").length;
@@ -312,6 +320,25 @@ function ItemManagementContent() {
       fetchFoundItems();
     } catch (err) {
       console.error("Error deleting item:", err);
+    }
+  }
+
+  async function handleDocumentDisposal() {
+    if (!documentingDisposal || !disposalNotes.trim()) return;
+    setDisposalSubmitting(true);
+    try {
+      await api.post(`/found-items/${documentingDisposal.id}/document-disposal`, {
+        disposal_notes: disposalNotes.trim(),
+      });
+      setToast(`Disposal documented for ${documentingDisposal.item_name}.`);
+      setDocumentingDisposal(null);
+      setDisposalNotes("");
+      setViewingFoundItem(null);
+      fetchFoundItems();
+    } catch (err: any) {
+      console.error("Error documenting disposal:", err);
+    } finally {
+      setDisposalSubmitting(false);
     }
   }
 
@@ -708,7 +735,38 @@ function ItemManagementContent() {
               )}
             </div>
             <h2 className="text-xl font-black text-[#1a237e]">{viewingFoundItem.item_name}</h2>
-            <p className="text-gray-400 text-xs mb-4">ID: ITM-{String(viewingFoundItem.id).padStart(3, "0")}</p>
+            <p className="text-gray-400 text-xs mb-2">ID: ITM-{String(viewingFoundItem.id).padStart(3, "0")}</p>
+
+            {viewingFoundItem.unclaimed_flagged_at && viewingFoundItem.status === "unclaimed" && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
+                <p className="text-yellow-700 text-xs font-bold">⚠ Unclaimed for over 10 days</p>
+                <p className="text-yellow-600 text-[11px] mt-0.5">Flagged {formatDateTime(viewingFoundItem.unclaimed_flagged_at)}</p>
+              </div>
+            )}
+
+            {viewingFoundItem.needs_disposal_review && viewingFoundItem.status !== "for_disposal" && (
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-4">
+                <p className="text-orange-700 text-xs font-bold">⚠ Reached 30-day disposal review threshold</p>
+                <p className="text-orange-600 text-[11px] mt-0.5 mb-2">Please document how this item will be handled.</p>
+                <button
+                  onClick={() => { setDocumentingDisposal(viewingFoundItem); setDisposalNotes(""); }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                >
+                  Document Disposal
+                </button>
+              </div>
+            )}
+
+            {viewingFoundItem.disposal_notes && (
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-4">
+                <p className="text-gray-500 text-[10px] font-bold uppercase mb-1">Disposal Method Documented</p>
+                <p className="text-gray-700 text-xs">{viewingFoundItem.disposal_notes}</p>
+                {viewingFoundItem.disposed_at && (
+                  <p className="text-gray-400 text-[10px] mt-1">{formatDateTime(viewingFoundItem.disposed_at)}</p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <span className="text-gray-400 font-medium">Category</span>
@@ -744,6 +802,40 @@ function ItemManagementContent() {
             <div className="flex gap-3 mt-6">
               <button onClick={() => setDeletingItem(viewingFoundItem)} className="flex-1 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-bold py-3 rounded-2xl transition">Delete</button>
               <button onClick={() => setViewingFoundItem(null)} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {documentingDisposal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h2 className="text-xl font-black text-[#1a237e] mb-1">Document Disposal Method</h2>
+            <p className="text-gray-400 text-sm mb-6">
+              For "{documentingDisposal.item_name}" — this item has been unclaimed for over 30 days.
+            </p>
+            <label className="block text-sm font-bold text-gray-600 mb-2">Disposal Method</label>
+            <textarea
+              value={disposalNotes}
+              onChange={(e) => setDisposalNotes(e.target.value)}
+              placeholder="e.g. Donated to charity, discarded, returned to school inventory, given to PTA..."
+              rows={4}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 resize-none mb-5"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDocumentingDisposal(null)}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDocumentDisposal}
+                disabled={disposalSubmitting || !disposalNotes.trim()}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+              >
+                {disposalSubmitting ? "Saving..." : "Confirm Disposal"}
+              </button>
             </div>
           </div>
         </div>
