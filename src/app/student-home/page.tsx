@@ -275,6 +275,19 @@ function StudentHomeContent() {
     fetchMyReports();
     fetchPublicReports();
     fetchNotifications();
+
+    const notifInterval = setInterval(() => {
+      fetchNotifications();
+      if (notifPanelOpen) {
+        fetchAllNotifications();
+      } else {
+        api.get("/notifications").then((res) => {
+          setAllNotifications(res.data.notifications || []);
+        }).catch((err) => console.error("Error polling notifications:", err));
+      }
+    }, 15000);
+
+    return () => clearInterval(notifInterval);
   }, []);
 
   const unreadCount = allNotifications.filter((n) => !n.is_read).length || (matchNotification ? 1 : 0);
