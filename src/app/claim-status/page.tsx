@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import api from "@/lib/api";
+import { useState, useEffect, useRef } from "react";
+import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 
 interface Claim {
@@ -115,6 +115,11 @@ export default function ClaimStatusPage() {
 
 function ClaimStatusContent() {
   const [userInitial, setUserInitial] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
+  const [profilePanelOpen, setProfilePanelOpen] = useState(false);
+  const [allNotifications, setAllNotifications] = useState<{ id: number; title: string; message: string; is_read: boolean; created_at: string; match_id: number | null; type: string }[]>([]);
+  const [notifListLoading, setNotifListLoading] = useState(false);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -149,8 +154,75 @@ function ClaimStatusContent() {
     if (stored) {
       const currentUser = JSON.parse(stored);
       setUserInitial(currentUser?.name?.charAt(0).toUpperCase() || "");
+      setUserEmail(currentUser?.email || "");
     }
   }, []);
+
+  const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifPanelOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfilePanelOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchAllNotifications = async () => {
+    setNotifListLoading(true);
+    try {
+      const response = await api.get("/notifications");
+      setAllNotifications(response.data.notifications || []);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    } finally {
+      setNotifListLoading(false);
+    }
+  };
+
+  function openNotifPanel() {
+    setProfilePanelOpen(false);
+    setNotifPanelOpen(true);
+    fetchAllNotifications();
+  }
+
+  function openProfilePanel() {
+    setNotifPanelOpen(false);
+    setProfilePanelOpen(true);
+  }
+
+  async function handleNotifItemClick(n: { id: number; is_read: boolean; type: string; match_id: number | null }) {
+    if (!n.is_read) {
+      try {
+        await api.post(`/notifications/${n.id}/read`);
+      } catch (err) {
+        console.error("Error marking notification as read:", err);
+      }
+    }
+    const t = n.type.toLowerCase();
+    if (t.includes("match") && n.match_id) {
+      window.location.href = `/matched-item?matchId=${n.match_id}`;
+    } else {
+      setNotifPanelOpen(false);
+      fetchAllNotifications();
+    }
+  }
+
+  function formatNotifTime(dateStr: string) {
+    const date = new Date(dateStr);
+    const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
 
   const fetchClaims = async () => {
     try {
@@ -381,14 +453,98 @@ function ClaimStatusContent() {
         </div>
 
         <div className="flex items-center gap-4">
-          <a href="/notifications" className="relative w-10 h-10 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center justify-center transition">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </a>
-          <a href="/profile" className="w-10 h-10 bg-[#1a237e] rounded-full flex items-center justify-center text-white font-bold text-sm">
-            {userInitial}
-          </a>
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => (notifPanelOpen ? setNotifPanelOpen(false) : openNotifPanel())}
+              className="relative w-10 h-10 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center justify-center transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {allNotifications.filter((n) => !n.is_read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center">
+                  {allNotifications.filter((n) => !n.is_read).length > 9 ? "9+" : allNotifications.filter((n) => !n.is_read).length}
+                </span>
+              )}
+            </button>
+
+            <div
+              className={`absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden origin-top-right transition-all duration-200 ${
+                notifPanelOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+              }`}
+            >
+              <div className="px-5 py-4 border-b border-gray-100">
+                <p className="font-black text-gray-700 text-sm">Notifications</p>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                {notifListLoading ? (
+                  <div className="text-center py-10 text-gray-400 text-sm">Loading...</div>
+                ) : allNotifications.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400 text-sm">No notifications yet</div>
+                ) : (
+                  allNotifications.map((n) => (
+                    <button
+                      key={n.id}
+                      onClick={() => handleNotifItemClick(n)}
+                      className={`w-full text-left px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition ${!n.is_read ? "bg-blue-50/40" : ""}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-700 text-xs">{n.title}</p>
+                          <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{n.message}</p>
+                          <p className="text-gray-400 text-[10px] mt-1">{formatNotifTime(n.created_at)}</p>
+                        </div>
+                        {!n.is_read && <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 mt-1" />}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+              <a
+                href="/notifications"
+                className="block text-center py-3 text-xs font-bold text-[#1a237e] hover:bg-gray-50 transition border-t border-gray-100"
+              >
+                View All Notifications
+              </a>
+            </div>
+          </div>
+
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => (profilePanelOpen ? setProfilePanelOpen(false) : openProfilePanel())}
+              className="w-10 h-10 bg-[#1a237e] rounded-full flex items-center justify-center text-white font-bold text-sm"
+            >
+              {userInitial}
+            </button>
+
+            <div
+              className={`absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden origin-top-right transition-all duration-200 ${
+                profilePanelOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+              }`}
+            >
+              <div className="px-5 py-5 bg-gradient-to-br from-[#1a237e] to-[#1565c0]">
+                <div className="w-12 h-12 bg-white/15 rounded-full flex items-center justify-center text-white font-black text-lg mb-2">
+                  {userInitial}
+                </div>
+                <p className="text-white font-bold text-sm">{userEmail}</p>
+              </div>
+              <div className="p-2">
+                <a href="/profile" className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                  View Full Profile
+                </a>
+                <a href="/claim-status" className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                  My Claims
+                </a>
+                <div className="h-px bg-gray-100 my-1" />
+                <button
+                  onClick={logoutUser}
+                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
 
