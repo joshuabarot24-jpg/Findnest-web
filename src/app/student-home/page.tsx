@@ -199,6 +199,16 @@ function StudentHomeContent() {
   }, []);
 
   useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        fetchAllNotifications();
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
+  useEffect(() => {
     const storedUser = localStorage.getItem("findnest_user");
     if (storedUser) {
       const user = JSON.parse(storedUser);
