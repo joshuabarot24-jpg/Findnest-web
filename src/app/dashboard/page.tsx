@@ -43,9 +43,15 @@ function DashboardContent() {
         const claims = claimsRes.status === "fulfilled" ? claimsRes.value.data.claims || [] : [];
         const lostItems = lostRes.status === "fulfilled" ? lostRes.value.data.reports || [] : [];
 
-        const today = new Date().toISOString().split("T")[0];
-        const foundToday = foundItems.filter((i: any) => i.created_at?.startsWith(today)).length;
-        const lostToday = lostItems.filter((i: any) => i.created_at?.startsWith(today)).length;
+        const now = new Date();
+        const isToday = (dateStr: string) => {
+          const d = new Date(dateStr);
+          return d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate();
+        };
+        const foundToday = foundItems.filter((i: any) => i.created_at && isToday(i.created_at)).length;
+        const lostToday = lostItems.filter((i: any) => i.created_at && isToday(i.created_at)).length;
         const pendingClaims = claims.filter((c: any) => c.claim_status === "pending").length;
         const totalReports = foundItems.length + lostItems.length;
 
