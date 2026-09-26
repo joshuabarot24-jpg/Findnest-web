@@ -113,7 +113,11 @@ function StudentHomeContent() {
   const [allNotifications, setAllNotifications] = useState<NotificationItem[]>([]);
   const [notifListLoading, setNotifListLoading] = useState(false);
 
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [chatbotInput, setChatbotInput] = useState("");
+  const [chatbotThinking, setChatbotThinking] = useState(false);
+  const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot"; text: string }[]>([]);
+  const [showMessageBox, setShowMessageBox] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [chatSent, setChatSent] = useState(false);
@@ -182,6 +186,22 @@ function StudentHomeContent() {
       setChatError(err.response?.data?.message || "Failed to send. Please try again.");
     } finally {
       setChatSending(false);
+    }
+  }
+
+  async function handleAskChatbot() {
+    const question = chatbotInput.trim();
+    if (!question) return;
+    setChatHistory((prev) => [...prev, { role: "user", text: question }]);
+    setChatbotInput("");
+    setChatbotThinking(true);
+    try {
+      const res = await api.post("/support/ask", { question });
+      setChatHistory((prev) => [...prev, { role: "bot", text: res.data.answer }]);
+    } catch (err) {
+      setChatHistory((prev) => [...prev, { role: "bot", text: "Sorry, something went wrong. Please try again or send us a message below." }]);
+    } finally {
+      setChatbotThinking(false);
     }
   }
 
@@ -497,58 +517,117 @@ function StudentHomeContent() {
               </div>
             )}
           </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <p className="font-black text-gray-700 text-sm mb-1">Frequently Asked Questions</p>
-            <p className="text-gray-400 text-xs mb-4">Quick answers, or send us a message below</p>
-
-            <div className="space-y-2 mb-5">
-              {FAQ_ITEMS.map((item, idx) => (
-                <div key={idx} className="border border-gray-100 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
-                    className="w-full flex items-center justify-between px-3.5 py-3 text-left hover:bg-gray-50 transition"
-                  >
-                    <span className="text-gray-700 text-xs font-bold pr-2">{item.q}</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${openFaqIndex === idx ? "rotate-180" : ""}`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {openFaqIndex === idx && (
-                    <div className="px-3.5 pb-3.5">
-                      <p className="text-gray-500 text-xs leading-relaxed">{item.a}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-gray-100 pt-4">
-              <p className="text-gray-400 text-[10px] font-bold uppercase mb-2">Still need help?</p>
-              <textarea
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Type your message here..."
-                rows={3}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs resize-none mb-2"
-              />
-              {chatError && <p className="text-red-500 text-[11px] font-semibold mb-2">{chatError}</p>}
-              {chatSent && <p className="text-green-600 text-[11px] font-semibold mb-2">Message sent! We'll get back to you soon.</p>}
-              <button
-                onClick={handleSendMessage}
-                disabled={chatSending}
-                className="w-full bg-[#1a237e] hover:bg-[#283593] text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-50"
-              >
-                {chatSending ? "Sending..." : "Send Message"}
-              </button>
-            </div>
-          </div>
         </div>
       </main>
+
+      {!chatbotOpen && (
+        <button
+          onClick={() => setChatbotOpen(true)}
+          className="fixed bottom-6 right-6 z-[150] flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white rounded-full shadow-2xl transition pl-3 pr-5 py-3 hover:-translate-y-0.5"
+        >
+          <div className="w-8 h-8 bg-white/15 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <circle cx="9" cy="10" r="1" fill="currentColor" />
+              <circle cx="15" cy="10" r="1" fill="currentColor" />
+            </svg>
+          </div>
+          <span className="font-bold text-sm">Ask me!</span>
+        </button>
+      )}
+
+      {chatbotOpen && (
+        <div className="fixed bottom-6 right-6 z-[150] w-96 max-w-[calc(100vw-2rem)] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden" style={{ height: "560px" }}>
+          <div className="bg-[#1a237e] px-5 py-4 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">FindNest Assistant</p>
+                <p className="text-blue-200 text-[10px]">Ask me how FindNest works</p>
+              </div>
+            </div>
+            <button onClick={() => setChatbotOpen(false)} className="text-white/70 hover:text-white text-2xl leading-none">&times;</button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+            {chatHistory.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-400 text-xs">Ask me anything about reporting items, claims, trust scores, or how matching works!</p>
+              </div>
+            )}
+            {chatHistory.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                  msg.role === "user" ? "bg-[#1a237e] text-white" : "bg-white text-gray-700 border border-gray-100"
+                }`}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            {chatbotThinking && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-100 rounded-2xl px-3.5 py-2.5">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-gray-100 p-3 flex-shrink-0">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatbotInput}
+                onChange={(e) => setChatbotInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleAskChatbot(); }}
+                placeholder="Type your question..."
+                className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs"
+              />
+              <button
+                onClick={handleAskChatbot}
+                disabled={chatbotThinking || !chatbotInput.trim()}
+                className="bg-[#1a237e] hover:bg-[#283593] text-white px-4 rounded-xl transition disabled:opacity-50 text-xs font-bold"
+              >
+                Ask
+              </button>
+            </div>
+            <button
+              onClick={() => setShowMessageBox(!showMessageBox)}
+              className="text-[#1a237e] text-[10px] font-bold mt-2 hover:underline"
+            >
+              {showMessageBox ? "Hide" : "Still need help? Send a message to the office"}
+            </button>
+            {showMessageBox && (
+              <div className="mt-2">
+                <textarea
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  placeholder="Type your message here..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs resize-none mb-2"
+                />
+                {chatError && <p className="text-red-500 text-[10px] font-semibold mb-1">{chatError}</p>}
+                {chatSent && <p className="text-green-600 text-[10px] font-semibold mb-1">Message sent!</p>}
+                <button
+                  onClick={handleSendMessage}
+                  disabled={chatSending}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 rounded-xl transition disabled:opacity-50"
+                >
+                  {chatSending ? "Sending..." : "Send Message to Office"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {selectedMyReport && (
         <div
