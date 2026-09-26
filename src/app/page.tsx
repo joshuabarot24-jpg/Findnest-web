@@ -237,9 +237,9 @@ export default function Home() {
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
             <div className="text-center mb-6">
-              <h2 className="text-xl font-black text-red-500">Check Your Email</h2>
+              <h2 className="text-xl font-black text-[#1a237e]">Check Your Email</h2>
               <p className="text-gray-400 text-sm mt-1">We sent a 6-digit code to</p>
-              <p className="text-red-500 font-bold text-sm mt-1">{maskedEmail}</p>
+              <p className="text-[#1a237e] font-bold text-sm mt-1">{maskedEmail}</p>
             </div>
 
             <div className="space-y-5">
@@ -254,21 +254,21 @@ export default function Home() {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    className="w-11 h-13 text-center text-xl font-black border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition text-gray-700"
+                    className="w-11 h-13 text-center text-xl font-black border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                   />
                 ))}
               </div>
               {otpError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{otpError}</div>}
-              <button onClick={handleVerifyOtp} disabled={otpLoading} className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+              <button onClick={handleVerifyOtp} disabled={otpLoading} className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
                 {otpLoading ? "Verifying..." : "Verify OTP"}
               </button>
               <div className="text-center">
-                <button onClick={handleResendOtp} disabled={resendTimer > 0} className="text-sm font-bold text-red-500 disabled:text-gray-400 hover:underline transition">
+                <button onClick={handleResendOtp} disabled={resendTimer > 0} className="text-sm font-bold text-[#1a237e] disabled:text-gray-400 hover:underline transition">
                   {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend Code"}
                 </button>
               </div>
               <div className="text-center">
-                <button onClick={() => setStep("login")} className="text-gray-400 hover:text-red-500 text-sm transition font-medium">&larr; Back to Login</button>
+                <button onClick={() => setStep("login")} className="text-gray-400 hover:text-[#1a237e] text-sm transition font-medium">&larr; Back to Login</button>
               </div>
             </div>
           </div>
