@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import Link from "next/link";
@@ -126,6 +126,8 @@ function DigitalRecordsContent() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [actionTypeFilter, setActionTypeFilter] = useState("");
 
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [casesLoading, setCasesLoading] = useState(true);
@@ -257,21 +259,32 @@ function DigitalRecordsContent() {
     }
   };
 
-  const displayed = records.filter((r) => {
-    if (!matchesFilter(r.action, filterType)) return false;
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    const recId = `rec-${String(r.id).padStart(3, "0")}`;
-    const dateStr = formatTime(r.created_at).toLowerCase();
-    return (
-      r.action.toLowerCase().includes(q) ||
-      (r.details || "").toLowerCase().includes(q) ||
-      (r.performed_by || "").toLowerCase().includes(q) ||
-      recId.includes(q) ||
-      String(r.id).includes(q) ||
-      dateStr.includes(q)
-    );
-  });
+  const displayed = records
+    .filter((r) => {
+      if (!matchesFilter(r.action, filterType)) return false;
+      if (actionTypeFilter && r.action !== actionTypeFilter) return false;
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      const recId = `rec-${String(r.id).padStart(3, "0")}`;
+      const dateStr = formatTime(r.created_at).toLowerCase();
+      return (
+        r.action.toLowerCase().includes(q) ||
+        (r.details || "").toLowerCase().includes(q) ||
+        (r.performed_by || "").toLowerCase().includes(q) ||
+        recId.includes(q) ||
+        String(r.id).includes(q) ||
+        dateStr.includes(q)
+      );
+    })
+    .sort((a, b) => {
+      const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return sortOrder === "oldest" ? diff : -diff;
+    });
+
+  const actionTypesList = useMemo(() => {
+    const types = new Set(records.map((r) => r.action));
+    return Array.from(types).sort();
+  }, [records]);
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex">
@@ -415,18 +428,46 @@ function DigitalRecordsContent() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
                 <div>
                   <h2 className="font-black text-gray-700">Item & Claim Activity Log</h2>
                   <p className="text-gray-400 text-xs">Showing found item and claim-related actions only</p>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search by action, details, or performed by..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-80"
-                />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setSortOrder("oldest")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                      sortOrder === "oldest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                    }`}
+                  >
+                    Oldest Report
+                  </button>
+                  <button
+                    onClick={() => setSortOrder("newest")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                      sortOrder === "newest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                    }`}
+                  >
+                    Newest Report
+                  </button>
+                  <select
+                    value={actionTypeFilter}
+                    onChange={(e) => setActionTypeFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+                  >
+                    <option value="">All Action Types</option>
+                    {actionTypesList.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Search logs..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-56"
+                  />
+                </div>
               </div>
 
               {loading ? (
