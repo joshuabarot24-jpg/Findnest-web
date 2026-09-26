@@ -118,6 +118,8 @@ function StudentHomeContent() {
   const [chatbotThinking, setChatbotThinking] = useState(false);
   const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot"; text: string }[]>([]);
   const [showMessageBox, setShowMessageBox] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [previewPublicReport, setPreviewPublicReport] = useState<PublicLostReport | null>(null);
   const [chatMessage, setChatMessage] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [chatSent, setChatSent] = useState(false);
@@ -505,7 +507,11 @@ function StudentHomeContent() {
             ) : (
               <div className="grid grid-cols-3 gap-4">
                 {publicReports.map((item) => (
-                  <div key={item.id} className="border border-gray-100 rounded-2xl overflow-hidden">
+                  <button
+                    key={item.id}
+                    onClick={() => setPreviewPublicReport(item)}
+                    className="border border-gray-100 rounded-2xl overflow-hidden text-left hover:border-[#1a237e] hover:shadow-md transition cursor-pointer"
+                  >
                     <div className="w-full h-28 bg-gray-100 overflow-hidden">
                       {item.photo_url ? (
                         <img
@@ -525,13 +531,60 @@ function StudentHomeContent() {
                       <p className="text-gray-400 text-[10px] mt-1">{item.category}</p>
                       <p className="text-gray-400 text-[10px]">{formatDate(item.date_lost)}</p>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
         </div>
       </main>
+
+      {previewPublicReport && (
+        <div
+          onClick={() => setPreviewPublicReport(null)}
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4 cursor-zoom-out"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 cursor-default"
+          >
+            <button
+              onClick={() => setPreviewPublicReport(null)}
+              className="absolute -top-3 -right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none shadow-md border border-gray-100 z-10"
+            >
+              &times;
+            </button>
+
+            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-4">
+              {previewPublicReport.photo_url ? (
+                <img
+                  src={previewPublicReport.photo_url}
+                  alt={previewPublicReport.item_name}
+                  className="w-full h-full object-cover"
+                  style={{ filter: "blur(10px)", transform: "scale(1.1)" }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
+              )}
+            </div>
+
+            <h3 className="font-black text-[#1a237e] text-lg">{previewPublicReport.item_name}</h3>
+            <div className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Category</span>
+                <span className="font-bold text-gray-700">{previewPublicReport.category}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Date Lost</span>
+                <span className="font-bold text-gray-700">{formatDate(previewPublicReport.date_lost)}</span>
+              </div>
+            </div>
+            <p className="text-gray-400 text-xs mt-4 text-center">
+              Full details are only revealed to the student if this matches their own lost report.
+            </p>
+          </div>
+        </div>
+      )}
 
       {!chatbotOpen && (
         <button
@@ -568,8 +621,35 @@ function StudentHomeContent() {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
             {chatHistory.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-400 text-xs">Ask me anything about reporting items, claims, trust scores, or how matching works!</p>
+              <div className="mb-3">
+                <p className="text-gray-400 text-[10px] font-bold uppercase mb-2">Common Questions</p>
+                <div className="space-y-1.5">
+                  {FAQ_ITEMS.map((item, idx) => (
+                    <div key={idx} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-gray-50 transition"
+                      >
+                        <span className="text-gray-700 text-xs font-bold pr-2">{item.q}</span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${openFaqIndex === idx ? "rotate-180" : ""}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {openFaqIndex === idx && (
+                        <div className="px-3 pb-2.5">
+                          <p className="text-gray-500 text-[11px] leading-relaxed">{item.a}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center py-4">
+                  <p className="text-gray-400 text-xs">Or ask me your own question below!</p>
+                </div>
               </div>
             )}
             {chatHistory.map((msg, idx) => (
@@ -653,7 +733,7 @@ function StudentHomeContent() {
           >
             <button
               onClick={() => setSelectedMyReport(null)}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none"
+              className="absolute -top-3 -right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none shadow-md border border-gray-100 z-10"
             >
               &times;
             </button>
