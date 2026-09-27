@@ -89,7 +89,8 @@ function isAdminRelevant(action: string, targetType: string): boolean {
   if (
     a.includes("item") || a.includes("found") || a.includes("lost") || a.includes("claim") ||
     a.includes("approved") || a.includes("rejected") || a.includes("disposed") ||
-    a.includes("unclaimed") || a.includes("surrendered") || a.includes("storage") || a.includes("logged")
+    a.includes("unclaimed") || a.includes("surrendered") || a.includes("storage") || a.includes("logged") ||
+    a.includes("trust score")
   ) return true;
   return false;
 }
