@@ -394,6 +394,10 @@ function UserManagementContent() {
         reason: trustScoreReason.trim(),
       });
       setToast(`${adjustingTrustScore.name}'s trust score adjusted by ${points > 0 ? "+" : ""}${points}.`);
+      const cappedScore = Math.max(0, Math.min(100, resultingScore));
+      if (editingUser && editingUser.id === adjustingTrustScore.id) {
+        setEditingUser({ ...editingUser, trust_score: cappedScore });
+      }
       setAdjustingTrustScore(null);
       setTrustScorePoints("");
       setTrustScoreReason("");
