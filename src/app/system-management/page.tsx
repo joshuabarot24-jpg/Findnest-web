@@ -37,6 +37,7 @@ function SystemManagementContent() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [breakdown, setBreakdown] = useState<Record<string, number>>({});
   const [lastRefreshed, setLastRefreshed] = useState<string>("");
+  const [systemVersion, setSystemVersion] = useState("1.0.0");
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
@@ -100,6 +101,7 @@ function SystemManagementContent() {
       setDbSizeGb(response.data.db_size_gb || 0);
       setBreakdown(response.data.breakdown || {});
       setLastRefreshed(new Date().toLocaleTimeString());
+      setSystemVersion(response.data.system_version || "1.0.0");
     } catch (err) {
       console.error("Error fetching system stats:", err);
     } finally {
@@ -374,7 +376,7 @@ function SystemManagementContent() {
         <div className="grid grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">System Version</p>
-            <p className="text-3xl font-black text-[#1a237e] mt-1">v2.0.0</p>
+            <p className="text-3xl font-black text-[#1a237e] mt-1">v{systemVersion}</p>
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
