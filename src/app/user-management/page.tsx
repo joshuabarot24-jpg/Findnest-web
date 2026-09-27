@@ -372,6 +372,16 @@ function UserManagementContent() {
       setTrustScoreError("Please enter a non-zero number of points.");
       return;
     }
+    const resultingScore = adjustingTrustScore.trust_score + points;
+    if (resultingScore > 100) {
+      setTrustScoreError(`This would exceed the 100 limit. Maximum you can add right now is +${100 - adjustingTrustScore.trust_score}.`);
+      return;
+    }
+    if (resultingScore < 0) {
+      setTrustScoreError(`This would go below 0. Maximum you can deduct right now is -${adjustingTrustScore.trust_score}.`);
+      return;
+    }
+    
     if (!trustScoreReason.trim()) {
       setTrustScoreError("Please provide a reason for this adjustment.");
       return;
@@ -1384,8 +1394,18 @@ function UserManagementContent() {
               value={trustScorePoints}
               onChange={(e) => setTrustScorePoints(e.target.value)}
               placeholder="e.g. 10 or -10"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition text-gray-700 mb-4"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition text-gray-700 mb-2"
             />
+            {trustScorePoints && !isNaN(parseInt(trustScorePoints)) && (
+              <p className={`text-xs font-semibold mb-4 ${
+                adjustingTrustScore.trust_score + parseInt(trustScorePoints) > 100 || adjustingTrustScore.trust_score + parseInt(trustScorePoints) < 0
+                  ? "text-red-500"
+                  : "text-gray-400"
+              }`}>
+                New score will be: {Math.max(0, Math.min(100, adjustingTrustScore.trust_score + parseInt(trustScorePoints)))}
+                {(adjustingTrustScore.trust_score + parseInt(trustScorePoints) > 100 || adjustingTrustScore.trust_score + parseInt(trustScorePoints) < 0) && " (exceeds limit, will be capped)"}
+              </p>
+            )}
 
             <label className="block text-sm font-bold text-gray-600 mb-2">Reason</label>
             <textarea
