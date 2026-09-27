@@ -164,15 +164,9 @@ function DashboardContent() {
       </aside>
 
       <main className="flex-1 ml-72 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-[#1a237e]">Admin Dashboard</h1>
-            <p className="text-gray-400 text-sm mt-1">Welcome back! Here is what is happening on campus today.</p>
-          </div>
-          <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-gray-600 text-sm font-medium">System Online</span>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-black text-[#1a237e]">Admin Dashboard</h1>
+          <p className="text-gray-400 text-sm mt-1">Welcome back! Here is what is happening on campus today.</p>
         </div>
 
         <div className="grid grid-cols-4 gap-6 mb-8">
@@ -276,15 +270,15 @@ function DashboardContent() {
       {previewItem && (
         <div
           onClick={() => setPreviewItem(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm cursor-zoom-out"
+          className="fixed inset-0 z-[160] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm cursor-zoom-out"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-6 pt-12 cursor-default"
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-6 cursor-default"
           >
             <button
               onClick={() => setPreviewItem(null)}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none z-10"
+              className="absolute -top-3 -right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none shadow-md border border-gray-100 z-10"
             >
               &times;
             </button>
