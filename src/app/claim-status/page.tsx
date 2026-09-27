@@ -192,6 +192,12 @@ function ClaimStatusContent() {
     fetchAllNotifications();
   }
 
+  useEffect(() => {
+    fetchAllNotifications();
+    const interval = setInterval(fetchAllNotifications, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   function openProfilePanel() {
     setNotifPanelOpen(false);
     setProfilePanelOpen(true);
