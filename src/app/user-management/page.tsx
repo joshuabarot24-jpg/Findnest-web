@@ -20,6 +20,7 @@ interface SystemUser {
   password_change_approved: boolean;
   password_change_reason: string | null;
   password_last_changed_at: string | null;
+  created_at?: string;
 }
 
 const PAGE_SIZE = 5;
@@ -91,6 +92,7 @@ function UserManagementContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
   const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school" | "revoked" | "password_requests" | "restricted">("all");
 
@@ -172,18 +174,24 @@ function UserManagementContent() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return baseFiltered;
-    return baseFiltered.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        (u.school_id || "").toLowerCase().includes(q) ||
-        (u.course || "").toLowerCase().includes(q) ||
-        (u.year_level || "").toLowerCase().includes(q) ||
-        educationLabel(u.education_level).toLowerCase().includes(q) ||
-        displayId(u.id).toLowerCase().includes(q)
-    );
-  }, [baseFiltered, search, idNumberMap]);
+    let result = baseFiltered;
+    if (q) {
+      result = baseFiltered.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          (u.school_id || "").toLowerCase().includes(q) ||
+          (u.course || "").toLowerCase().includes(q) ||
+          (u.year_level || "").toLowerCase().includes(q) ||
+          educationLabel(u.education_level).toLowerCase().includes(q) ||
+          displayId(u.id).toLowerCase().includes(q)
+      );
+    }
+    return [...result].sort((a, b) => {
+      const diff = new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      return sortOrder === "oldest" ? diff : -diff;
+    });
+  }, [baseFiltered, search, idNumberMap, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -547,17 +555,44 @@ function UserManagementContent() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
             <h2 className="font-black text-gray-700 text-lg">
               {tabLabel(studentSubTab)} {studentSubTab !== "password_requests" && "Students"}
             </h2>
-            <input
-              type="text"
-              placeholder="Search by name, email, or ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-72"
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setSortOrder("oldest")}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                  sortOrder === "oldest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                }`}
+              >
+                Oldest
+              </button>
+              <button
+                onClick={() => setSortOrder("newest")}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                  sortOrder === "newest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                }`}
+              >
+                Newest
+              </button>
+              <select
+                value={studentSubTab}
+                onChange={(e) => setStudentSubTab(e.target.value as typeof studentSubTab)}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "revoked", "password_requests"] as const).map((level) => (
+                  <option key={level} value={level}>{tabLabel(level)}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Search by name, email, or ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-64"
+              />
+            </div>
           </div>
 
           {loading ? (
