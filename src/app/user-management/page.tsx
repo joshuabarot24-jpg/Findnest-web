@@ -130,6 +130,11 @@ function UserManagementContent() {
   const [showEditPasswordCheck, setShowEditPasswordCheck] = useState(false);
   const [editPwVisible, setEditPwVisible] = useState(false);
   const [confirmCreatePassword, setConfirmCreatePassword] = useState("");
+  const [showRestrictionSettings, setShowRestrictionSettings] = useState(false);
+  const [restrictionDays, setRestrictionDays] = useState("7");
+  const [restrictionThreshold, setRestrictionThreshold] = useState("50");
+  const [restrictionSaving, setRestrictionSaving] = useState(false);
+  const [restrictionError, setRestrictionError] = useState("");
 
   useEffect(() => {
     setEditPwVisible(false);
@@ -387,6 +392,39 @@ function UserManagementContent() {
     }
   }
 
+    async function openRestrictionSettings() {
+    setRestrictionError("");
+    setShowRestrictionSettings(true);
+    try {
+      const res = await api.get("/system/trust-settings");
+      setRestrictionDays(String(res.data.restriction_days));
+      setRestrictionThreshold(String(res.data.restriction_threshold));
+    } catch (err) {
+      setRestrictionError("Could not load the current settings.");
+    }
+  }
+
+  async function handleSaveRestrictionSettings() {
+    setRestrictionError("");
+    setRestrictionSaving(true);
+    try {
+      await api.put("/system/trust-settings", {
+        restriction_days: parseInt(restrictionDays, 10),
+        restriction_threshold: parseInt(restrictionThreshold, 10),
+      });
+      setToast("Restriction settings saved.");
+      setShowRestrictionSettings(false);
+    } catch (err: any) {
+      setRestrictionError(
+        err.response?.data?.message ||
+          Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
+          "Failed to save the settings."
+      );
+    } finally {
+      setRestrictionSaving(false);
+    }
+  }
+
   async function handleAdjustTrustScore() {
     if (!adjustingTrustScore) return;
     const points = parseInt(trustScorePoints);
@@ -516,12 +554,20 @@ function UserManagementContent() {
               Manage student accounts for College, Senior High School, and Junior High School
             </p>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
-          >
-            <span>+</span> Create New Student
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openRestrictionSettings}
+              className="bg-white border border-gray-200 hover:border-[#1a237e] text-[#1a237e] font-bold px-5 py-3 rounded-2xl transition"
+            >
+              Restriction Settings
+            </button>
+            <button
+              onClick={openCreateModal}
+              className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
+            >
+              <span>+</span> Create New Student
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-6 mb-8">
@@ -1455,6 +1501,65 @@ function UserManagementContent() {
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
               >
                 {actionLoading ? "Revoking..." : "Permanently Revoke"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+        {showRestrictionSettings && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h2 className="text-lg font-black text-[#1a237e] mb-1">Restriction Settings</h2>
+            <p className="text-gray-400 text-sm mb-5">
+              Decides when a student is blocked from submitting claims and for how long. Applies to future restrictions only.
+            </p>
+
+            <label className="block text-sm font-bold text-gray-600 mb-2">Restrict when trust score falls below</label>
+            <select
+              value={restrictionThreshold}
+              onChange={(e) => setRestrictionThreshold(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 mb-4"
+            >
+              {["30", "40", "50", "60", "70"].map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+
+            <label className="block text-sm font-bold text-gray-600 mb-2">Restriction period</label>
+            <select
+              value={restrictionDays}
+              onChange={(e) => setRestrictionDays(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 mb-2"
+            >
+              <option value="1">1 day</option>
+              <option value="3">3 days</option>
+              <option value="7">7 days</option>
+              <option value="14">14 days</option>
+              <option value="30">30 days</option>
+              <option value="0">Until an administrator re-enables access</option>
+            </select>
+            <p className="text-gray-400 text-xs mb-4">
+              Restricted students can also be released at any time using the Restrict button on their account.
+            </p>
+
+            {restrictionError && (
+              <p className="text-red-500 text-xs font-semibold mb-4">{restrictionError}</p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRestrictionSettings(false)}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveRestrictionSettings}
+                disabled={restrictionSaving}
+                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+              >
+                {restrictionSaving ? "Saving..." : "Save Settings"}
               </button>
             </div>
           </div>
