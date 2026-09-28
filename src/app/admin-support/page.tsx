@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import Link from "next/link";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface SupportMessage {
   id: number;
@@ -109,6 +110,8 @@ function SupportInboxContent() {
       setReplySending(false);
     }
   };
+
+  useAutoRefresh(fetchMessages);
 
   const newCount = messages.filter((m) => m.status === "new").length;
 

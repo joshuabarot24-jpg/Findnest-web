@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface NotificationItem {
   id: number;
@@ -117,6 +118,8 @@ function NotificationsContent() {
       window.location.href = "/claim-status";
     }
   };
+
+  useAutoRefresh(fetchNotifications);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 

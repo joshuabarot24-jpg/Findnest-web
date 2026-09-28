@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 function filterLettersOnly(value: string) {
   return value.replace(/[^A-Za-z\s.'-]/g, "");
@@ -166,6 +167,11 @@ function ItemManagementContent() {
     setLoading(true);
     Promise.all([fetchFoundItems(), fetchLostItems()]).finally(() => setLoading(false));
   }, []);
+
+  useAutoRefresh(() => {
+    fetchFoundItems();
+    fetchLostItems();
+  });
 
   useEffect(() => {
     setPage(1);
