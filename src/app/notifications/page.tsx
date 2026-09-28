@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import api from "@/lib/api";
+import { useState, useEffect, useRef } from "react";
+import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
@@ -47,7 +47,20 @@ export default function NotificationsPage() {
 }
 
 function NotificationsContent() {
-  const [userInitial, setUserInitial] = useState("");
+    const [userInitial, setUserInitial] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [profilePanelOpen, setProfilePanelOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfilePanelOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,6 +69,7 @@ function NotificationsContent() {
     if (stored) {
       const currentUser = JSON.parse(stored);
       setUserInitial(currentUser?.name?.charAt(0).toUpperCase() || "");
+      setUserEmail(currentUser?.email || "");
     }
   }, []);
 
@@ -141,9 +155,42 @@ function NotificationsContent() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
           </a>
-          <a href="/profile" className="w-10 h-10 bg-[#1a237e] rounded-full flex items-center justify-center text-white font-bold text-sm">
-            {userInitial}
-          </a>
+                    <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setProfilePanelOpen((open) => !open)}
+              className="w-10 h-10 bg-[#1a237e] rounded-full flex items-center justify-center text-white font-bold text-sm"
+            >
+              {userInitial}
+            </button>
+
+            <div
+              className={`absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden origin-top-right transition-all duration-200 ${
+                profilePanelOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+              }`}
+            >
+              <div className="px-5 py-5 bg-gradient-to-br from-[#1a237e] to-[#1565c0]">
+                <div className="w-12 h-12 bg-white/15 rounded-full flex items-center justify-center text-white font-black text-lg mb-2">
+                  {userInitial}
+                </div>
+                <p className="text-white font-bold text-sm">{userEmail}</p>
+              </div>
+              <div className="p-2">
+                <a href="/profile" className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                  View Full Profile
+                </a>
+                <a href="/claim-status" className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                  My Claims
+                </a>
+                <div className="h-px bg-gray-100 my-1" />
+                <button
+                  onClick={logoutUser}
+                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
 
