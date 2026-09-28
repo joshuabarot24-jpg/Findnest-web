@@ -85,6 +85,12 @@ function DashboardContent() {
     };
 
     fetchData();
+
+    const refreshInterval = setInterval(() => {
+      if (!document.hidden) fetchData();
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   useEffect(() => {
