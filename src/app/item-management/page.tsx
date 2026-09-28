@@ -9,7 +9,7 @@ function filterLettersOnly(value: string) {
 import AuthGate from "@/components/AuthGate";
 import Link from "next/link";
 
-type ItemStatus = "unclaimed" | "claimed" | "for_disposal" | "confiscated" | "found_item";
+type ItemStatus = "unclaimed" | "claimed" | "for_disposal" | "disposed" | "confiscated" | "found_item";
 type LostStatus = "searching" | "matched" | "returned";
 
 interface FoundItem {
@@ -59,6 +59,7 @@ function statusStyles(status: string) {
     case "searching": return { dot: "bg-yellow-500", badge: "bg-yellow-50 text-yellow-700", label: "Searching" };
     case "matched": return { dot: "bg-indigo-500", badge: "bg-indigo-50 text-indigo-700", label: "Matched" };
     case "returned": return { dot: "bg-green-500", badge: "bg-green-50 text-green-700", label: "Returned" };
+    case "disposed":
     case "for_disposal":
     default: return { dot: "bg-red-500", badge: "bg-red-50 text-red-600", label: "For Disposal" };
   }
@@ -230,7 +231,7 @@ function ItemManagementContent() {
 
   const unclaimedCount = foundItems.filter((i) => i.status === "unclaimed").length;
   const claimedCount = foundItems.filter((i) => i.status === "claimed").length;
-  const disposalCount = foundItems.filter((i) => i.status === "for_disposal").length;
+  const disposalCount = foundItems.filter((i) => i.status === "for_disposal" || i.status === "disposed").length;
   const disposalReviewCount = foundItems.filter((i) => i.needs_disposal_review && i.status === "unclaimed").length;
   const searchingCount = lostItems.filter((i) => i.status === "searching").length;
   const matchedCount = lostItems.filter((i) => i.status === "matched").length;
@@ -346,6 +347,7 @@ function ItemManagementContent() {
       fetchFoundItems();
     } catch (err: any) {
       console.error("Error documenting disposal:", err);
+      setToast("Could not save the disposal. Please try again.");
     } finally {
       setDisposalSubmitting(false);
     }
