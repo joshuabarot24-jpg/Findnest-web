@@ -16,6 +16,7 @@ interface User {
   password_change_requested: boolean;
   password_change_approved: boolean;
   password_change_reason: string | null;
+  password_is_temporary?: boolean;
   created_at: string;
 }
 
@@ -295,18 +296,22 @@ function ProfileContent() {
               <div className="px-8 pt-6">
                 <h2 className="text-lg font-black text-[#1a237e]">Password</h2>
                 <p className="text-gray-400 text-sm mt-1">
-                  {user?.password_change_approved
+                    {user?.password_is_temporary
+                    ? "You are using a temporary password — set your own now"
+                    : user?.password_change_approved
                     ? "Your request was approved — set your new password below"
                     : "You can request a password change, which the Super Admin will review"}
                 </p>
               </div>
 
               <div className="p-8">
-                {user?.password_change_approved ? (
+                  {user?.password_is_temporary || user?.password_change_approved ? (
                   <form onSubmit={handleSetNewPassword} className="space-y-4">
                     <div className="bg-green-50 border border-green-100 rounded-2xl p-4 mb-2">
                       <p className="text-green-700 text-xs font-semibold">
-                        Your Super Admin approved your request. Set a new password only you will know.
+                        {user?.password_is_temporary
+                          ? "Your account was created with a temporary password. Set one only you will know. After this, further changes need Super Admin approval."
+                          : "Your Super Admin approved your request. Set a new password only you will know."}
                       </p>
                     </div>
                     <div>
