@@ -127,8 +127,9 @@ function UserManagementContent() {
   const [showCreatePasswordConfirm, setShowCreatePasswordConfirm] = useState(false);
   const [passwordFieldLocked, setPasswordFieldLocked] = useState(false);
   const [editPasswordLocked, setEditPasswordLocked] = useState(false);
-    const [showEditPasswordCheck, setShowEditPasswordCheck] = useState(false);
+  const [showEditPasswordCheck, setShowEditPasswordCheck] = useState(false);
   const [editPwVisible, setEditPwVisible] = useState(false);
+  const [confirmCreatePassword, setConfirmCreatePassword] = useState("");
 
   useEffect(() => {
     setEditPwVisible(false);
@@ -218,6 +219,7 @@ function UserManagementContent() {
   const restrictedCount = users.filter((u) => u.is_restricted && u.is_active).length;
 
   function resetForm() {
+    setConfirmCreatePassword("");
     setFormData({
       name: "",
       email: "",
@@ -261,6 +263,7 @@ function UserManagementContent() {
     if (typoWarning) return typoWarning;
     if (!formData.password && !editingUser) return "Password is required.";
     if (formData.password && formData.password.length < 8) return "Password must be at least 8 characters.";
+    if (!editingUser && formData.password !== confirmCreatePassword) return "Passwords do not match.";
     if (formData.school_id && !DIGITS_REGEX.test(formData.school_id)) return "School ID must contain numbers only.";
     if (formData.education_level === "junior_high_school" && formData.course && !NAME_REGEX.test(formData.course)) {
       return "Section must contain letters only.";
@@ -300,8 +303,12 @@ function UserManagementContent() {
     }
   }
 
-  async function handleEditSubmit() {
+    async function handleEditSubmit() {
     if (!editingUser) return;
+    if (formData.password && formData.password !== confirmEditPassword) {
+      setFormError("Passwords do not match.");
+      return;
+    }
     const validationError = validateForm();
     if (validationError) {
       setFormError(validationError);
@@ -845,11 +852,6 @@ function UserManagementContent() {
                     type={showCreatePassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    onBlur={() => {
-                      if (formData.password.trim() && !passwordFieldLocked) {
-                        setShowCreatePasswordConfirm(true);
-                      }
-                    }}
                     placeholder="Minimum 8 characters"
                     autoComplete="new-password"
                     className="w-full mt-1 px-4 py-3 pr-16 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
@@ -862,6 +864,23 @@ function UserManagementContent() {
                     {showCreatePassword ? "HIDE" : "SHOW"}
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Confirm Password
+                </label>
+                <input
+                  type={showCreatePassword ? "text" : "password"}
+                  value={confirmCreatePassword}
+                  onChange={(e) => setConfirmCreatePassword(e.target.value)}
+                  placeholder="Re-enter the password"
+                  autoComplete="new-password"
+                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                />
+                {confirmCreatePassword && formData.password !== confirmCreatePassword && (
+                  <p className="text-red-500 text-xs mt-1">Passwords do not match.</p>
+                )}
               </div>
 
               <div>
@@ -1154,11 +1173,6 @@ function UserManagementContent() {
                     type={editPwVisible ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    onBlur={() => {
-                      if (formData.password.trim() && !editPasswordLocked) {
-                        setShowEditPasswordCheck(true);
-                      }
-                    }}
                     placeholder="Minimum 8 characters"
                     autoComplete="new-password"
                     maxLength={50}

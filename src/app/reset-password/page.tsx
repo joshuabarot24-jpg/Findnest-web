@@ -108,11 +108,6 @@ function ResetPasswordForm() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onBlur={() => {
-                    if (password.trim() && !passwordLocked) {
-                      setShowPasswordCheck(true);
-                    }
-                  }}
                   placeholder="Minimum 8 characters"
                   className="w-full pl-5 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                   required

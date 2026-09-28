@@ -858,11 +858,6 @@ function AdminManagementContent() {
                       type={editPwVisible ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      onBlur={() => {
-                        if (formData.password.trim() && !editPasswordLocked) {
-                          setShowEditPasswordCheck(true);
-                        }
-                      }}
                       autoComplete="new-password"
                       maxLength={50}
                       className="w-full pl-4 pr-12 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
