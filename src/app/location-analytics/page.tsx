@@ -2,24 +2,23 @@
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import Link from "next/link";
 
-interface Hotspot {
-  area: string;
-  building: string;
-  type: "lost" | "found" | string;
+interface TopEntry {
+  location: string;
   count: number;
+  percent: number;
 }
 
-interface TopLocation {
-  area: string;
-  building: string;
-  lost: number;
-  found: number;
+interface TopGroup {
   total: number;
+  top: TopEntry[];
 }
 
 type FilterType = "both" | "lost" | "found";
+
+const EMPTY_GROUP: TopGroup = { total: 0, top: [] };
 
 export default function LocationAnalytics() {
   return (
@@ -29,57 +28,84 @@ export default function LocationAnalytics() {
   );
 }
 
+function TopList({ title, tone, group, emptyText }: { title: string; tone: "red" | "green"; group: TopGroup; emptyText: string }) {
+  const rankColors = ["bg-red-500", "bg-orange-400", "bg-yellow-400"];
+  const barColor = tone === "red" ? "bg-red-400" : "bg-green-500";
+
+  return (
+    <div className="px-6 py-5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="font-black text-gray-700 text-sm">{title}</p>
+        <span className="text-gray-400 text-xs">{group.total} report{group.total !== 1 ? "s" : ""}</span>
+      </div>
+
+      {group.top.length === 0 ? (
+        <p className="text-gray-400 text-xs">{emptyText}</p>
+      ) : (
+        <div className="space-y-3">
+          {group.top.map((entry, index) => (
+            <div key={entry.location} className="flex items-center gap-3">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-black flex-shrink-0 ${rankColors[index] || "bg-gray-300"}`}>
+                {index + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold text-gray-700 text-sm truncate">{entry.location}</p>
+                  <span className="font-black text-gray-700 text-sm flex-shrink-0">{entry.percent}%</span>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
+                  <div className={`h-full rounded-full ${barColor}`} style={{ width: `${entry.percent}%` }} />
+                </div>
+                <p className="text-gray-400 text-[11px] mt-1">{entry.count} report{entry.count !== 1 ? "s" : ""}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LocationAnalyticsContent() {
-  const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("both");
   const [accessDenied, setAccessDenied] = useState(false);
+  const [topLost, setTopLost] = useState<TopGroup>(EMPTY_GROUP);
+  const [topFound, setTopFound] = useState<TopGroup>(EMPTY_GROUP);
+
+  const fetchAll = async () => {
+    try {
+      const res = await api.get("/locations/top-locations");
+      setTopLost(res.data.lost || EMPTY_GROUP);
+      setTopFound(res.data.found || EMPTY_GROUP);
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        setAccessDenied(true);
+      } else {
+        console.error("Error fetching location statistics:", err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchHotspots = async () => {
-      try {
-        const res = await api.get("/locations/hotspots");
-        setHotspots(res.data.hotspots || []);
-      } catch (err: any) {
-        if (err.response?.status === 403) {
-          setAccessDenied(true);
-        } else {
-          console.error("Error fetching hotspots:", err);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHotspots();
+    fetchAll();
   }, []);
 
-  const filtered = hotspots.filter((h) => {
-    if (filter === "both") return true;
-    return h.type === filter;
-  });
+  useAutoRefresh(fetchAll);
 
-  const topLocations: TopLocation[] = Object.values(
-    hotspots.reduce((acc: Record<string, TopLocation>, h) => {
-      const key = `${h.area}__${h.building}`;
-      if (!acc[key]) {
-        acc[key] = { area: h.area, building: h.building, lost: 0, found: 0, total: 0 };
-      }
-      if (h.type === "lost") acc[key].lost += h.count;
-      if (h.type === "found") acc[key].found += h.count;
-      acc[key].total += h.count;
-      return acc;
-    }, {})
-  ).sort((a, b) => b.total - a.total).slice(0, 5);
+  const showLost = filter !== "found";
+  const showFound = filter !== "lost";
 
-  const totalReports = hotspots.reduce((sum, h) => sum + h.count, 0);
-  const highRiskAreas = topLocations.filter((l) => l.total >= 10).length;
-  const mostActiveArea = topLocations[0]?.area || "—";
-
-  function riskLabel(total: number) {
-    if (total >= 30) return { badge: "bg-red-50 text-red-600", label: "High Risk" };
-    if (total >= 15) return { badge: "bg-yellow-50 text-yellow-700", label: "Medium" };
-    return { badge: "bg-green-50 text-green-700", label: "Low Risk" };
-  }
+  const totalReports = (showLost ? topLost.total : 0) + (showFound ? topFound.total : 0);
+  const visibleTop = [
+    ...(showLost ? topLost.top : []),
+    ...(showFound ? topFound.top : []),
+  ];
+  const highRiskAreas = visibleTop.filter((l) => l.count >= 10).length;
+  const mostActiveArea =
+    visibleTop.length > 0 ? [...visibleTop].sort((a, b) => b.count - a.count)[0].location : "—";
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex">
@@ -154,7 +180,7 @@ function LocationAnalyticsContent() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-black text-[#1a237e]">Location Analytics</h1>
-            <p className="text-gray-400 text-sm mt-1">Visual heatmap showing where items are most frequently reported</p>
+            <p className="text-gray-400 text-sm mt-1">Where items are most frequently reported lost and found</p>
           </div>
           <div className="flex items-center gap-2 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100">
             {(["lost", "both", "found"] as FilterType[]).map((f) => (
@@ -208,7 +234,7 @@ function LocationAnalyticsContent() {
                   <p className="text-gray-500 font-bold">Campus Map</p>
                   <p className="text-gray-400 text-sm mt-2">School campus image will be integrated here once available.</p>
                   <p className="text-gray-400 text-xs mt-1">
-                    {filtered.length} hotspot{filtered.length !== 1 ? "s" : ""} recorded across {topLocations.length} area{topLocations.length !== 1 ? "s" : ""}.
+                    {totalReports} report{totalReports !== 1 ? "s" : ""} on record.
                   </p>
                 </div>
               )}
@@ -238,36 +264,19 @@ function LocationAnalyticsContent() {
 
             {loading ? (
               <div className="px-6 py-8 text-center text-gray-400 text-sm">Loading...</div>
-            ) : topLocations.length === 0 ? (
+            ) : totalReports === 0 ? (
               <div className="px-6 py-8 text-center text-gray-400 text-sm">
                 <p className="font-bold">No location data yet</p>
-                <p className="text-xs mt-1">Logs will appear as reports are submitted</p>
+                <p className="text-xs mt-1">Statistics will appear as reports are submitted</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
-                {topLocations.map((loc, index) => {
-                  const risk = riskLabel(loc.total);
-                  return (
-                    <div key={index} className="px-6 py-4 flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm font-black flex-shrink-0 ${
-                        index === 0 ? "bg-red-500" : index === 1 ? "bg-orange-400" : index === 2 ? "bg-yellow-400" : "bg-gray-300"
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-black text-gray-700 text-sm truncate">{loc.area}</p>
-                        <p className="text-gray-400 text-xs truncate">{loc.building}</p>
-                        <div className="flex gap-3 mt-1">
-                          <span className="text-red-500 text-xs font-semibold">Lost: {loc.lost}</span>
-                          <span className="text-green-600 text-xs font-semibold">Found: {loc.found}</span>
-                        </div>
-                      </div>
-                      <span className={`text-xs font-bold px-2 py-1 rounded-lg flex-shrink-0 ${risk.badge}`}>
-                        {risk.label}
-                      </span>
-                    </div>
-                  );
-                })}
+                {showLost && (
+                  <TopList title="Top 3 Lost Locations" tone="red" group={topLost} emptyText="No lost reports yet" />
+                )}
+                {showFound && (
+                  <TopList title="Top 3 Found Locations" tone="green" group={topFound} emptyText="No found reports yet" />
+                )}
               </div>
             )}
           </div>
