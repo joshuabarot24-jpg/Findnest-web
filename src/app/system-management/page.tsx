@@ -38,6 +38,8 @@ function SystemManagementContent() {
   const [breakdown, setBreakdown] = useState<Record<string, number>>({});
   const [lastRefreshed, setLastRefreshed] = useState<string>("");
   const [systemVersion, setSystemVersion] = useState("1.0.0");
+  const [showVersionConfirm, setShowVersionConfirm] = useState(false);
+  const [versionBumping, setVersionBumping] = useState(false);
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
@@ -60,7 +62,7 @@ function SystemManagementContent() {
   }, [toast]);
 
   useEffect(() => {
-    const anyModalOpen = showMaintenanceConfirm || showBackupsList || showAllLogs || !!importPreview;
+        const anyModalOpen = showMaintenanceConfirm || showBackupsList || showAllLogs || !!importPreview || showVersionConfirm;
     if (anyModalOpen) {
       const scrollY = window.scrollY;
       document.body.style.position = "fixed";
@@ -79,7 +81,7 @@ function SystemManagementContent() {
         window.scrollTo(0, parseInt(scrollY || "0") * -1);
       }
     }
-  }, [showMaintenanceConfirm, showBackupsList, showAllLogs, importPreview]);
+  }, [showMaintenanceConfirm, showBackupsList, showAllLogs, importPreview, showVersionConfirm]);
 
   const fetchSettings = async () => {
     try {
@@ -226,8 +228,30 @@ function SystemManagementContent() {
     }
   }
 
-  function formatTime(dateStr: string) {
+    function formatTime(dateStr: string) {
     return new Date(dateStr).toLocaleString();
+  }
+
+  function nextVersionPreview(current: string) {
+    const parts = current.split(".");
+    parts[2] = String((parseInt(parts[2] || "0", 10) || 0) + 1);
+    return parts.join(".");
+  }
+
+  async function handleBumpVersion() {
+    setVersionBumping(true);
+    try {
+      const response = await api.post("/system/bump-version");
+      setSystemVersion(response.data.system_version);
+      setToast(`System marked as updated to v${response.data.system_version}.`);
+      setShowVersionConfirm(false);
+      fetchLogs();
+    } catch (err) {
+      console.error("Error bumping version:", err);
+      setToast("Failed to update the version. Please try again.");
+    } finally {
+      setVersionBumping(false);
+    }
   }
 
   async function handleCleanupDecision(confirm: boolean) {
@@ -377,6 +401,12 @@ function SystemManagementContent() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">System Version</p>
             <p className="text-3xl font-black text-[#1a237e] mt-1">v{systemVersion}</p>
+            <button
+              onClick={() => setShowVersionConfirm(true)}
+              className="mt-3 text-xs font-bold text-[#1a237e] border border-[#1a237e]/30 hover:bg-[#1a237e] hover:text-white px-3 py-1.5 rounded-lg transition"
+            >
+              Mark as Updated
+            </button>
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -605,6 +635,36 @@ function SystemManagementContent() {
                 }`}
               >
                 {maintenanceMode ? "Disable" : "Enable"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+       {showVersionConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+            <h2 className="text-xl font-black text-[#1a237e] mb-2">Mark System as Updated?</h2>
+            <p className="text-gray-400 text-sm mb-2">
+              Use this after a real update has been released.
+            </p>
+            <p className="text-gray-700 text-sm font-bold mb-6">
+              v{systemVersion} &rarr; v{nextVersionPreview(systemVersion)}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowVersionConfirm(false)}
+                disabled={versionBumping}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBumpVersion}
+                disabled={versionBumping}
+                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+              >
+                {versionBumping ? "Updating..." : "Confirm"}
               </button>
             </div>
           </div>
