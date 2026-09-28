@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import Link from "next/link";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface AdminUser {
   id: number;
@@ -129,6 +130,7 @@ function AdminManagementContent() {
   useEffect(() => {
     fetchUsers();
   }, []);
+  useAutoRefresh(fetchUsers);
 
   const baseFiltered = useMemo(() => {
     return users.filter((u) => u.role === mainTab);
