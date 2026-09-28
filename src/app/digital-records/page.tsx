@@ -737,9 +737,9 @@ function DigitalRecordsContent() {
             onClick={(e) => e.stopPropagation()}
             className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 cursor-default"
           >
-            <button
+           <button
               onClick={() => setPreviewCase(null)}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none z-10"
+              className="absolute -top-3 -right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none shadow-md border border-gray-100 z-10"
             >
               &times;
             </button>
