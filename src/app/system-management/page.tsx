@@ -522,7 +522,7 @@ function SystemManagementContent() {
               </div>
 
               {lastRefreshed && (
-                <p className="text-center text-gray-300 text-[10px]">Auto-refreshes every 30s &middot; Last updated {lastRefreshed}</p>
+                <p className="text-center text-gray-300 text-[10px]">Auto-refreshes every 20s &middot; Last updated {lastRefreshed}</p>
               )}
 
               <button
