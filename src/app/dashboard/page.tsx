@@ -23,6 +23,7 @@ export default function Dashboard() {
 
 function DashboardContent() {
   const [stats, setStats] = useState({ found_today: 0, lost_today: 0, pending_claims: 0, total_reports: 0 });
+  const [monitorAlert, setMonitorAlert] = useState({ unclaimed: 0, review: 0 });
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewItem, setPreviewItem] = useState<ActivityItem | null>(null);
@@ -56,6 +57,10 @@ function DashboardContent() {
         const totalReports = foundItems.length + lostItems.length;
 
         setStats({ found_today: foundToday, lost_today: lostToday, pending_claims: pendingClaims, total_reports: totalReports });
+           setMonitorAlert({
+          unclaimed: foundItems.filter((i: any) => i.status === "unclaimed" && i.unclaimed_flagged_at && !i.needs_disposal_review).length,
+          review: foundItems.filter((i: any) => i.status === "unclaimed" && i.needs_disposal_review).length,
+        });
 
         const activity = [
           ...foundItems.map((i: any) => ({
@@ -172,7 +177,27 @@ function DashboardContent() {
       <main className="flex-1 ml-72 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-black text-[#1a237e]">Admin Dashboard</h1>
-          <p className="text-gray-400 text-sm mt-1">Welcome back! Here is what is happening on campus today.</p>
+                    <p className="text-gray-400 text-sm mt-1">Welcome back! Here is what is happening on campus today.</p>
+          {(monitorAlert.review > 0 || monitorAlert.unclaimed > 0) && (
+            <div className="mt-4 space-y-2">
+              {monitorAlert.review > 0 && (
+                <Link href="/item-management" className="flex items-center justify-between gap-4 bg-orange-50 border border-orange-200 rounded-2xl px-5 py-3 hover:bg-orange-100 transition">
+                  <span className="text-orange-700 text-sm font-bold">
+                    {monitorAlert.review} item{monitorAlert.review !== 1 ? "s have" : " has"} reached the disposal threshold. Please document the disposal method.
+                  </span>
+                  <span className="text-orange-600 text-xs font-bold whitespace-nowrap">Review &rarr;</span>
+                </Link>
+              )}
+              {monitorAlert.unclaimed > 0 && (
+                <Link href="/item-management" className="flex items-center justify-between gap-4 bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-3 hover:bg-yellow-100 transition">
+                  <span className="text-yellow-700 text-sm font-bold">
+                    {monitorAlert.unclaimed} item{monitorAlert.unclaimed !== 1 ? "s have" : " has"} been unclaimed for over 10 days.
+                  </span>
+                  <span className="text-yellow-700 text-xs font-bold whitespace-nowrap">View &rarr;</span>
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-4 gap-6 mb-8">

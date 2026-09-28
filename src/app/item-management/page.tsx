@@ -222,13 +222,16 @@ function ItemManagementContent() {
     if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
 
-  const paginatedFound = filteredFound.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const flagRank = (i: FoundItem) =>
+    i.status !== "unclaimed" ? 2 : i.needs_disposal_review ? 0 : i.unclaimed_flagged_at ? 1 : 2;
+  const sortedFound = [...filteredFound].sort((a, b) => flagRank(a) - flagRank(b));
+  const paginatedFound = sortedFound.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const paginatedLost = filteredLost.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const unclaimedCount = foundItems.filter((i) => i.status === "unclaimed").length;
   const claimedCount = foundItems.filter((i) => i.status === "claimed").length;
   const disposalCount = foundItems.filter((i) => i.status === "for_disposal").length;
-  const disposalReviewCount = foundItems.filter((i) => i.needs_disposal_review && i.status !== "for_disposal").length;
+  const disposalReviewCount = foundItems.filter((i) => i.needs_disposal_review && i.status === "unclaimed").length;
   const searchingCount = lostItems.filter((i) => i.status === "searching").length;
   const matchedCount = lostItems.filter((i) => i.status === "matched").length;
   const returnedCount = lostItems.filter((i) => i.status === "returned").length;
@@ -556,7 +559,14 @@ function ItemManagementContent() {
                         <p className="text-gray-400 text-xs">{formatDateTime(item.created_at)}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <button onClick={() => setViewingFoundItem(item)} className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition">View</button>
+                       <div className="flex items-center gap-2">
+                          <button onClick={() => setViewingFoundItem(item)} className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition">View</button>
+                          {item.status === "unclaimed" && item.needs_disposal_review ? (
+                            <span className="bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">Document disposal</span>
+                          ) : item.status === "unclaimed" && item.unclaimed_flagged_at ? (
+                            <span className="bg-yellow-50 text-yellow-700 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">Unclaimed 10+ days</span>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -750,7 +760,7 @@ function ItemManagementContent() {
               </div>
             )}
 
-            {viewingFoundItem.needs_disposal_review && viewingFoundItem.status !== "for_disposal" && (
+            {viewingFoundItem.needs_disposal_review && viewingFoundItem.status === "unclaimed" && (
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-4">
                 <p className="text-orange-700 text-xs font-bold">⚠ Reached 30-day disposal review threshold</p>
                 <p className="text-orange-600 text-[11px] mt-0.5 mb-2">Please document how this item will be handled.</p>
