@@ -287,7 +287,7 @@ function StudentHomeContent() {
           setAllNotifications(res.data.notifications || []);
         }).catch((err) => console.error("Error polling notifications:", err));
       }
-    }, 15000);
+    }, 20000);
 
     return () => clearInterval(notifInterval);
   }, []);

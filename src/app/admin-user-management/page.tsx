@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import Link from "next/link";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface SystemUser {
   id: number;
@@ -77,6 +78,7 @@ function AdminUserManagementContent() {
   useEffect(() => {
     fetchUsers();
   }, []);
+  useAutoRefresh(fetchUsers);
 
   const baseFiltered = useMemo(() => {
     if (studentSubTab === "all") return users;

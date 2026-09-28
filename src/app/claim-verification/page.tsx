@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import Link from "next/link";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface OwnershipQuestion {
   id: number;
@@ -143,6 +144,7 @@ function ClaimVerificationContent() {
   };
 
   useEffect(() => { fetchClaims(); }, []);
+  useAutoRefresh(fetchClaims);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();

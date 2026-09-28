@@ -88,7 +88,7 @@ function DashboardContent() {
 
     const refreshInterval = setInterval(() => {
       if (!document.hidden) fetchData();
-    }, 30000);
+    }, 20000);
 
     return () => clearInterval(refreshInterval);
   }, []);

@@ -165,7 +165,7 @@ function SystemManagementContent() {
     const interval = setInterval(() => {
       fetchStats();
       fetchLogs();
-    }, 30000);
+    }, 20000);
 
     return () => clearInterval(interval);
   }, []);

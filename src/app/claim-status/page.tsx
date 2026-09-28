@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface Claim {
   id: number;
@@ -194,7 +195,7 @@ function ClaimStatusContent() {
 
   useEffect(() => {
     fetchAllNotifications();
-    const interval = setInterval(fetchAllNotifications, 15000);
+    const interval = setInterval(fetchAllNotifications, 20000);
     return () => clearInterval(interval);
   }, []);
 
@@ -256,6 +257,10 @@ function ClaimStatusContent() {
     fetchClaims();
     fetchPendingMatches();
   }, []);
+  useAutoRefresh(() => {
+    fetchClaims();
+    fetchPendingMatches();
+  });
 
   const claimUploadedUrls = claimPhotos.filter((p) => p.url).map((p) => p.url as string);
   const claimAnyUploading = claimPhotos.some((p) => p.uploading);
