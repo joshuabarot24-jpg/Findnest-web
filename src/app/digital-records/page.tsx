@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import Link from "next/link";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface AuditRecord {
   id: number;
@@ -151,8 +152,8 @@ function DigitalRecordsContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const fetchRecords = async (pageNum: number) => {
-    setLoading(true);
+  const fetchRecords = async (pageNum: number, quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       const response = await api.get("/audit-logs", { params: { page: pageNum } });
       const data = response.data.logs;
@@ -171,13 +172,15 @@ function DigitalRecordsContent() {
     }
   };
 
-  const fetchCases = async (searchTerm: string) => {
-    setCasesLoading(true);
+    const fetchCases = async (searchTerm: string, quiet = false) => {
+      if (!quiet) setCasesLoading(true);
     try {
       const response = await api.get("/case-trail", { params: { search: searchTerm || undefined } });
       const result: CaseSummary[] = response.data.cases || [];
       setCases(result);
-      if (result.length > 0) setSelectedCase(result[0]);
+      if (quiet) {
+        setSelectedCase((prev) => (prev ? result.find((c) => c.report_id === prev.report_id) ?? prev : result[0] ?? null));
+      } else if (result.length > 0) setSelectedCase(result[0]);
       else setSelectedCase(null);
     } catch (err: any) {
       if (err.response?.status === 403) {
@@ -190,8 +193,8 @@ function DigitalRecordsContent() {
     }
   };
 
-  const fetchCaseLogs = async (reportId: number) => {
-    setCaseLogsLoading(true);
+  const fetchCaseLogs = async (reportId: number, quiet = false) => {
+     if (!quiet) setCaseLogsLoading(true);
     try {
       const response = await api.get(`/case-trail/${reportId}`);
       setCaseLogs(response.data.logs || []);
@@ -202,8 +205,8 @@ function DigitalRecordsContent() {
     }
   };
 
-  const fetchAppeals = async () => {
-    setAppealsLoading(true);
+  const fetchAppeals = async (quiet = false) => {
+    if (!quiet) setAppealsLoading(true);
     try {
       const response = await api.get("/claims/appeals");
       setAppeals(response.data.claims || []);
@@ -235,11 +238,25 @@ function DigitalRecordsContent() {
   useEffect(() => {
     if (selectedCase) fetchCaseLogs(selectedCase.report_id);
     else setCaseLogs([]);
-  }, [selectedCase]);
+  }, [selectedCase?.report_id]);
 
   useEffect(() => {
     if (view === "appeals") fetchAppeals();
   }, [view]);
+
+    useEffect(() => {
+    fetchAppeals(true);
+  }, []);
+
+  useAutoRefresh(async () => {
+    if (view === "activity") {
+      await fetchRecords(page, true);
+    } else if (view === "cases") {
+      await fetchCases(caseSearch, true);
+      if (selectedCase) await fetchCaseLogs(selectedCase.report_id, true);
+    }
+    await fetchAppeals(true);
+  });
 
   const handleResolve = async (decision: "uphold" | "overturn") => {
     if (!resolvingAppeal) return;

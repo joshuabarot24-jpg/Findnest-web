@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface User {
   id: number;
@@ -71,6 +72,7 @@ function ProfileContent() {
   useEffect(() => {
     fetchProfile();
   }, []);
+  useAutoRefresh(fetchProfile);
 
   const handleRequestPasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();

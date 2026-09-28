@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import Link from "next/link";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface AuditRecord {
   id: number;
@@ -122,8 +123,8 @@ function SuperAdminRecordsContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const fetchRecords = async (pageNum: number, searchTerm: string) => {
-    setRecordsLoading(true);
+  const fetchRecords = async (pageNum: number, searchTerm: string, quiet = false) => {
+    if (!quiet) setRecordsLoading(true);
     try {
       const response = await api.get("/audit-logs", {
         params: {
@@ -153,13 +154,15 @@ function SuperAdminRecordsContent() {
     }
   };
 
-  const fetchCases = async (searchTerm: string) => {
-    setCasesLoading(true);
+  const fetchCases = async (searchTerm: string, quiet = false) => {
+    if (!quiet) setCasesLoading(true);
     try {
       const response = await api.get("/case-trail", { params: { search: searchTerm || undefined } });
       const result: CaseSummary[] = response.data.cases || [];
       setCases(result);
-      if (result.length > 0) setSelectedCase(result[0]);
+      if (quiet) {
+        setSelectedCase((prev) => (prev ? result.find((c) => c.report_id === prev.report_id) ?? prev : result[0] ?? null));
+      } else if (result.length > 0) setSelectedCase(result[0]);
       else setSelectedCase(null);
     } catch (err) {
       console.error("Error fetching cases:", err);
@@ -168,8 +171,8 @@ function SuperAdminRecordsContent() {
     }
   };
 
-  const fetchCaseLogs = async (reportId: number) => {
-    setCaseLogsLoading(true);
+  const fetchCaseLogs = async (reportId: number, quiet = false) => {
+    if (!quiet) setCaseLogsLoading(true);
     try {
       const response = await api.get(`/case-trail/${reportId}`);
       setCaseLogs(response.data.logs || []);
@@ -180,8 +183,8 @@ function SuperAdminRecordsContent() {
     }
   };
 
-  const fetchArchive = async () => {
-    setArchiveLoading(true);
+  const fetchArchive = async (quiet = false) => {
+    if (!quiet) setArchiveLoading(true);
     try {
       const response = await api.get("/claims/archive");
       setArchiveCompleted(response.data.completed_transactions || []);
@@ -226,12 +229,24 @@ function SuperAdminRecordsContent() {
   useEffect(() => {
     if (selectedCase) fetchCaseLogs(selectedCase.report_id);
     else setCaseLogs([]);
-  }, [selectedCase]);
+  }, [selectedCase?.report_id]);
 
   useEffect(() => {
     if (view === "archive") fetchArchive();
   }, [view]);
 
+    useAutoRefresh(async () => {
+    if (view === "activity") {
+      await fetchRecords(page, search, true);
+      await fetchActionTypes();
+    } else if (view === "cases") {
+      await fetchCases(caseSearch, true);
+      if (selectedCase) await fetchCaseLogs(selectedCase.report_id, true);
+    } else if (view === "archive") {
+      await fetchArchive(true);
+    }
+  });
+  
   const claimedCount = records.filter((r) => r.action.toLowerCase().includes("claim")).length;
   const systemCount = records.filter((r) => r.performed_by.toLowerCase() === "system").length;
   const revokedCount = records.filter((r) => r.action.toLowerCase().includes("revoked")).length;
