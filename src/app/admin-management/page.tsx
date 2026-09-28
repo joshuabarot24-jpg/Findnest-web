@@ -81,6 +81,7 @@ function AdminManagementContent() {
   const [showAssignPasswordCheck, setShowAssignPasswordCheck] = useState(false);
   const [assignPasswordLocked, setAssignPasswordLocked] = useState(false);
   const [editPwVisible, setEditPwVisible] = useState(false);
+  const [confirmAssignPassword, setConfirmAssignPassword] = useState("");
   const [showEditPasswordCheck, setShowEditPasswordCheck] = useState(false);
   const [editPasswordLocked, setEditPasswordLocked] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
@@ -177,6 +178,7 @@ function AdminManagementContent() {
   const revokedCount = users.filter((a) => !a.is_active).length;
 
   function resetForm() {
+    setConfirmAssignPassword("");
     setFormData({
       name: "",
       email: "",
@@ -229,6 +231,7 @@ function AdminManagementContent() {
     if (typoWarning) return typoWarning;
     if (!formData.password.trim()) return "Password is required.";
     if (formData.password.length < 8) return "Password must be at least 8 characters.";
+    if (formData.password !== confirmAssignPassword) return "Passwords do not match.";
     return null;
   }
 
@@ -655,11 +658,6 @@ function AdminManagementContent() {
                     type={showAssignPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    onBlur={() => {
-                      if (formData.password.trim() && !assignPasswordLocked) {
-                        setShowAssignPasswordCheck(true);
-                      }
-                    }}
                     placeholder="Minimum 8 characters"
                     autoComplete="new-password"
                     className="w-full mt-1 px-4 py-3 pr-16 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
@@ -669,9 +667,24 @@ function AdminManagementContent() {
                     onClick={() => setShowAssignPassword(!showAssignPassword)}
                     className="absolute right-4 top-1/2 mt-0.5 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold"
                   >
-                    {showAssignPassword ? "HIDE" : "SHOW"}
+                      {showAssignPassword ? "HIDE" : "SHOW"}
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Confirm Password</label>
+                <input
+                  type={showAssignPassword ? "text" : "password"}
+                  value={confirmAssignPassword}
+                  onChange={(e) => setConfirmAssignPassword(e.target.value)}
+                  placeholder="Re-enter the password"
+                  autoComplete="new-password"
+                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                />
+                {confirmAssignPassword && formData.password !== confirmAssignPassword && (
+                  <p className="text-red-500 text-xs mt-1">Passwords do not match.</p>
+                )}
               </div>
 
               <div>
