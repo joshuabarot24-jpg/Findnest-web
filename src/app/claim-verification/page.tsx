@@ -112,6 +112,7 @@ function ClaimVerificationContent() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [viewingClaim, setViewingClaim] = useState<Claim | null>(null);
   const [rejectingClaim, setRejectingClaim] = useState<Claim | null>(null);
@@ -146,10 +147,15 @@ function ClaimVerificationContent() {
   useEffect(() => { fetchClaims(); }, []);
   useAutoRefresh(fetchClaims);
 
-  const filtered = useMemo(() => {
+    const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return claims;
-    return claims.filter((c) => {
+    const byStatus = claims.filter((c) => {
+      if (statusFilter === "all") return true;
+      if (statusFilter === "multiple") return c.claim_status === "pending" && (c.competing_claims_count ?? 1) > 1;
+      return c.claim_status === statusFilter;
+    });
+    if (!q) return byStatus;
+      return byStatus.filter((c) => {
       const dateStr = new Date(c.created_at).toLocaleDateString().toLowerCase();
       return (
         (c.student?.name || "").toLowerCase().includes(q) ||
@@ -161,7 +167,7 @@ function ClaimVerificationContent() {
         dateStr.includes(q)
       );
     });
-  }, [claims, search]);
+  }, [claims, search, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -320,15 +326,29 @@ function ClaimVerificationContent() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
             <h2 className="font-black text-gray-700 text-lg">All Claims</h2>
-            <input
-              type="text"
-              placeholder="Search by student, item, or status..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-72"
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                <option value="all">All Claims</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="abandoned">Abandoned</option>
+                <option value="multiple">Multiple Claimants</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Search by student, item, or status..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-64"
+              />
+            </div>
           </div>
 
           {loading ? (
