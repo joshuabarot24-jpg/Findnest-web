@@ -25,6 +25,8 @@ interface Claim {
   photo_similarity_score: number | null;
   competing_claims_count?: number;
   admin_notes: string | null;
+  verification_skipped?: boolean;
+  verification_skip_reason?: string | null;
   claimed_at: string | null;
   collected_at: string | null;
   created_at: string;
@@ -559,6 +561,9 @@ function ClaimVerificationContent() {
                   <span className="text-sm text-gray-600 font-medium">Layer 5 &mdash; Secret Questions</span>
                   {(() => {
                     const score = questionScore(viewingClaim.ownership_questions || []);
+                    if (viewingClaim.verification_skipped) {
+                      return <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg" title={viewingClaim.verification_skip_reason || ""}>Skipped &mdash; No Distinguishing Features</span>;
+                    }
                     if (viewingClaim.ownership_questions?.length === 0) {
                       return <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">No Questions Generated</span>;
                     }
@@ -576,6 +581,13 @@ function ClaimVerificationContent() {
                 </div>
               </div>
             </div>
+
+             {viewingClaim.verification_skipped && (
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-4">
+                <p className="text-xs font-bold text-blue-400 uppercase mb-1">Verification Questions Skipped</p>
+                <p className="text-blue-700 text-sm">{viewingClaim.verification_skip_reason || "This item had no distinguishing features to base questions on."} The decision relies on the AI similarity score, photo, and description alone.</p>
+              </div>
+            )}
 
             {viewingClaim.ownership_questions && viewingClaim.ownership_questions.length > 0 && (
               <div className="bg-gray-50 rounded-2xl p-4 mb-4">

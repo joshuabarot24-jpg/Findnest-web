@@ -16,6 +16,8 @@ interface Claim {
   appeal_message: string | null;
   appeal_status: string | null;
   ownership_questions?: { student_answer: string | null }[];
+  verification_skipped?: boolean;
+  verification_skip_reason?: string | null;
   match: {
     lost_report: { item_name: string; location_lost: string } | null;
     found_record: { item_name: string; location_found: string } | null;
@@ -665,13 +667,22 @@ function ClaimStatusContent() {
                       </div>
                     )}
 
-                    {claim.claim_status === "pending" && !(claim.ownership_questions && claim.ownership_questions.length > 0 && claim.ownership_questions.every(q => q.student_answer !== null)) && (
+                   {claim.claim_status === "pending" && !claim.verification_skipped && !(claim.ownership_questions && claim.ownership_questions.length > 0 && claim.ownership_questions.every(q => q.student_answer !== null)) && (
                       <button
                         onClick={() => openAnswerModal(claim)}
                         className="w-full bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] font-bold py-2.5 rounded-xl transition text-sm mb-5"
-                      >
+                       >
                         Answer Verification Questions
                       </button>
+                    )}
+
+                    {claim.claim_status === "pending" && claim.verification_skipped && (
+                      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-5">
+                        <p className="text-blue-700 text-sm font-bold">No Secret Questions Needed</p>
+                        <p className="text-blue-600 text-xs mt-1">
+                          This item didn't have enough distinguishing details for verification questions. Your claim will be reviewed based on your description and photos. If you have physical proof of ownership, please visit the Guidance Office.
+                        </p>
+                      </div>
                     )}
 
                     {claim.claim_status === "approved" && !claim.collected_at && claim.pickup_deadline && (
@@ -880,6 +891,13 @@ function ClaimStatusContent() {
 
             {questionsLoading ? (
               <div className="text-center py-10 text-gray-400 text-sm">Loading questions...</div>
+            ) : answeringClaim?.verification_skipped ? (
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 text-center">
+                <p className="text-blue-700 font-bold text-sm mb-1">No Questions Needed</p>
+                <p className="text-blue-600 text-xs leading-relaxed">
+                  This item didn't have enough distinguishing details for secret questions. Your claim will be reviewed based on your description and photos. If you have physical proof of ownership, please visit the Guidance Office.
+                </p>
+              </div>
             ) : questions.length === 0 ? (
               <div className="text-center py-10 text-gray-400 text-sm">No verification questions were generated for this claim.</div>
             ) : answersResult ? (
