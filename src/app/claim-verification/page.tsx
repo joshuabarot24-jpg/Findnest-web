@@ -83,7 +83,10 @@ interface Claim {
 
 const PAGE_SIZE = 5;
 
-function statusStyles(status: string) {
+function statusStyles(status: string, collectedAt?: string | null) {
+  if (status === "approved" && collectedAt) {
+    return { dot: "bg-blue-500", badge: "bg-blue-50 text-blue-700", label: "Collected" };
+  }
   switch (status) {
     case "approved":
       return { dot: "bg-green-500", badge: "bg-green-50 text-green-700", label: "Approved" };
@@ -154,6 +157,8 @@ function ClaimVerificationContent() {
     const byStatus = claims.filter((c) => {
       if (statusFilter === "all") return true;
       if (statusFilter === "multiple") return c.claim_status === "pending" && (c.competing_claims_count ?? 1) > 1;
+      if (statusFilter === "approved") return c.claim_status === "approved" && !c.collected_at;
+      if (statusFilter === "collected") return c.claim_status === "approved" && !!c.collected_at;
       return c.claim_status === statusFilter;
     });
     if (!q) return byStatus;
@@ -338,7 +343,8 @@ function ClaimVerificationContent() {
               >
                 <option value="all">All Claims</option>
                 <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
+                <option value="approved">Approved (Not Collected)</option>
+                <option value="collected">Collected</option>
                 <option value="rejected">Rejected</option>
                 <option value="abandoned">Abandoned</option>
                 <option value="multiple">Multiple Claimants</option>
@@ -369,7 +375,7 @@ function ClaimVerificationContent() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {paginated.map((claim) => {
-                  const styles = statusStyles(claim.claim_status);
+                    const styles = statusStyles(claim.claim_status, claim.collected_at);
                   return (
                     <tr key={claim.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4">
