@@ -152,6 +152,35 @@ function ClaimVerificationContent() {
   useEffect(() => { fetchClaims(); }, []);
   useAutoRefresh(fetchClaims);
 
+  useEffect(() => {
+    const anyModalOpen = !!viewingClaim || !!rejectingClaim || !!comparingClaim || !!viewingEvidence;
+    if (anyModalOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.overflow = "hidden";
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.overflow = "";
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0") * -1);
+      }
+    }
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.overflow = "";
+    };
+  }, [viewingClaim, rejectingClaim, comparingClaim, viewingEvidence]);
+
     const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     const byStatus = claims.filter((c) => {
