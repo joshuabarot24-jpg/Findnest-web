@@ -105,7 +105,11 @@ function ItemManagementContent() {
   const [formStorageLocation, setFormStorageLocation] = useState("");
   const [formDateFound, setFormDateFound] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item">("found_item");
+  const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item">("found_item");
+  const [choosingItemUrl, setChoosingItemUrl] = useState<string | null>(null);
+  const [itemChoices, setItemChoices] = useState<string[]>([]);
+  const [resolvingChoice, setResolvingChoice] = useState(false);
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
   const [formPhotoUrl, setFormPhotoUrl] = useState<string | null>(null);
   const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
   const [formUploading, setFormUploading] = useState(false);
@@ -281,7 +285,8 @@ function ItemManagementContent() {
     } catch (err: any) {
       if (err.response?.status === 422 && err.response?.data?.multiple_items) {
         setFormPhotoUrl(err.response.data.url);
-        alert("Multiple items detected in this photo. Please crop or retake a photo focused on one item, or fill in the details manually.");
+        setItemChoices(err.response.data.items_found || []);
+        setChoosingItemUrl(err.response.data.url);
       } else if (err.response?.status === 422) {
         console.error("Photo upload failed:", err);
         setFormPhotoPreview(null);
@@ -296,7 +301,57 @@ function ItemManagementContent() {
     }
   }
 
+  async function handleChooseItem(choice: string) {
+    if (!choosingItemUrl) return;
+    setResolvingChoice(true);
+    try {
+      const res = await api.post("/upload/analyze-existing", {
+        url: choosingItemUrl,
+        item_hint: choice,
+      });
+      if (res.data.ai_item_name) setFormName(res.data.ai_item_name);
+      if (res.data.ai_category) setFormCategory(res.data.ai_category);
+      if (res.data.ai_description) setFormDescription(res.data.ai_description);
+    } catch (err) {
+      console.error("Failed to analyze chosen item:", err);
+    } finally {
+      setChoosingItemUrl(null);
+      setItemChoices([]);
+      setResolvingChoice(false);
+    }
+  }
+
   async function handleAddSubmit() {
+    if (formIntakeType === "lost_item") {
+      if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
+        setFormError("Item name, location lost, date lost, and photo are required.");
+        return;
+      }
+      setFormError("");
+      setFormLoading(true);
+      try {
+        await api.post("/lost-items", {
+          item_name: formName.trim(),
+          category: formCategory,
+          description: formDescription.trim() || null,
+          ai_description: formDescription.trim() || null,
+          location_lost: formLocationFound.trim(),
+          date_lost: formDateFound,
+          photo_url: formPhotoUrl,
+        });
+        setShowAddModal(false);
+        resetForm();
+        setPage(1);
+        setToast(`${formName.trim()} was logged as a lost report.`);
+        fetchLostItems();
+      } catch (err: any) {
+        setFormError(err.response?.data?.message || Object.values(err.response?.data?.errors || {}).flat().join(", ") || "Failed to add report.");
+      } finally {
+        setFormLoading(false);
+      }
+      return;
+    }
+
     if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
       setFormError("Item name, location found, date found, and photo are required.");
       return;
@@ -727,6 +782,13 @@ function ItemManagementContent() {
                   >
                     Confiscated
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormIntakeType("lost_item")}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "lost_item" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200 text-gray-400"}`}
+                  >
+                    Lost Item
+                  </button>
                 </div>
               </div>
               <div>
@@ -761,17 +823,20 @@ function ItemManagementContent() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Location Found</label>
-                <input type="text" value={formLocationFound} onChange={(e) => setFormLocationFound(e.target.value)} placeholder="e.g. Near the canteen" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
+                <input type="text" value={formLocationFound} onChange={(e) => setFormLocationFound(e.target.value)} placeholder={formIntakeType === "lost_item" ? "e.g. Room 305" : "e.g. Near the canteen"} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Date Found</label>
-                <input type="date" value={formDateFound} onChange={(e) => setFormDateFound(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+               <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"}</label>
+               <input type="date" value={formDateFound} onChange={(e) => setFormDateFound(e.target.value)} min={todayStr} max={todayStr} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm bg-gray-50" />
               </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Storage Location (Optional)</label>
-                <input type="text" value={formStorageLocation} onChange={(e) => setFormStorageLocation(e.target.value)} placeholder="e.g. Cabinet A-08" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
-              </div>
+
+              {formIntakeType !== "lost_item" && (
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Storage Location (Optional)</label>
+                  <input type="text" value={formStorageLocation} onChange={(e) => setFormStorageLocation(e.target.value)} placeholder="e.g. Cabinet A-08" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+                </div>
+                )}
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Description (Optional)</label>
                 <textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Describe the item..." rows={2} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm resize-none" />
@@ -887,6 +952,40 @@ function ItemManagementContent() {
               <button onClick={() => setDeletingItem(viewingFoundItem)} className="flex-1 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-bold py-3 rounded-2xl transition">Delete</button>
               <button onClick={() => setViewingFoundItem(null)} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition">Close</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {choosingItemUrl && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h2 className="text-xl font-black text-[#1a237e] mb-1">Multiple Items Detected</h2>
+            <p className="text-gray-400 text-sm mb-6">We found several items in this photo. Which one is this?</p>
+
+            {resolvingChoice ? (
+              <div className="py-8 text-center">
+                <div className="w-8 h-8 border-4 border-blue-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-sm text-gray-500 font-medium">Analyzing your selection...</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {itemChoices.map((choice, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleChooseItem(choice)}
+                    className="w-full text-left px-4 py-3 border-2 border-gray-200 hover:border-[#1a237e] hover:bg-blue-50 rounded-xl transition text-gray-700 font-semibold text-sm"
+                  >
+                    {choice}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setChoosingItemUrl(null); setItemChoices([]); }}
+                  className="w-full text-center px-4 py-3 text-gray-400 hover:text-gray-600 text-sm font-semibold mt-2"
+                >
+                  None of these — I&apos;ll fill in details manually
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
