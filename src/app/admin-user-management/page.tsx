@@ -236,17 +236,28 @@ function AdminUserManagementContent() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
             <h2 className="font-black text-gray-700 text-lg">
               {studentSubTab === "all" ? "All Students" : educationLabel(studentSubTab) + " Students"}
             </h2>
-            <input
-              type="text"
-              placeholder="Search by name, email, or ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-72"
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={studentSubTab}
+                onChange={(e) => setStudentSubTab(e.target.value as typeof studentSubTab)}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                {(["all", "college", "senior_high_school", "junior_high_school"] as const).map((level) => (
+                  <option key={level} value={level}>{level === "all" ? "All" : educationLabel(level)}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Search by name, email, or ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-64"
+              />
+            </div>
           </div>
 
           {loading ? (
