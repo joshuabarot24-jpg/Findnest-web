@@ -28,6 +28,8 @@ interface FoundItem {
   needs_disposal_review?: boolean;
   disposal_notes?: string | null;
   disposed_at?: string | null;
+  receipt_confirmed?: boolean;
+  surrender_deadline?: string | null;
 }
 
 interface LostItem {
@@ -93,6 +95,7 @@ function ItemManagementContent() {
   const [documentingDisposal, setDocumentingDisposal] = useState<FoundItem | null>(null);
   const [disposalNotes, setDisposalNotes] = useState("");
   const [disposalSubmitting, setDisposalSubmitting] = useState(false);
+  const [confirmingReceipt, setConfirmingReceipt] = useState(false);
 
   const [formName, setFormName] = useState("");
   const [formCategory, setFormCategory] = useState(CATEGORY_OPTIONS[0]);
@@ -330,6 +333,20 @@ function ItemManagementContent() {
       fetchFoundItems();
     } catch (err) {
       console.error("Error deleting item:", err);
+    }
+  }
+
+    async function handleConfirmReceipt(item: FoundItem) {
+    setConfirmingReceipt(true);
+    try {
+      await api.post(`/found-items/${item.id}/confirm-receipt`);
+      setToast(`Receipt confirmed for ${item.item_name}. Matching is now active.`);
+      setViewingFoundItem(null);
+      fetchFoundItems();
+    } catch (err: any) {
+      setToast(err.response?.data?.message || "Failed to confirm receipt.");
+    } finally {
+      setConfirmingReceipt(false);
     }
   }
 
@@ -754,6 +771,25 @@ function ItemManagementContent() {
             </div>
             <h2 className="text-xl font-black text-[#1a237e]">{viewingFoundItem.item_name}</h2>
             <p className="text-gray-400 text-xs mb-2">ID: ITM-{String(viewingFoundItem.id).padStart(3, "0")}</p>
+
+            {viewingFoundItem.receipt_confirmed === false && (
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-4">
+                <p className="text-purple-700 text-xs font-bold">⏳ Awaiting Physical Surrender</p>
+                <p className="text-purple-600 text-[11px] mt-0.5 mb-2">
+                  Reported by a student, not yet confirmed received. Not visible for matching until confirmed.
+                  {viewingFoundItem.surrender_deadline && (
+                    <> Deadline: {formatDateTime(viewingFoundItem.surrender_deadline)}</>
+                  )}
+                </p>
+                <button
+                  onClick={() => handleConfirmReceipt(viewingFoundItem)}
+                  disabled={confirmingReceipt}
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                >
+                  {confirmingReceipt ? "Confirming..." : "Confirm Physical Receipt"}
+                </button>
+              </div>
+            )}
 
             {viewingFoundItem.unclaimed_flagged_at && viewingFoundItem.status === "unclaimed" && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
