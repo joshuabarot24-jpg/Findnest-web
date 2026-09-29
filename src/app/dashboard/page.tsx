@@ -29,6 +29,7 @@ function DashboardContent() {
   const [previewItem, setPreviewItem] = useState<ActivityItem | null>(null);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [allActivityPage, setAllActivityPage] = useState(1);
+  const [activityTypeFilter, setActivityTypeFilter] = useState<"all" | "found" | "lost">("all");
   const ALL_ACTIVITY_PAGE_SIZE = 20;
 
   useEffect(() => {
@@ -97,6 +98,10 @@ function DashboardContent() {
 
     return () => clearInterval(refreshInterval);
   }, []);
+
+  const displayedActivity = activityTypeFilter === "all"
+    ? recentActivity
+    : recentActivity.filter((a) => a.type === activityTypeFilter);
 
   useEffect(() => {
     const anyModalOpen = !!previewItem || showAllActivity;
@@ -235,17 +240,28 @@ function DashboardContent() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
             <div>
               <h2 className="font-black text-gray-700">Recent Activity</h2>
               <p className="text-gray-400 text-xs">Latest lost and found reports</p>
             </div>
-            <button onClick={() => { setShowAllActivity(true); setAllActivityPage(1); }} className="text-sm font-bold text-[#1a237e] hover:underline">View All</button>
+            <div className="flex items-center gap-3">
+              <select
+                value={activityTypeFilter}
+                onChange={(e) => setActivityTypeFilter(e.target.value as "all" | "found" | "lost")}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                <option value="all">All</option>
+                <option value="found">Found Only</option>
+                <option value="lost">Lost Only</option>
+              </select>
+              <button onClick={() => { setShowAllActivity(true); setAllActivityPage(1); }} className="text-sm font-bold text-[#1a237e] hover:underline">View All</button>
+            </div>
           </div>
 
           {loading ? (
             <div className="px-6 py-16 text-center text-gray-400 text-sm">Loading recent activity...</div>
-          ) : recentActivity.length === 0 ? (
+          ) : displayedActivity.length === 0 ? (
             <div className="px-6 py-16 text-center text-gray-400 text-sm">No recent activity yet.</div>
           ) : (
             <table className="w-full">
@@ -258,7 +274,7 @@ function DashboardContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {recentActivity.map((activity, index) => (
+                {displayedActivity.map((activity, index) => (
                   <tr key={index} className="hover:bg-gray-50 transition">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
