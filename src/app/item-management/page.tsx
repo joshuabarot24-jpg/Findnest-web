@@ -483,7 +483,7 @@ function ItemManagementContent() {
                 : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
             }`}
           >
-            Lost Item Reports
+            Lost Items Reports
           </button>
         </div>
 
