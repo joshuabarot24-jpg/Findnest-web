@@ -109,7 +109,17 @@ function ItemManagementContent() {
   const [choosingItemUrl, setChoosingItemUrl] = useState<string | null>(null);
   const [itemChoices, setItemChoices] = useState<string[]>([]);
   const [resolvingChoice, setResolvingChoice] = useState(false);
-  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  function getManilaDate(daysAgo: number) {
+    const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+    d.setDate(d.getDate() - daysAgo);
+    return d.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  }
+
+  const ALLOWED_DATES = [
+    { value: getManilaDate(0), label: "Today" },
+    { value: getManilaDate(1), label: "Yesterday" },
+    { value: getManilaDate(2), label: "2 Days Ago" },
+  ];
   const [formPhotoUrl, setFormPhotoUrl] = useState<string | null>(null);
   const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
   const [formUploading, setFormUploading] = useState(false);
@@ -828,7 +838,21 @@ function ItemManagementContent() {
               </div>
               <div>
                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"}</label>
-               <input type="date" value={formDateFound} onChange={(e) => setFormDateFound(e.target.value)} min={todayStr} max={todayStr} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm bg-gray-50" />
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                  {ALLOWED_DATES.map((d) => (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => setFormDateFound(d.value)}
+                      className={`py-2.5 rounded-xl text-xs font-bold border-2 transition ${
+                        formDateFound === d.value ? "border-[#1a237e] bg-blue-50 text-[#1a237e]" : "border-gray-200 text-gray-500 hover:border-blue-300"
+                      }`}
+                    >
+                      {d.label}
+                      <span className="block text-[9px] font-normal mt-0.5 opacity-70">{d.value}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {formIntakeType !== "lost_item" && (
