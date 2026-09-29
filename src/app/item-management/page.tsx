@@ -86,6 +86,8 @@ function ItemManagementContent() {
   const [lostItems, setLostItems] = useState<LostItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [foundStatusFilter, setFoundStatusFilter] = useState("all");
+  const [lostStatusFilter, setLostStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -182,9 +184,10 @@ function ItemManagementContent() {
   }, [mainTab, search]);
 
   const filteredFound = useMemo(() => {
+    const byStatus = foundStatusFilter === "all" ? foundItems : foundItems.filter((i) => i.status === foundStatusFilter);
     const q = search.toLowerCase().trim();
-    if (!q) return foundItems;
-    return foundItems.filter((i) => {
+    if (!q) return byStatus;
+    return byStatus.filter((i) => {
       const itmId = `itm-${String(i.id).padStart(3, "0")}`;
       const dateStr = new Date(i.created_at).toLocaleString().toLowerCase();
       return (
@@ -198,12 +201,13 @@ function ItemManagementContent() {
         dateStr.includes(q)
       );
     });
-  }, [foundItems, search]);
+  }, [foundItems, search, foundStatusFilter]);
 
   const filteredLost = useMemo(() => {
+    const byStatus = lostStatusFilter === "all" ? lostItems : lostItems.filter((i) => i.status === lostStatusFilter);
     const q = search.toLowerCase().trim();
-    if (!q) return lostItems;
-    return lostItems.filter((i) => {
+    if (!q) return byStatus;
+    return byStatus.filter((i) => {
       const itmId = `lst-${String(i.id).padStart(3, "0")}`;
       const dateStr = new Date(i.created_at).toLocaleString().toLowerCase();
       return (
@@ -217,7 +221,7 @@ function ItemManagementContent() {
         dateStr.includes(q)
       );
     });
-  }, [lostItems, search]);
+  }, [lostItems, search, lostStatusFilter]);
 
   const activeFiltered = mainTab === "found" ? filteredFound : filteredLost;
   const totalPages = Math.max(1, Math.ceil(activeFiltered.length / PAGE_SIZE));
@@ -469,7 +473,7 @@ function ItemManagementContent() {
                 : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
             }`}
           >
-            Found Items
+            Found Items Reports
           </button>
           <button
             onClick={() => setMainTab("lost")}
@@ -516,17 +520,43 @@ function ItemManagementContent() {
         )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
             <h2 className="font-black text-gray-700 text-lg">
               {mainTab === "found" ? "All Found Items" : "All Lost Item Reports"}
             </h2>
-            <input
-              type="text"
-              placeholder="Search by name, category, or location..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-72"
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              {mainTab === "found" ? (
+                <select
+                  value={foundStatusFilter}
+                  onChange={(e) => { setFoundStatusFilter(e.target.value); setPage(1); }}
+                  className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="unclaimed">Unclaimed</option>
+                  <option value="claimed">Claimed</option>
+                  <option value="confiscated">Confiscated</option>
+                  <option value="disposed">Disposed</option>
+                </select>
+              ) : (
+                <select
+                  value={lostStatusFilter}
+                  onChange={(e) => { setLostStatusFilter(e.target.value); setPage(1); }}
+                  className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="searching">Searching</option>
+                  <option value="matched">Matched</option>
+                  <option value="returned">Returned</option>
+                </select>
+              )}
+              <input
+                type="text"
+                placeholder="Search by name, category, or location..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-64"
+              />
+            </div>
           </div>
 
           {loading ? (
