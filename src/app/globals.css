@@ -34,3 +34,68 @@ html, body {
   overflow-x: hidden;
   background-color: #f0f2f5;
 }
+
+@media (max-width: 1366px) {
+  aside.w-72 {
+    width: 15rem !important;
+  }
+  main.ml-72 {
+    margin-left: 15rem !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  aside.w-72 {
+    width: 13rem !important;
+  }
+  main.ml-72 {
+    margin-left: 13rem !important;
+  }
+  main.ml-72 {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  aside.w-72 {
+    display: none !important;
+  }
+  main.ml-72 {
+    margin-left: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  h1, h2, h3, p, span, a, button {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  h2 {
+    font-size: 1.25rem !important;
+  }
+
+  .fixed {
+    max-width: calc(100vw - 1.5rem);
+  }
+
+  .p-8 {
+    padding: 1rem !important;
+  }
+  .p-6 {
+    padding: 1rem !important;
+  }
+
+  .flex.items-center.justify-between {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
