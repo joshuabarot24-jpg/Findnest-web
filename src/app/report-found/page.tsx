@@ -33,7 +33,8 @@ function ReportFoundContent() {
   const [description, setDescription] = useState("");
   const [aiFilled, setAiFilled] = useState(false);
   const [location, setLocation] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(() => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }));
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
   const [time, setTime] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [photoError, setPhotoError] = useState(false);
@@ -433,9 +434,12 @@ function ReportFoundContent() {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700"
+                    min={todayStr}
+                    max={todayStr}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700 bg-gray-50"
                     required
                   />
+                  <p className="text-gray-400 text-xs mt-1">Only today's date can be selected, since items should be reported as soon as they're found.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-600 mb-2">Approx. Time Found</label>
