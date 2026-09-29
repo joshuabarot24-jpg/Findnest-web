@@ -31,8 +31,13 @@ function ReportLostContent() {
   const [description, setDescription] = useState("");
   const [aiFilled, setAiFilled] = useState(false);
   const [location, setLocation] = useState("");
-  const [date, setDate] = useState(() => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }));
-  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  function getManilaDate(daysAgo: number) {
+    const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+    d.setDate(d.getDate() - daysAgo);
+    return d.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  }
+
+  const [date, setDate] = useState(() => getManilaDate(0));
   const [time, setTime] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [photoError, setPhotoError] = useState(false);
@@ -437,12 +442,12 @@ function ReportLostContent() {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    min={todayStr}
-                    max={todayStr}
+                    min={getManilaDate(2)}
+                    max={getManilaDate(0)}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-400 focus:outline-none transition text-gray-700 bg-gray-50"
                     required
                   />
-                  <p className="text-gray-400 text-xs mt-1">Only today's date can be selected, since items should be reported as soon as they're lost.</p>
+                  <p className="text-gray-400 text-xs mt-1">Pick when the item was lost — today or up to 2 days ago.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-600 mb-2">Approx. Time</label>
