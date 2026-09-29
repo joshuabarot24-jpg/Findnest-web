@@ -838,21 +838,14 @@ function ItemManagementContent() {
               </div>
               <div>
                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"}</label>
-              <div className="grid grid-cols-3 gap-2 mt-1">
-                  {ALLOWED_DATES.map((d) => (
-                    <button
-                      key={d.value}
-                      type="button"
-                      onClick={() => setFormDateFound(d.value)}
-                      className={`py-2.5 rounded-xl text-xs font-bold border-2 transition ${
-                        formDateFound === d.value ? "border-[#1a237e] bg-blue-50 text-[#1a237e]" : "border-gray-200 text-gray-500 hover:border-blue-300"
-                      }`}
-                    >
-                      {d.label}
-                      <span className="block text-[9px] font-normal mt-0.5 opacity-70">{d.value}</span>
-                    </button>
-                  ))}
-                </div>
+              <input
+                  type="date"
+                  value={formDateFound}
+                  onChange={(e) => setFormDateFound(e.target.value)}
+                  min={ALLOWED_DATES[2].value}
+                  max={ALLOWED_DATES[0].value}
+                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm bg-gray-50"
+                />
               </div>
 
               {formIntakeType !== "lost_item" && (
