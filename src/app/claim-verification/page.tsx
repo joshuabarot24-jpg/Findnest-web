@@ -536,7 +536,7 @@ function ClaimVerificationContent() {
                 {viewingClaim.claim_status === "pending" && (viewingClaim.competing_claims_count ?? 1) > 1 && (
                   <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl p-2.5">
                     <p className="text-orange-700 text-xs font-bold">
-                      ⚠ {viewingClaim.competing_claims_count} students have submitted claims for this item — compare evidence carefully before deciding.
+                   ⚠ {(viewingClaim.competing_claims_count ?? 1) - 1} other student{(viewingClaim.competing_claims_count ?? 1) - 1 !== 1 ? "s are" : " is"} also waiting for this item. If you reject this claim, the next one will be reviewed automatically.
                     </p>
                   </div>
                 )}
