@@ -293,7 +293,6 @@ function ReportFoundContent() {
               <div className="block">
                 <p className="text-sm font-bold text-gray-600 mb-2">
                   Upload Photos <span className="text-red-500">*</span>
-                  <span className="text-gray-400 font-normal text-xs ml-1">(up to {MAX_PHOTOS}, different angles help)</span>
                 </p>
 
                 {photos.length > 0 && (
