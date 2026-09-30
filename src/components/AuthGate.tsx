@@ -46,7 +46,24 @@ export default function AuthGate({ allowedRole, children }: AuthGateProps) {
       }
     };
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        const remembered = localStorage.getItem("findnest_remember_me") === "true";
+        if (!remembered) {
+          verifiedRoleThisSession = null;
+          localStorage.removeItem("findnest_token");
+          localStorage.removeItem("findnest_user");
+          window.location.href = "/";
+        }
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
   }, []);
 
   if (status === "checking") {
