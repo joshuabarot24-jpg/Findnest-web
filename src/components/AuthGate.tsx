@@ -60,9 +60,21 @@ export default function AuthGate({ allowedRole, children }: AuthGateProps) {
     };
     window.addEventListener("pageshow", handlePageShow);
 
+    const handlePopState = () => {
+      const remembered = localStorage.getItem("findnest_remember_me") === "true";
+      if (!remembered) {
+        verifiedRoleThisSession = null;
+        localStorage.removeItem("findnest_token");
+        localStorage.removeItem("findnest_user");
+        window.location.href = "/";
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("popstate", handlePopState);
     };
   }, []);
 
