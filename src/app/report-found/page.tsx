@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 
 const categories = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Others"];
-const MAX_PHOTOS = 4;
+const MAX_PHOTOS = 1;
 
 interface PhotoItem {
   preview: string;
