@@ -819,7 +819,7 @@ function ItemManagementContent() {
                       <p className="text-gray-400 text-xs">Click to upload a photo</p>
                     )}
                   </div>
-                  <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={formUploading} className="hidden" />
                 </label>
               </div>
               <div>
