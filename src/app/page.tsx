@@ -33,6 +33,19 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => loadDraft().rememberMe);
 
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        const fresh = loadDraft();
+        setIdentifier(fresh.identifier);
+        setPassword(fresh.password);
+        setRememberMe(fresh.rememberMe);
+      }
+    }
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   const [maskedEmail, setMaskedEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [otpError, setOtpError] = useState("");
