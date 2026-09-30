@@ -276,7 +276,14 @@ function ReportFoundContent() {
           </div>
         ) : (
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-500 to-green-600 px-8 py-6">
+            <div className="relative bg-gradient-to-r from-green-500 to-green-600 px-8 py-6">
+              <button
+                onClick={() => (window.location.href = "/student-home")}
+                className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white transition text-2xl font-bold leading-none"
+                aria-label="Close"
+              >
+                &times;
+              </button>
               <h1 className="text-white font-black text-xl">Report Found Item</h1>
               <p className="text-green-100 text-sm">Help reunite this item with its owner</p>
             </div>
