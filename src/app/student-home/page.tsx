@@ -101,6 +101,9 @@ function StudentHomeContent() {
   const [myReports, setMyReports] = useState<LostReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(true);
   const [selectedMyReport, setSelectedMyReport] = useState<LostReport | null>(null);
+  const [deletingReport, setDeletingReport] = useState<LostReport | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const [publicReports, setPublicReports] = useState<PublicLostReport[]>([]);
   const [publicLoading, setPublicLoading] = useState(true);
@@ -766,12 +769,62 @@ function StudentHomeContent() {
               </div>
             </div>
 
-            {(selectedMyReport.ai_description || selectedMyReport.description) && (
+           {(selectedMyReport.ai_description || selectedMyReport.description) && (
               <div className="mt-4 bg-gray-50 rounded-xl p-3">
                 <p className="text-gray-400 text-xs font-bold uppercase mb-1">Description</p>
                 <p className="text-gray-700 text-sm">{selectedMyReport.ai_description || selectedMyReport.description}</p>
               </div>
             )}
+
+            <button
+              onClick={() => { setDeletingReport(selectedMyReport); setDeleteReason(""); setSelectedMyReport(null); }}
+              className="w-full mt-5 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-bold py-3 rounded-2xl transition text-sm"
+            >
+              Delete Report
+            </button>
+          </div>
+        </div>
+      )}
+
+      {deletingReport && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
+            <h2 className="text-lg font-black text-[#1a237e] mb-1">Delete This Report?</h2>
+            <p className="text-gray-400 text-sm mb-4">Let us know why you're deleting "{deletingReport.item_name}" — for example, if you found it yourself.</p>
+            <textarea
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="e.g. Found it in my bag"
+              rows={3}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-400 focus:outline-none transition text-gray-700 resize-none mb-5 text-sm"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletingReport(null)}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!deletingReport) return;
+                  setDeleteSubmitting(true);
+                  try {
+                    await api.delete(`/lost-items/${deletingReport.id}`, { data: { reason: deleteReason.trim() } });
+                    setMyReports((prev) => prev.filter((r) => r.id !== deletingReport.id));
+                    setDeletingReport(null);
+                  } catch (err) {
+                    console.error("Failed to delete report:", err);
+                  } finally {
+                    setDeleteSubmitting(false);
+                  }
+                }}
+                disabled={deleteSubmitting || !deleteReason.trim()}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50 text-sm"
+              >
+                {deleteSubmitting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}
