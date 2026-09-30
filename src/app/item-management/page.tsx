@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import api, { logoutUser } from "@/lib/api";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
@@ -107,6 +107,7 @@ function ItemManagementContent() {
   const [formDescription, setFormDescription] = useState("");
   const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item">("found_item");
   const [choosingItemUrl, setChoosingItemUrl] = useState<string | null>(null);
+  const uploadCancelledRef = useRef(false);
   const [itemChoices, setItemChoices] = useState<string[]>([]);
   const [resolvingChoice, setResolvingChoice] = useState(false);
   function getManilaDate(daysAgo: number) {
@@ -276,6 +277,7 @@ function ItemManagementContent() {
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    uploadCancelledRef.current = false;
     setFormPhotoPreview(URL.createObjectURL(file));
     setFormUploading(true);
     setFormPhotoUrl(null);
@@ -287,12 +289,14 @@ function ItemManagementContent() {
       const res = await api.post("/upload/image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      if (uploadCancelledRef.current) return;
       setFormPhotoUrl(res.data.url);
 
       if (res.data.ai_item_name) setFormName(res.data.ai_item_name);
       if (res.data.ai_category) setFormCategory(res.data.ai_category);
       if (res.data.ai_description) setFormDescription(res.data.ai_description);
     } catch (err: any) {
+      if (uploadCancelledRef.current) return;
       if (err.response?.status === 422 && err.response?.data?.multiple_items) {
         setFormPhotoUrl(err.response.data.url);
         setItemChoices(err.response.data.items_found || []);
@@ -307,7 +311,7 @@ function ItemManagementContent() {
         alert("Photo upload failed. Please try again.");
       }
     } finally {
-      setFormUploading(false);
+      if (!uploadCancelledRef.current) setFormUploading(false);
     }
   }
 
@@ -771,7 +775,7 @@ function ItemManagementContent() {
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
-            <button onClick={() => { setShowAddModal(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+           <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Add Item</h2>
             <p className="text-gray-400 text-sm mb-6">Record an item that was physically received by the office</p>
             <div className="space-y-4">
@@ -861,7 +865,7 @@ function ItemManagementContent() {
               {formError && <p className="text-red-500 text-xs font-semibold">{formError}</p>}
             </div>
             <div className="flex gap-3 mt-8">
-              <button onClick={() => { setShowAddModal(false); resetForm(); }} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
+             <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
               <button onClick={handleAddSubmit} disabled={formLoading || formUploading} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50">
                 {formLoading ? "Adding..." : "Add Item"}
               </button>
