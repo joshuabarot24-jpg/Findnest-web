@@ -808,7 +808,7 @@ function ItemManagementContent() {
                     {formUploading ? (
                       <div className="flex flex-col items-center gap-2">
                         <div className="w-6 h-6 border-4 border-blue-300 border-t-blue-500 rounded-full animate-spin" />
-                        <p className="text-xs text-gray-500">Uploading...</p>
+                        <p className="text-xs text-gray-500 font-bold">Analyzing photo...</p>
                       </div>
                     ) : formPhotoPreview ? (
                       <div>

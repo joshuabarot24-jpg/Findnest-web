@@ -302,8 +302,9 @@ function ReportFoundContent() {
                         <div className="w-full aspect-square rounded-xl overflow-hidden bg-gray-100 border-2 border-gray-200">
                           <img src={p.preview} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
                           {p.uploading && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1.5">
                               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span className="text-white text-[9px] font-bold text-center px-1">Analyzing photo...</span>
                             </div>
                           )}
                         </div>
