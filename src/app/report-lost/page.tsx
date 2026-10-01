@@ -23,6 +23,8 @@ export default function ReportLostPage() {
 function ReportLostContent() {
   const [userInitial, setUserInitial] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [manualOverrideGranted, setManualOverrideGranted] = useState(false);
+  const [checkingOverride, setCheckingOverride] = useState(true);
 
   const [itemName, setItemName] = useState("");
   const [itemNameAiFilled, setItemNameAiFilled] = useState(false);
@@ -60,6 +62,18 @@ function ReportLostContent() {
       const currentUser = JSON.parse(stored);
       setUserInitial(currentUser?.name?.charAt(0).toUpperCase() || "");
     }
+
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get("/profile");
+        setManualOverrideGranted(!!res.data.user?.manual_override_granted);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      } finally {
+        setCheckingOverride(false);
+      }
+    };
+    fetchProfile();
 
     const fetchUnread = async () => {
       try {
@@ -123,6 +137,9 @@ function ReportLostContent() {
         const formData = new FormData();
         formData.append("image", file);
         formData.append("folder", "lost-items");
+        if (manualOverrideGranted) {
+          formData.append("analyze", "false");
+        }
 
         const res = await api.post("/upload/image", formData, {
           headers: { "Content-Type": "multipart/form-data" },
@@ -187,7 +204,7 @@ function ReportLostContent() {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploadedUrls.length === 0) {
+    if (uploadedUrls.length === 0 && !manualOverrideGranted) {
       setPhotoError(true);
       return;
     }
@@ -295,7 +312,13 @@ function ReportLostContent() {
 
               <div className="block">
                 <p className="text-sm font-bold text-gray-600 mb-2">
-                  Upload Photos <span className="text-red-500">*</span>
+                 {manualOverrideGranted && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
+                  <p className="text-amber-700 text-xs font-bold">Manual Override Active</p>
+                  <p className="text-amber-600 text-[11px] mt-0.5">Your photo will not be analyzed by AI. Please fill in all details below yourself.</p>
+                </div>
+              )}
+                 Upload Photos <span className="text-red-500">*</span>
                 </p>
 
                 {photos.length > 0 && (
