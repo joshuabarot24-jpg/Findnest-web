@@ -384,7 +384,7 @@ function ReportLostContent() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-600 mb-2">
-                  Category {uploadedUrls.length > 0 && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}
+                  Category {uploadedUrls.length > 0 && !manualOverrideGranted && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}
                 </label>
                 <select
                   value={category}
