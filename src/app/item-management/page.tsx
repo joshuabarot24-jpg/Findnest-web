@@ -105,7 +105,7 @@ function ItemManagementContent() {
   const [formStorageLocation, setFormStorageLocation] = useState("");
   const [formDateFound, setFormDateFound] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item">("found_item");
+  const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item" | "others">("found_item");
   const [choosingItemUrl, setChoosingItemUrl] = useState<string | null>(null);
   const uploadCancelledRef = useRef(false);
   const [itemChoices, setItemChoices] = useState<string[]>([]);
@@ -806,6 +806,13 @@ function ItemManagementContent() {
                     className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "lost_item" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200 text-gray-400"}`}
                   >
                     Lost Item
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormIntakeType("others")}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "others" ? "border-gray-500 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-400"}`}
+                  >
+                    Others
                   </button>
                 </div>
               </div>
