@@ -288,7 +288,9 @@ function DashboardContent() {
                             <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">N/A</div>
                           )}
                         </button>
-                        <p className="font-semibold text-gray-700 text-sm">{activity.item}</p>
+                        <button onClick={() => setPreviewItem(activity)} className="font-semibold text-gray-700 text-sm hover:text-[#1a237e] hover:underline transition text-left">
+                          {activity.item}
+                        </button>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -390,7 +392,9 @@ function DashboardContent() {
                                 <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-[9px]">N/A</div>
                               )}
                             </button>
-                            <p className="font-semibold text-gray-700 text-sm">{activity.item}</p>
+                            <button onClick={() => setPreviewItem(activity)} className="font-semibold text-gray-700 text-sm hover:text-[#1a237e] hover:underline transition text-left">
+                              {activity.item}
+                            </button>
                           </div>
                         </td>
                         <td className="px-4 py-3">
