@@ -106,7 +106,8 @@ function ItemManagementContent() {
   const [formStorageLocation, setFormStorageLocation] = useState("");
   const [formDateFound, setFormDateFound] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item" | "others">("found_item");
+ const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item" | "others">("found_item");
+  const [formOthersSpecify, setFormOthersSpecify] = useState("");
   const [choosingItemUrl, setChoosingItemUrl] = useState<string | null>(null);
   const uploadCancelledRef = useRef(false);
   const [itemChoices, setItemChoices] = useState<string[]>([]);
@@ -265,6 +266,7 @@ function ItemManagementContent() {
     setFormCategory(CATEGORY_OPTIONS[0]);
     setFormLocationFound("");
     setFormStorageLocation("");
+    setFormOthersSpecify("");
     setFormDateFound("");
     setFormDescription("");
     setFormIntakeType("found_item");
@@ -338,7 +340,7 @@ function ItemManagementContent() {
 
   async function handleAddSubmit() {
     if (formIntakeType === "lost_item") {
-      if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
+    if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
         setFormError("Item name, location lost, date lost, and photo are required.");
         return;
       }
@@ -367,8 +369,8 @@ function ItemManagementContent() {
       return;
     }
 
-    if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
-      setFormError("Item name, location found, date found, and photo are required.");
+    if (!formName.trim() || (formIntakeType !== "others" && !formLocationFound.trim()) || !formDateFound || !formPhotoUrl) {
+      setFormError(formIntakeType === "others" ? "Item name, date, and photo are required." : "Item name, location found, date found, and photo are required.");
       return;
     }
     setFormError("");
@@ -849,10 +851,12 @@ function ItemManagementContent() {
                   {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+              {formIntakeType !== "others" && (
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
                 <input type="text" value={formLocationFound} onChange={(e) => setFormLocationFound(e.target.value)} placeholder={formIntakeType === "lost_item" ? "e.g. Room 305" : "e.g. Near the canteen"} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
               </div>
+              )}
               <div>
                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"}</label>
               <input
