@@ -137,6 +137,7 @@ function StudentHomeContent() {
   const [chatbotThinking, setChatbotThinking] = useState(false);
   const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot"; text: string }[]>([]);
   const [showMessageBox, setShowMessageBox] = useState(false);
+  const [isOverrideRequest, setIsOverrideRequest] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [previewPublicReport, setPreviewPublicReport] = useState<PublicLostReport | null>(null);
   const [chatMessage, setChatMessage] = useState("");
@@ -199,8 +200,9 @@ function StudentHomeContent() {
     setChatError("");
     setChatSending(true);
     try {
-      await api.post("/support", { message: chatMessage.trim() });
+      await api.post("/support", { message: chatMessage.trim(), is_override_request: isOverrideRequest });
       setChatMessage("");
+      setIsOverrideRequest(false);
       setChatSent(true);
       setTimeout(() => setChatSent(false), 3000);
     } catch (err: any) {
@@ -764,12 +766,23 @@ function StudentHomeContent() {
             >
               {showMessageBox ? "Hide" : "Still need help? Send a message to the office"}
             </button>
-            {showMessageBox && (
+           {showMessageBox && (
               <div className="mt-2">
+                <label className="flex items-start gap-2 mb-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isOverrideRequest}
+                    onChange={(e) => setIsOverrideRequest(e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span className="text-[10px] text-gray-500 leading-tight">
+                    This is a request for a <strong>manual AI override</strong> — my photo is unclear and the AI cannot analyze it, so I need to fill in details manually.
+                  </span>
+                </label>
                 <textarea
                   value={chatMessage}
                   onChange={(e) => setChatMessage(e.target.value)}
-                  placeholder="Type your message here..."
+                  placeholder={isOverrideRequest ? "Explain why your photo isn't clear (e.g. item is in a dark bag, photo is blurry)..." : "Type your message here..."}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs resize-none mb-2"
                 />
@@ -780,7 +793,7 @@ function StudentHomeContent() {
                   disabled={chatSending}
                   className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 rounded-xl transition disabled:opacity-50"
                 >
-                  {chatSending ? "Sending..." : "Send Message to Office"}
+                  {chatSending ? "Sending..." : isOverrideRequest ? "Send Override Request" : "Send Message to Office"}
                 </button>
               </div>
             )}
