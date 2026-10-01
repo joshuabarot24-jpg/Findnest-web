@@ -275,22 +275,17 @@ function DashboardContent() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {displayedActivity.map((activity, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition">
+                  <tr key={index} onClick={() => setPreviewItem(activity)} className="hover:bg-gray-50 transition cursor-pointer">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => setPreviewItem(activity)}
-                          className="w-9 h-9 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 hover:ring-2 hover:ring-[#1a237e] transition cursor-zoom-in"
-                        >
+                        <div className="w-9 h-9 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
                           {activity.photo_url ? (
                             <img src={activity.photo_url} alt={activity.item} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">N/A</div>
                           )}
-                        </button>
-                        <button onClick={() => setPreviewItem(activity)} className="font-semibold text-gray-700 text-sm hover:text-[#1a237e] hover:underline transition text-left">
-                          {activity.item}
-                        </button>
+                        </div>
+                        <p className="font-semibold text-gray-700 text-sm">{activity.item}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -379,22 +374,17 @@ function DashboardContent() {
                   {recentActivity
                     .slice((allActivityPage - 1) * ALL_ACTIVITY_PAGE_SIZE, allActivityPage * ALL_ACTIVITY_PAGE_SIZE)
                     .map((activity, index) => (
-                      <tr key={index} className="hover:bg-gray-50 transition">
+                      <tr key={index} onClick={() => setPreviewItem(activity)} className="hover:bg-gray-50 transition cursor-pointer">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setPreviewItem(activity)}
-                              className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 hover:ring-2 hover:ring-[#1a237e] transition cursor-zoom-in"
-                            >
+                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                               {activity.photo_url ? (
                                 <img src={activity.photo_url} alt={activity.item} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-[9px]">N/A</div>
                               )}
-                            </button>
-                            <button onClick={() => setPreviewItem(activity)} className="font-semibold text-gray-700 text-sm hover:text-[#1a237e] hover:underline transition text-left">
-                              {activity.item}
-                            </button>
+                            </div>
+                            <p className="font-semibold text-gray-700 text-sm">{activity.item}</p>
                           </div>
                         </td>
                         <td className="px-4 py-3">
