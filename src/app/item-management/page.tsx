@@ -637,7 +637,8 @@ function ItemManagementContent() {
                   <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Photo</th>
                   <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Item Name</th>
                   <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Storage Location</th>
+                 <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Storage Location</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Reported By</th>
                   <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
                   <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Logged</th>
                   <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
@@ -666,6 +667,9 @@ function ItemManagementContent() {
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-gray-500 text-sm">{item.storage_location || "—"}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-gray-500 text-sm">{item.admin?.name || "—"}</p>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
