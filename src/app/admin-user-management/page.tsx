@@ -59,6 +59,35 @@ function AdminUserManagementContent() {
 
   const [toast, setToast] = useState<string | null>(null);
 
+  const [overrideRequests, setOverrideRequests] = useState<{ id: number; name: string; email: string; message: string; override_status: string; created_at: string }[]>([]);
+  const [overrideLoading, setOverrideLoading] = useState(true);
+  const [resolvingOverrideId, setResolvingOverrideId] = useState<number | null>(null);
+
+  const fetchOverrideRequests = async () => {
+    try {
+      const response = await api.get("/support");
+      const all = response.data.messages || [];
+      setOverrideRequests(all.filter((m: any) => m.is_override_request && m.override_status === "pending"));
+    } catch (err) {
+      console.error("Error fetching override requests:", err);
+    } finally {
+      setOverrideLoading(false);
+    }
+  };
+
+  async function handleResolveOverride(id: number, decision: "approve" | "deny") {
+    setResolvingOverrideId(id);
+    try {
+      await api.post(`/support/${id}/resolve-override`, { decision });
+      setToast(`Override request ${decision}d.`);
+      fetchOverrideRequests();
+    } catch (err) {
+      setToast("Failed to resolve request.");
+    } finally {
+      setResolvingOverrideId(null);
+    }
+  }
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 2500);
@@ -79,8 +108,10 @@ function AdminUserManagementContent() {
 
   useEffect(() => {
     fetchUsers();
+    fetchOverrideRequests();
   }, []);
   useAutoRefresh(fetchUsers);
+  useAutoRefresh(fetchOverrideRequests);
 
   const baseFiltered = useMemo(() => {
     if (studentSubTab === "all") return users;
@@ -205,6 +236,40 @@ function AdminUserManagementContent() {
             <p className="text-gray-400 text-sm mt-1">View student accounts. Accounts are managed by the Super Admin.</p>
           </div>
         </div>
+
+        {!overrideLoading && overrideRequests.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8">
+            <h2 className="font-black text-amber-800 text-lg mb-1">⚠ Pending Manual Override Requests ({overrideRequests.length})</h2>
+            <p className="text-amber-700 text-xs mb-4">Students requesting to bypass AI photo analysis due to an unclear photo.</p>
+            <div className="space-y-3">
+              {overrideRequests.map((req) => (
+                <div key={req.id} className="bg-white rounded-xl p-4 flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-700 text-sm">{req.name} <span className="text-gray-400 font-normal text-xs">({req.email})</span></p>
+                    <p className="text-gray-500 text-xs mt-1">{req.message}</p>
+                    <p className="text-gray-400 text-[10px] mt-1">{new Date(req.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleResolveOverride(req.id, "approve")}
+                      disabled={resolvingOverrideId === req.id}
+                      className="bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleResolveOverride(req.id, "deny")}
+                      disabled={resolvingOverrideId === req.id}
+                      className="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                    >
+                      Deny
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
