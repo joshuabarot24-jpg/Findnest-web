@@ -789,7 +789,7 @@ function ItemManagementContent() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Intake Type {!!formPhotoPreview && <span className="text-gray-400 font-normal normal-case">(locked after photo upload — remove photo to change)</span>}
+                  Intake Type {!!formPhotoPreview && <span className="text-gray-400 font-normal normal-case">(locked after photo upload — click the photo to change)</span>}
                 </label>
                 <div className="flex gap-2 mt-1">
                   <button
