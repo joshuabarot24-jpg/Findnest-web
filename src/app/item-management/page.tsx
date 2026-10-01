@@ -56,7 +56,8 @@ function statusStyles(status: string) {
   switch (status) {
     case "claimed": return { dot: "bg-green-500", badge: "bg-green-50 text-green-700", label: "Claimed" };
     case "unclaimed": return { dot: "bg-blue-500", badge: "bg-blue-50 text-blue-700", label: "Unclaimed" };
-    case "confiscated": return { dot: "bg-purple-500", badge: "bg-purple-50 text-purple-700", label: "Confiscated" };
+   case "confiscated": return { dot: "bg-purple-500", badge: "bg-purple-50 text-purple-700", label: "Confiscated" };
+    case "others": return { dot: "bg-gray-500", badge: "bg-gray-100 text-gray-700", label: "Others" };
     case "found_item": return { dot: "bg-teal-500", badge: "bg-teal-50 text-teal-700", label: "Found Item" };
     case "searching": return { dot: "bg-yellow-500", badge: "bg-yellow-50 text-yellow-700", label: "Searching" };
     case "matched": return { dot: "bg-indigo-500", badge: "bg-indigo-50 text-indigo-700", label: "Matched" };
