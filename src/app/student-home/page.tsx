@@ -516,10 +516,9 @@ function StudentHomeContent() {
                   ))}
               </div>
             )}
-          </div>
 
-          <div className="mt-6">
-            <p className="font-black text-gray-700 text-sm mb-3">Your Found Item Reports</p>
+            <div className="mt-6">
+              <p className="font-black text-gray-700 text-sm mb-3">Your Found Item Reports</p>
             {foundReportsLoading ? (
               <p className="text-gray-400 text-xs">Loading...</p>
             ) : myFoundReports.length === 0 ? (
@@ -551,6 +550,7 @@ function StudentHomeContent() {
                 ))}
               </div>
             )}
+            </div>
           </div>
         </div>
 
