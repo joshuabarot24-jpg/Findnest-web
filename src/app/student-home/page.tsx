@@ -269,7 +269,7 @@ function StudentHomeContent() {
         const response = await api.get("/notifications");
         const notifications: NotificationItem[] = response.data.notifications || [];
         const unreadMatch = notifications.find(
-          (n) => !n.is_read && n.type?.toLowerCase().includes("match")
+          (n) => !n.is_read && n.type?.toLowerCase().includes("match") && n.match_id
         );
         setMatchNotification(unreadMatch || null);
       } catch (err) {
@@ -417,7 +417,7 @@ function StudentHomeContent() {
             </div>
             <div className="flex items-center gap-2">
               <a
-                href={`/matched-item?matchId=${matchNotification.match_id}`}
+                href={matchNotification.match_id ? `/matched-item?matchId=${matchNotification.match_id}` : "/claim-status"}
                 onClick={() => { markNotificationRead(matchNotification.id); setShowNotification(false); }}
                 className="text-sm font-bold text-[#1a237e] hover:underline"
               >
