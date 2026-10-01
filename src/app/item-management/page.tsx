@@ -851,6 +851,18 @@ function ItemManagementContent() {
                   {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+              {formIntakeType === "others" && (
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Please Specify (Optional)</label>
+                  <input
+                    type="text"
+                    value={formOthersSpecify}
+                    onChange={(e) => setFormOthersSpecify(e.target.value)}
+                    placeholder="e.g. Classroom projector, office supplies"
+                    className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  />
+                </div>
+              )}
               {formIntakeType !== "others" && (
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
