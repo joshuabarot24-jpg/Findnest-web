@@ -17,6 +17,8 @@ interface SystemUser {
   is_active: boolean;
   is_restricted: boolean;
   trust_score: number;
+  flagged_for_review?: boolean;
+  flag_reason?: string | null;
 }
 
 const PAGE_SIZE = 5;
@@ -311,6 +313,9 @@ function AdminUserManagementContent() {
                       ) : (
                         <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-50 text-green-700">ACTIVE</span>
                       )}
+                      {user.flagged_for_review && (
+                        <span className="ml-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600" title={user.flag_reason || ""}>⚠ Flagged</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -439,6 +444,13 @@ function AdminUserManagementContent() {
                 </span>
               </div>
             </div>
+
+            {viewingUser.flagged_for_review && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
+                <p className="text-red-700 text-xs font-bold">⚠ Flagged For Review</p>
+                <p className="text-red-600 text-[11px] mt-0.5">{viewingUser.flag_reason || "This student has a history of rejected claims and appeals."}</p>
+              </div>
+            )}
 
             {!viewingUser.is_active && (
               <button
