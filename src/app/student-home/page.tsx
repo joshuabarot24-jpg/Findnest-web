@@ -3,6 +3,19 @@ import { useState, useEffect, useRef } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 
+interface FoundReport {
+  id: number;
+  item_name: string;
+  category: string;
+  status: string;
+  photo_url: string | null;
+  location_found: string;
+  date_found: string | null;
+  description: string | null;
+  ai_description: string | null;
+  receipt_confirmed?: boolean;
+}
+
 interface LostReport {
   id: number;
   item_name: string;
@@ -102,6 +115,9 @@ function StudentHomeContent() {
   const [reportsLoading, setReportsLoading] = useState(true);
   const [selectedMyReport, setSelectedMyReport] = useState<LostReport | null>(null);
   const [deletingReport, setDeletingReport] = useState<LostReport | null>(null);
+  const [myFoundReports, setMyFoundReports] = useState<FoundReport[]>([]);
+  const [foundReportsLoading, setFoundReportsLoading] = useState(true);
+  const [selectedMyFoundReport, setSelectedMyFoundReport] = useState<FoundReport | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
@@ -242,6 +258,17 @@ function StudentHomeContent() {
       setUserInfo({ name: user.name, email: user.email, trust_score: user.trust_score });
     }
 
+    const fetchMyFoundReports = async () => {
+      try {
+        const response = await api.get("/found-items");
+        setMyFoundReports(response.data.records || []);
+      } catch (err) {
+        console.error("Error fetching my found reports:", err);
+      } finally {
+        setFoundReportsLoading(false);
+      }
+    };
+
     const fetchMyReports = async () => {
       try {
         const response = await api.get("/lost-items/my-reports");
@@ -278,6 +305,7 @@ function StudentHomeContent() {
     };
 
     fetchMyReports();
+    fetchMyFoundReports();
     fetchPublicReports();
     fetchNotifications();
 
@@ -486,6 +514,41 @@ function StudentHomeContent() {
                       </div>
                     </button>
                   ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <p className="font-black text-gray-700 text-sm mb-3">Your Found Item Reports</p>
+            {foundReportsLoading ? (
+              <p className="text-gray-400 text-xs">Loading...</p>
+            ) : myFoundReports.length === 0 ? (
+              <p className="text-gray-400 text-xs">No found item reports yet</p>
+            ) : (
+              <div className="space-y-2">
+                {myFoundReports.slice(0, 2).map((report) => (
+                  <button
+                    key={report.id}
+                    onClick={() => setSelectedMyFoundReport(report)}
+                    className="w-full flex items-center gap-3 text-left hover:bg-gray-50 rounded-xl p-1.5 -m-1.5 transition"
+                  >
+                    <div className="w-10 h-10 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                      {report.photo_url ? (
+                        <img src={report.photo_url} alt={report.item_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-[9px] font-bold">
+                          No Photo
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-700 text-sm">{report.item_name}</p>
+                      <p className="text-gray-400 text-xs">
+                        {report.receipt_confirmed === false ? "Awaiting surrender" : report.status === "claimed" ? "Claimed" : "Unclaimed"}
+                      </p>
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -782,6 +845,45 @@ function StudentHomeContent() {
             >
               Delete Report
             </button>
+          </div>
+        </div>
+      )}
+
+      {selectedMyFoundReport && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
+            <button onClick={() => setSelectedMyFoundReport(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-4">
+              {selectedMyFoundReport.photo_url ? (
+                <img src={selectedMyFoundReport.photo_url} alt={selectedMyFoundReport.item_name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
+              )}
+            </div>
+            <h3 className="font-black text-[#1a237e] text-lg">{selectedMyFoundReport.item_name}</h3>
+            <span className="inline-block mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700">
+              {selectedMyFoundReport.receipt_confirmed === false ? "Awaiting Surrender" : selectedMyFoundReport.status === "claimed" ? "Claimed" : "Unclaimed"}
+            </span>
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Category</span>
+                <span className="font-bold text-gray-700">{selectedMyFoundReport.category}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Location Found</span>
+                <span className="font-bold text-gray-700">{selectedMyFoundReport.location_found}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Date Found</span>
+               <span className="font-bold text-gray-700">{selectedMyFoundReport.date_found ? formatDate(selectedMyFoundReport.date_found) : "—"}</span>
+              </div>
+            </div>
+            {(selectedMyFoundReport.ai_description || selectedMyFoundReport.description) && (
+              <div className="mt-4 bg-gray-50 rounded-xl p-3">
+                <p className="text-gray-400 text-xs font-bold uppercase mb-1">Description</p>
+                <p className="text-gray-700 text-sm">{selectedMyFoundReport.ai_description || selectedMyFoundReport.description}</p>
+              </div>
+            )}
           </div>
         </div>
       )}
