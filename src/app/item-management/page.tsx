@@ -788,33 +788,39 @@ function ItemManagementContent() {
             <p className="text-gray-400 text-sm mb-6">Record an item that was physically received by the office</p>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Intake Type</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Intake Type {!!formPhotoPreview && <span className="text-gray-400 font-normal normal-case">(locked after photo upload — remove photo to change)</span>}
+                </label>
                 <div className="flex gap-2 mt-1">
                   <button
                     type="button"
+                    disabled={!!formPhotoPreview}
                     onClick={() => setFormIntakeType("found_item")}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "found_item" ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-400"}`}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "found_item" ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     Found Item
                   </button>
                   <button
                     type="button"
+                    disabled={!!formPhotoPreview}
                     onClick={() => setFormIntakeType("confiscated")}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "confiscated" ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-400"}`}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "confiscated" ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     Confiscated
                   </button>
                   <button
                     type="button"
+                    disabled={!!formPhotoPreview}
                     onClick={() => setFormIntakeType("lost_item")}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "lost_item" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200 text-gray-400"}`}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "lost_item" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     Lost Item
                   </button>
                   <button
                     type="button"
+                    disabled={!!formPhotoPreview}
                     onClick={() => setFormIntakeType("others")}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "others" ? "border-gray-500 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-400"}`}
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "others" ? "border-gray-500 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     Others
                   </button>
