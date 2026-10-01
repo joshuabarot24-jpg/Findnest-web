@@ -605,6 +605,7 @@ function ItemManagementContent() {
                   <option value="unclaimed">Unclaimed</option>
                   <option value="claimed">Claimed</option>
                   <option value="confiscated">Confiscated</option>
+                  <option value="others">Others</option>
                   <option value="disposed">Disposed</option>
                 </select>
               ) : (
