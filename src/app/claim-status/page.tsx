@@ -134,7 +134,7 @@ function ClaimStatusContent() {
   const [claimSubmitting, setClaimSubmitting] = useState(false);
   const [claimError, setClaimError] = useState("");
   const [claimPhotos, setClaimPhotos] = useState<{ preview: string; url: string | null; uploading: boolean }[]>([]);
-  const CLAIM_MAX_PHOTOS = 4;
+  const CLAIM_MAX_PHOTOS = 1;
 
   const [appealingClaim, setAppealingClaim] = useState<Claim | null>(null);
   const [appealMessage, setAppealMessage] = useState("");
@@ -799,7 +799,7 @@ function ClaimStatusContent() {
                     {claimPhotos.length === 0 ? "Click to add evidence photos" : `Add more (${CLAIM_MAX_PHOTOS - claimPhotos.length} left)`}
                   </p>
                 </div>
-                <input type="file" accept="image/*" multiple onChange={handleClaimPhotoUpload} className="hidden" />
+                <input type="file" accept="image/*" multiple onChange={handleClaimPhotoUpload} disabled={claimAnyUploading} className="hidden" />
               </label>
             )}
 
@@ -856,7 +856,7 @@ function ClaimStatusContent() {
                   <p className="text-gray-400 text-xs">Click to attach a photo the admin can review</p>
                 )}
               </div>
-              <input type="file" accept="image/*" onChange={handleAppealPhotoUpload} className="hidden" />
+              <input type="file" accept="image/*" onChange={handleAppealPhotoUpload} disabled={appealPhotoUploading} className="hidden" />
             </label>
 
             {appealError && (

@@ -335,7 +335,7 @@ function ReportLostContent() {
                     <p className={`font-bold text-sm ${photoError ? "text-red-600" : "text-gray-600"}`}>
                       {photos.length === 0 ? "Click to upload photos" : `Add more (${MAX_PHOTOS - photos.length} left)`}
                     </p>
-                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} disabled={anyUploading} className="hidden" />
                   </label>
                 )}
                 {photoError && (
