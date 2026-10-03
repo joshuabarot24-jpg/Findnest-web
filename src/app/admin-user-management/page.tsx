@@ -19,6 +19,7 @@ interface SystemUser {
   trust_score: number;
   flagged_for_review?: boolean;
   flag_reason?: string | null;
+  manual_override_granted?: boolean;
 }
 
 const PAGE_SIZE = 5;
@@ -62,6 +63,23 @@ function AdminUserManagementContent() {
   const [overrideRequests, setOverrideRequests] = useState<{ id: number; name: string; email: string; message: string; override_status: string; created_at: string }[]>([]);
   const [overrideLoading, setOverrideLoading] = useState(true);
   const [resolvingOverrideId, setResolvingOverrideId] = useState<number | null>(null);
+  const [togglingOverride, setTogglingOverride] = useState(false);
+
+  async function handleToggleOverride(user: SystemUser) {
+    setTogglingOverride(true);
+    try {
+      const res = await api.post(`/users/${user.id}/toggle-manual-override`, {
+        manual_override_granted: !user.manual_override_granted,
+      });
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? res.data.user : u)));
+      if (viewingUser?.id === user.id) setViewingUser(res.data.user);
+      setToast(res.data.message);
+    } catch (err) {
+      setToast("Failed to update override status.");
+    } finally {
+      setTogglingOverride(false);
+    }
+  }
 
   const fetchOverrideRequests = async () => {
     try {
@@ -510,12 +528,26 @@ function AdminUserManagementContent() {
               </div>
             </div>
 
-            {viewingUser.flagged_for_review && (
+           {viewingUser.flagged_for_review && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
                 <p className="text-red-700 text-xs font-bold">⚠ Flagged For Review</p>
                 <p className="text-red-600 text-[11px] mt-0.5">{viewingUser.flag_reason || "This student has a history of rejected claims and appeals."}</p>
               </div>
             )}
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl mb-4">
+              <div>
+                <p className="font-bold text-gray-700 text-sm">Manual AI Override</p>
+                <p className="text-gray-400 text-xs">{viewingUser.manual_override_granted ? "Active — AI photo analysis is skipped for this student" : "Off — normal AI analysis applies"}</p>
+              </div>
+              <button
+                onClick={() => handleToggleOverride(viewingUser)}
+                disabled={togglingOverride}
+                className={`relative w-12 h-6 rounded-full transition-colors ${viewingUser.manual_override_granted ? "bg-amber-500" : "bg-gray-300"} disabled:opacity-50`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${viewingUser.manual_override_granted ? "translate-x-6" : "translate-x-0.5"}`} />
+              </button>
+            </div>
 
             {!viewingUser.is_active && (
               <button
