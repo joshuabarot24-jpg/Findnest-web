@@ -39,6 +39,25 @@ html {
   font-size: 16px; 
 }
 
+/* [UI] scale up on big monitors and TVs so the page doesn't look tiny */
+@media (min-width: 1921px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 2561px) {
+  html {
+    font-size: 22px;
+  }
+}
+
+@media (min-width: 3200px) {
+  html {
+    font-size: 26px;
+  }
+}
+
 @media (max-width: 1600px) {
   html {
     font-size: 15px;
@@ -75,9 +94,10 @@ html {
   }
 }
 
+/* [UI] break a word only if it can't fit on its own line, never mid-word */
 h1, h2, h3, p, span, a, button, td, th {
   overflow-wrap: break-word;
-  word-break: break-word;
+  word-break: normal;
 }
 
 .fixed {
