@@ -329,12 +329,13 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
 
         <div className="absolute inset-0 bg-[#fafbff]" />
-        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] bg-gradient-to-br from-[#1a237e] to-[#3949ab] rounded-full opacity-90" />
+        {/* [UI] Decorations: big circle only when 2 columns; small shapes hidden where they'd cover text */}
+        <div className="hidden lg:block absolute -top-32 -right-32 lg:w-[450px] lg:h-[450px] xl:w-[600px] xl:h-[600px] bg-gradient-to-br from-[#1a237e] to-[#3949ab] rounded-full opacity-90" />
         <div className="absolute top-1/3 -right-10 w-80 h-80 bg-[#ffd700]/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-[#1a237e]/5 to-transparent" />
-        <div className="absolute bottom-20 left-10 w-40 h-40 border-4 border-[#ffd700]/20 rounded-3xl rotate-12" />
-        <div className="absolute top-40 left-1/3 w-6 h-6 bg-red-400 rounded-full" />
-        <div className="absolute bottom-1/3 right-1/4 w-4 h-4 bg-[#ffd700] rounded-full" />
+        <div className="hidden md:block absolute bottom-20 left-10 w-40 h-40 border-4 border-[#ffd700]/20 rounded-3xl rotate-12" />
+        <div className="hidden lg:block absolute top-40 left-1/3 w-6 h-6 bg-red-400 rounded-full" />
+        <div className="hidden lg:block absolute bottom-1/3 right-1/4 w-4 h-4 bg-[#ffd700] rounded-full" />
 
         {/* [UI] Hero: 1 column below lg, 2 above; max width keeps TVs from stretching it */}
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 md:px-12 xl:px-20 w-full max-w-screen-2xl mx-auto items-center">
@@ -425,10 +426,11 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="absolute -top-5 -right-5 bg-green-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg rotate-6">
+            {/* [UI] Badges stay inside the card edge on small screens, overhang from sm up */}
+            <div className="absolute -top-3 right-0 sm:-top-5 sm:-right-5 bg-green-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg rotate-6">
               Match Found!
             </div>
-            <div className="absolute -bottom-5 -left-5 bg-[#1a237e] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg -rotate-6">
+            <div className="absolute -bottom-3 left-0 sm:-bottom-5 sm:-left-5 bg-[#1a237e] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg -rotate-6">
               Owner Notified!
             </div>
           </div>
