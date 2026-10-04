@@ -198,7 +198,8 @@ export default function Home() {
 
       {step === "login" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
+          {/* [UI] max-h + scroll so the card is never cut off on short screens */}
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
             <div className="text-center mb-6">
@@ -263,7 +264,7 @@ export default function Home() {
 
       {step === "otp" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
             <div className="text-center mb-6">
@@ -305,19 +306,20 @@ export default function Home() {
         </div>
       )}
 
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-12 py-4 bg-[#1a237e]/90 backdrop-blur-md">
+      {/* [UI] Nav: text links hide below md, padding scales with width */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 xl:px-12 py-4 bg-[#1a237e]/90 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <a href="/" className="text-xl font-black text-white tracking-wide hover:opacity-80 transition">
             FIND<span className="text-[#ffd700]">NEST</span>
           </a>
         </div>
-        <div className="flex items-center gap-6">
-          <a href="/" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOME</a>
-          <a href="#about" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">ABOUT FINDNEST</a>
-          <a href="#how-it-works" className="text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOW IT WORKS</a>
+        <div className="flex items-center gap-3 sm:gap-6">
+          <a href="/" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOME</a>
+          <a href="#about" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">ABOUT FINDNEST</a>
+          <a href="#how-it-works" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOW IT WORKS</a>
           <button
             onClick={openLogin}
-            className="bg-[#ffd700] text-[#1a237e] font-bold px-6 py-2 rounded-full hover:bg-yellow-300 transition shadow-md text-sm ml-4 cursor-pointer"
+            className="bg-[#ffd700] text-[#1a237e] font-bold px-4 sm:px-6 py-2 rounded-full hover:bg-yellow-300 transition shadow-md text-sm sm:ml-4 cursor-pointer"
           >
             LOG IN
           </button>
@@ -334,7 +336,8 @@ export default function Home() {
         <div className="absolute top-40 left-1/3 w-6 h-6 bg-red-400 rounded-full" />
         <div className="absolute bottom-1/3 right-1/4 w-4 h-4 bg-[#ffd700] rounded-full" />
 
-        <div className="relative z-10 grid grid-cols-2 gap-12 px-20 w-full items-center">
+        {/* [UI] Hero: 1 column below lg, 2 above; max width keeps TVs from stretching it */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 md:px-12 xl:px-20 w-full max-w-screen-2xl mx-auto items-center">
 
           <div>
             <div className="inline-flex items-center gap-2 bg-white border border-[#1a237e]/10 shadow-sm rounded-full px-4 py-2 mb-6">
@@ -342,7 +345,7 @@ export default function Home() {
               <span className="text-[#1a237e] text-sm font-semibold">AI-Powered Lost &amp; Found System</span>
             </div>
 
-            <h1 className="text-6xl font-black text-[#1a237e] leading-[1.05] mb-6">
+            <h1 className="text-4xl md:text-5xl xl:text-6xl font-black text-[#1a237e] leading-[1.05] mb-6">
               Never Lose
               <span className="block bg-gradient-to-r from-[#ffd700] to-[#f59e0b] bg-clip-text text-transparent">What Matters</span>
               Most.
@@ -352,7 +355,7 @@ export default function Home() {
               FindNest uses advanced AI image recognition to match lost and found items on campus. Submit a report, get notified instantly.
             </p>
 
-            <div className="flex gap-4 mb-12">
+            <div className="flex flex-wrap gap-4 mb-12">
               <button
                 onClick={openLogin}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-4 rounded-2xl transition shadow-xl shadow-red-500/20 hover:-translate-y-1 cursor-pointer"
@@ -367,7 +370,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="flex gap-10">
+            <div className="flex flex-wrap gap-6 md:gap-10">
               <div>
                 <p className="text-3xl font-black text-[#1a237e]">675+</p>
                 <p className="text-gray-400 text-sm">Students</p>
