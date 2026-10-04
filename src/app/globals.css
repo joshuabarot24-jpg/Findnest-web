@@ -35,76 +35,32 @@ html, body {
   background-color: #f0f2f5;
 }
 
+/* [UI] Base size stays 16px so browser zoom works like other sites;
+   only large screens (TVs) scale up. */
 html {
-  font-size: 16px; 
+  font-size: 16px;
 }
 
-/* [UI] scale up on big monitors and TVs so the page doesn't look tiny */
 @media (min-width: 1921px) {
-  html {
-    font-size: 18px;
-  }
+  html { font-size: 18px; }
 }
 
 @media (min-width: 2561px) {
-  html {
-    font-size: 22px;
-  }
+  html { font-size: 22px; }
 }
 
 @media (min-width: 3200px) {
-  html {
-    font-size: 26px;
-  }
+  html { font-size: 26px; }
 }
 
-@media (max-width: 1600px) {
-  html {
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 1536px) {
-  html {
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 1280px) {
-  html {
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 1100px) {
-  html {
-    font-size: 11.5px;
-  }
-}
-
-@media (max-width: 900px) {
-  html {
-    font-size: 11px;
-  }
-  aside.w-72 {
-    display: none !important;
-  }
-  main.ml-72 {
-    margin-left: 0 !important;
-  }
-}
-
-/* [UI] break a word only if it can't fit on its own line, never mid-word */
-h1, h2, h3, p, span, a, button, td, th {
+/* [UI] Break a word only when it can't fit a whole line; never mid-word. */
+h1, h2, h3, p, span, a, button, td, th, label {
   overflow-wrap: break-word;
   word-break: normal;
 }
 
-.fixed {
-  max-width: 100vw;
-}
-
-.flex.items-center.justify-between {
-  flex-wrap: wrap;
-  gap: 0.75rem;
+/* [UI] Images and media never overflow their container. */
+img, video, svg {
+  max-width: 100%;
+  height: auto;
 }
