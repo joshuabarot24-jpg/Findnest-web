@@ -392,7 +392,7 @@ export default function Home() {
           <div className="relative flex justify-center">
             <div className="absolute -inset-6 bg-gradient-to-br from-[#ffd700]/30 to-transparent rounded-[2.5rem] rotate-3" />
 
-            <div className="relative w-80 bg-white rounded-[2rem] p-8 shadow-2xl shadow-[#1a237e]/10 border border-gray-100 flex flex-col items-center -rotate-2">
+            <div className="relative w-full max-w-xs sm:w-80 bg-white rounded-[2rem] p-8 shadow-2xl shadow-[#1a237e]/10 border border-gray-100 flex flex-col items-center -rotate-2">
               <Image
                 src="/images/findnest-logo.svg"
                 alt="FindNest Logo"
@@ -437,27 +437,28 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-20 py-24 bg-white relative">
+      {/* [UI] Sections: padding scales with screen; cards stack below md; content capped on TVs */}
+      <section className="px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-white relative">
         <div className="text-center mb-16">
           <span className="text-[#ffd700] font-bold text-sm uppercase tracking-widest">The Process</span>
-          <h2 className="text-4xl font-black text-[#1a237e] mt-2 mb-4">How FindNest Works</h2>
+          <h2 className="text-3xl md:text-4xl font-black text-[#1a237e] mt-2 mb-4">How FindNest Works</h2>
           <p className="text-gray-500 text-lg max-w-xl mx-auto">A smarter way to manage lost and found items on campus</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-8">
-          <div className="group relative text-center p-20 rounded-3xl bg-[#f5f7ff] hover:bg-[#1a237e] transition-all duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-screen-2xl mx-auto">
+          <div className="group relative text-center p-8 xl:p-16 rounded-3xl bg-[#f5f7ff] hover:bg-[#1a237e] transition-all duration-300">
             <span className="absolute top-6 right-6 text-5xl font-black text-[#1a237e]/10 group-hover:text-white/10">01</span>
             <h3 className="font-black text-[#1a237e] group-hover:text-white text-xl mb-3 transition">Submit a Report</h3>
             <p className="text-gray-500 group-hover:text-blue-200 leading-relaxed transition">Upload a photo of your lost or found item. Our AI automatically detects item details.</p>
           </div>
 
-          <div className="group relative text-center p-20 rounded-3xl bg-[#fff9e6] hover:bg-[#ffd700] transition-all duration-300">
+          <div className="group relative text-center p-8 xl:p-16 rounded-3xl bg-[#fff9e6] hover:bg-[#ffd700] transition-all duration-300">
             <span className="absolute top-6 right-6 text-5xl font-black text-[#1a237e]/10 group-hover:text-[#1a237e]/20">02</span>
             <h3 className="font-black text-[#1a237e] text-xl mb-3">AI Finds a Match</h3>
             <p className="text-gray-500 leading-relaxed">Our AI engine compares your report against all found items and finds potential matches instantly.</p>
           </div>
 
-          <div className="group relative text-center p-20 rounded-3xl bg-red-50 hover:bg-red-500 transition-all duration-300">
+          <div className="group relative text-center p-8 xl:p-16 rounded-3xl bg-red-50 hover:bg-red-500 transition-all duration-300">
             <span className="absolute top-6 right-6 text-5xl font-black text-red-500/10 group-hover:text-white/10">03</span>
             <h3 className="font-black text-[#1a237e] group-hover:text-white text-xl mb-3 transition">Claim Your Item</h3>
             <p className="text-gray-500 group-hover:text-red-100 leading-relaxed transition">Go through our secure 5-layer verification process and claim your belongings from the school office.</p>
@@ -465,10 +466,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="about" className="px-20 py-24 bg-[#f5f7ff] scroll-mt-24">
+      <section id="about" className="px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-[#f5f7ff] scroll-mt-24">
         <div className="max-w-4xl mx-auto text-center">
           <span className="text-[#ffd700] font-bold text-sm uppercase tracking-widest">Who We Are</span>
-          <h2 className="text-4xl font-black text-[#1a237e] mt-2 mb-6">About FindNest</h2>
+          <h2 className="text-3xl md:text-4xl font-black text-[#1a237e] mt-2 mb-6">About FindNest</h2>
           <p className="text-gray-500 text-lg leading-relaxed mb-10">
             FindNest is a multi-platform lost and found record management system built specifically
             for the Junior High School, Senior High School, and College programs of SJDM Cornerstone
@@ -477,7 +478,7 @@ export default function Home() {
             students recover their belongings faster and with less hassle.
           </p>
 
-          <div className="grid grid-cols-3 gap-6 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h3 className="font-black text-[#1a237e] mb-2">Our Purpose</h3>
               <p className="text-gray-500 text-sm leading-relaxed">
@@ -505,11 +506,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="how-it-works" className="px-20 py-24 bg-white scroll-mt-24">
+      <section id="how-it-works" className="px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-white scroll-mt-24">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-[#ffd700] font-bold text-sm uppercase tracking-widest">Step by Step</span>
-            <h2 className="text-4xl font-black text-[#1a237e] mt-2 mb-4">How It Works</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-[#1a237e] mt-2 mb-4">How It Works</h2>
             <p className="text-gray-500 text-lg max-w-xl mx-auto">
               Here&apos;s a closer look at how FindNest takes an item from &quot;lost&quot; to &quot;returned&quot;.
             </p>
@@ -579,11 +580,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative px-20 py-24 bg-[#1a237e] overflow-hidden">
+      <section className="relative px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-[#1a237e] overflow-hidden">
         <div className="absolute -top-20 -left-20 w-72 h-72 bg-[#ffd700]/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-red-500/10 rounded-full blur-3xl" />
         <div className="relative text-center">
-          <h2 className="text-4xl font-black text-white mb-4">Lost Something on Campus?</h2>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Lost Something on Campus?</h2>
           <p className="text-blue-200 text-lg mb-10">Report it now and let our AI do the work for you.</p>
           <button
             onClick={openLogin}
