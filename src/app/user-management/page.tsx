@@ -1,8 +1,10 @@
 "use client";
+// Super Admin > User Management (/user-management). Manages student accounts.
+// API: /users, /users/{id}/revoke, /toggle-restriction, /adjust-trust-score, /system/trust-settings
 import { useState, useMemo, useEffect } from "react";
-import api, { logoutUser } from "@/lib/api";
+import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
-import Link from "next/link";
+import SuperAdminLayout from "@/components/SuperAdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface SystemUser {
@@ -55,6 +57,7 @@ const COMMON_DOMAIN_TYPOS: Record<string, string> = {
   "outlook.co": "outlook.com",
 };
 
+// Flags common email domain typos (e.g. gmail.con)
 function checkEmailDomainTypo(email: string): string | null {
   const domain = email.split("@")[1]?.toLowerCase();
   if (domain && COMMON_DOMAIN_TYPOS[domain]) {
@@ -63,10 +66,12 @@ function checkEmailDomainTypo(email: string): string | null {
   return null;
 }
 
+// Keeps only letters, spaces, dots, apostrophes and hyphens
 function filterLettersOnly(value: string) {
   return value.replace(/[^A-Za-z\s.'-]/g, "");
 }
 
+// Keeps only digits
 function filterDigitsOnly(value: string) {
   return value.replace(/[^0-9]/g, "");
 }
@@ -148,6 +153,7 @@ function UserManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Loads all users, keeps students only
   const fetchUsers = async () => {
     try {
       const response = await api.get("/users");
@@ -165,6 +171,7 @@ function UserManagementContent() {
   }, []);
   useAutoRefresh(fetchUsers);
 
+  // Rows for the selected tab (before search/sort)
   const baseFiltered = useMemo(() => {
     if (studentSubTab === "all") return users.filter((u) => u.is_active);
     if (studentSubTab === "revoked") return users.filter((u) => !u.is_active);
@@ -185,6 +192,7 @@ function UserManagementContent() {
     return `USR-${String(num).padStart(2, "0")}`;
   }
 
+  // Search + sort on top of the tab filter
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     let result = baseFiltered;
@@ -221,7 +229,6 @@ function UserManagementContent() {
   const activeCount = users.filter((u) => u.is_active).length;
   const inactiveCount = users.filter((u) => !u.is_active).length;
   const pendingPasswordCount = users.filter((u) => u.password_change_requested).length;
-  const restrictedCount = users.filter((u) => u.is_restricted && u.is_active).length;
 
   function resetForm() {
     setConfirmCreatePassword("");
@@ -260,6 +267,7 @@ function UserManagementContent() {
     setEditingUser(user);
   }
 
+  // Returns an error message, or null when the form is valid
   function validateForm(): string | null {
     if (!formData.name.trim()) return "Full name is required.";
     if (!NAME_REGEX.test(formData.name)) return "Full name must contain letters only.";
@@ -308,7 +316,7 @@ function UserManagementContent() {
     }
   }
 
-    async function handleEditSubmit() {
+  async function handleEditSubmit() {
     if (!editingUser) return;
     if (formData.password && formData.password !== confirmEditPassword) {
       setFormError("Passwords do not match.");
@@ -392,7 +400,7 @@ function UserManagementContent() {
     }
   }
 
-    async function openRestrictionSettings() {
+  async function openRestrictionSettings() {
     setRestrictionError("");
     setShowRestrictionSettings(true);
     try {
@@ -441,7 +449,7 @@ function UserManagementContent() {
       setTrustScoreError(`This would go below 0. Maximum you can deduct right now is -${adjustingTrustScore.trust_score}.`);
       return;
     }
-    
+
     if (!trustScoreReason.trim()) {
       setTrustScoreError("Please provide a reason for this adjustment.");
       return;
@@ -478,83 +486,23 @@ function UserManagementContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
+    <SuperAdminLayout active="/user-management">
       {toast && (
         <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
           {toast}
         </div>
       )}
 
-      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div>
-            <a href="/user-management" className="text-white font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-blue-300 text-xs">Super Admin Panel</span>
-          </div>
-        </div>
-
-        <div className="mx-6 h-px bg-white/10 mb-4"></div>
-
-        <nav className="flex flex-col gap-1 px-4 flex-1">
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">
-            Management
-          </p>
-
-          <Link
-            href="/user-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20"
-          >
-            <span>User Management</span>
-          </Link>
-
-          <Link
-            href="/admin-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>Admin Management</span>
-          </Link>
-
-          <Link
-            href="/system-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>System Management</span>
-          </Link>
-
-          <Link
-            href="/super-admin-records"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>Digital Records</span>
-          </Link>
-        </nav>
-
-        <div className="px-4 py-6">
-          <div className="bg-white/10 rounded-2xl p-4 mb-4">
-            <p className="text-white text-sm font-semibold">Super Admin</p>
-            <p className="text-blue-300 text-xs mt-1">System Administrator</p>
-          </div>
-
-          <button
-            onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium w-full text-left"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      <main className="flex-1 ml-72 p-8">
-        <div className="flex items-center justify-between mb-8">
+      <div>
+        {/* Page header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-black text-[#1a237e]">User Management</h1>
             <p className="text-gray-400 text-sm mt-1">
               Manage student accounts for College, Senior High School, and Junior High School
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={openRestrictionSettings}
               className="bg-white border border-gray-200 hover:border-[#1a237e] text-[#1a237e] font-bold px-5 py-3 rounded-2xl transition"
@@ -570,7 +518,8 @@ function UserManagementContent() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-6 mb-8">
+        {/* Summary cards: 2 columns on small screens, 4 on xl */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">Total Students</p>
             <p className="text-4xl font-black text-[#1a237e] mt-1">{users.length}</p>
@@ -592,6 +541,7 @@ function UserManagementContent() {
           </div>
         </div>
 
+        {/* Tab buttons */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "revoked", "password_requests"] as const).map((level) => (
             <button
@@ -614,6 +564,7 @@ function UserManagementContent() {
           ))}
         </div>
 
+        {/* Students list card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
             <h2 className="font-black text-gray-700 text-lg">
@@ -650,7 +601,7 @@ function UserManagementContent() {
                 placeholder="Search by name, email, or ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-64"
+                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-full sm:w-64"
               />
             </div>
           </div>
@@ -668,12 +619,12 @@ function UserManagementContent() {
             ) : (
               <div className="divide-y divide-gray-50">
                 {paginated.map((user) => (
-                  <div key={user.id} className="px-6 py-5 flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
+                  <div key={user.id} className="px-6 py-5 flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
                       <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
                         {getInitial(user.name)}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-700">{user.name}</p>
                         <p className="text-gray-400 text-xs mt-0.5">{user.email} &middot; {user.school_id || "—"}</p>
                         <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mt-3">
@@ -707,95 +658,97 @@ function UserManagementContent() {
               </div>
             )
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">User</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Level</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">School ID</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {paginated.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
-                          {getInitial(user.name)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-gray-700">{user.name}</p>
-                            {user.password_change_requested && (
-                              <span className="bg-orange-50 text-orange-600 text-[9px] font-bold px-2 py-0.5 rounded-full">
-                                PASSWORD REQUEST
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-400 text-xs mt-0.5">
-                            ID: {displayId(user.id)}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-block bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap">
-                        {educationLabel(user.education_level)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-gray-600 text-sm font-semibold">{user.school_id || "—"}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-gray-500 text-sm">{user.email}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      {!user.is_active ? (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600">REVOKED</span>
-                      ) : user.is_restricted ? (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600">RESTRICTED</span>
-                      ) : (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-50 text-green-700">ACTIVE</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEditModal(user)}
-                          disabled={!user.is_active}
-                          className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          Edit
-                        </button>
-                        {user.is_active && (
-                          <button
-                            onClick={() => setRestrictingUser(user)}
-                            className={
-                              user.is_restricted
-                                ? "bg-green-50 hover:bg-green-600 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                                : "bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                            }
-                          >
-                            {user.is_restricted ? "Unrestrict" : "Restrict"}
-                          </button>
-                        )}
-                        {user.is_active && (
-                          <button
-                            onClick={() => setRevokingUser(user)}
-                            className="bg-red-50 hover:bg-red-600 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                          >
-                            Revoke
-                          </button>
-                        )}
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[48rem]">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">User</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Level</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">School ID</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {paginated.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50 transition group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
+                            {getInitial(user.name)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-gray-700">{user.name}</p>
+                              {user.password_change_requested && (
+                                <span className="bg-orange-50 text-orange-600 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                                  PASSWORD REQUEST
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-400 text-xs mt-0.5">
+                              ID: {displayId(user.id)}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-block bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap">
+                          {educationLabel(user.education_level)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-gray-600 text-sm font-semibold">{user.school_id || "—"}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-gray-500 text-sm">{user.email}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {!user.is_active ? (
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600">REVOKED</span>
+                        ) : user.is_restricted ? (
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600">RESTRICTED</span>
+                        ) : (
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-50 text-green-700">ACTIVE</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEditModal(user)}
+                            disabled={!user.is_active}
+                            className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Edit
+                          </button>
+                          {user.is_active && (
+                            <button
+                              onClick={() => setRestrictingUser(user)}
+                              className={
+                                user.is_restricted
+                                  ? "bg-green-50 hover:bg-green-600 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                                  : "bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                              }
+                            >
+                              {user.is_restricted ? "Unrestrict" : "Restrict"}
+                            </button>
+                          )}
+                          {user.is_active && (
+                            <button
+                              onClick={() => setRevokingUser(user)}
+                              className="bg-red-50 hover:bg-red-600 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                            >
+                              Revoke
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {!loading && studentSubTab !== "password_requests" && filtered.length === 0 && (
@@ -805,12 +758,12 @@ function UserManagementContent() {
             </div>
           )}
 
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-gray-100 flex flex-wrap gap-3 items-center justify-between">
             <p className="text-gray-400 text-sm">
               Showing {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
               &ndash;{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} students
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
@@ -843,8 +796,9 @@ function UserManagementContent() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
+      
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
@@ -1069,7 +1023,7 @@ function UserManagementContent() {
 
       {showCreatePasswordConfirm && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
             <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -1101,7 +1055,7 @@ function UserManagementContent() {
 
       {showCreateConfirm && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Confirm New Student</h2>
             <p className="text-gray-400 text-sm mb-6">Please review the details before creating this account</p>
 
@@ -1214,7 +1168,7 @@ function UserManagementContent() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   New Password (leave blank to keep current)
                 </label>
-                                <div className="relative mt-1">
+                <div className="relative mt-1">
                   <input
                     type={editPwVisible ? "text" : "password"}
                     value={formData.password}
@@ -1414,7 +1368,7 @@ function UserManagementContent() {
 
       {showEditPasswordCheck && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
             <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -1446,7 +1400,7 @@ function UserManagementContent() {
 
       {restrictingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">
               {restrictingUser.is_restricted ? "Lift Restriction?" : "Restrict This Account?"}
             </h2>
@@ -1479,7 +1433,7 @@ function UserManagementContent() {
 
       {revokingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Permanently Revoke Access?</h2>
             <p className="text-gray-400 text-sm mb-3">
               {revokingUser.name} will permanently lose access to their account.
@@ -1507,9 +1461,9 @@ function UserManagementContent() {
         </div>
       )}
 
-        {showRestrictionSettings && (
+      {showRestrictionSettings && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-black text-[#1a237e] mb-1">Restriction Settings</h2>
             <p className="text-gray-400 text-sm mb-5">
               Decides when a student is blocked from submitting claims and for how long. Applies to future restrictions only.
@@ -1568,7 +1522,7 @@ function UserManagementContent() {
 
       {adjustingTrustScore && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-black text-[#1a237e] mb-1">Adjust Trust Score</h2>
             <p className="text-gray-400 text-sm mb-5">
               For {adjustingTrustScore.name} &mdash; current score: <strong>{adjustingTrustScore.trust_score}</strong>
@@ -1624,6 +1578,6 @@ function UserManagementContent() {
           </div>
         </div>
       )}
-    </div>
+    </SuperAdminLayout>
   );
 }
