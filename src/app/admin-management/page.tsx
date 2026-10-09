@@ -1,8 +1,10 @@
 "use client";
+// Super Admin > Admin Management (/admin-management). Assign, edit, restrict, revoke admins.
+// API: /users, /users/{id}/toggle-restriction, /users/{id}/revoke
 import { useState, useMemo, useEffect } from "react";
-import api, { logoutUser } from "@/lib/api";
+import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
-import Link from "next/link";
+import SuperAdminLayout from "@/components/SuperAdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface AdminUser {
@@ -38,10 +40,12 @@ const COMMON_DOMAIN_TYPOS: Record<string, string> = {
   "outlook.co": "outlook.com",
 };
 
+// Keeps only letters, spaces, dots, apostrophes and hyphens
 function filterLettersOnly(value: string) {
   return value.replace(/[^A-Za-z\s.'-]/g, "");
 }
 
+// Flags common email domain typos (e.g. gmail.con)
 function checkEmailDomainTypo(email: string): string | null {
   const domain = email.split("@")[1]?.toLowerCase();
   if (domain && COMMON_DOMAIN_TYPOS[domain]) {
@@ -57,7 +61,6 @@ function getInitial(name: string) {
 function formatRole(role: string) {
   return role.replace("_", " ");
 }
-
 
 export default function AdminManagement() {
   return (
@@ -101,7 +104,7 @@ function AdminManagementContent() {
     restriction_reason: "",
     restricted_until: "",
   });
-    useEffect(() => {
+  useEffect(() => {
     if (!formData.password) setEditPwVisible(false);
   }, [formData.password]);
 
@@ -116,6 +119,7 @@ function AdminManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Loads all users, keeps admins and super admins only
   const fetchUsers = async () => {
     try {
       const response = await api.get("/users");
@@ -133,6 +137,7 @@ function AdminManagementContent() {
   }, []);
   useAutoRefresh(fetchUsers);
 
+  // Rows for the selected tab (Admins or Super Admins)
   const baseFiltered = useMemo(() => {
     return users.filter((u) => u.role === mainTab);
   }, [users, mainTab]);
@@ -223,6 +228,7 @@ function AdminManagementContent() {
     }));
   }
 
+  // Returns an error message, or null when the form is valid
   function validateAssignForm(): string | null {
     if (!formData.name.trim()) return "Personnel name is required.";
     if (!NAME_REGEX.test(formData.name)) return "Personnel name must contain letters only.";
@@ -337,74 +343,16 @@ function AdminManagementContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
+    <SuperAdminLayout active="/admin-management">
       {toast && (
         <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
           {toast}
         </div>
       )}
 
-      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div>
-            <a href="/user-management" className="text-white font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-blue-300 text-xs">Super Admin Panel</span>
-          </div>
-        </div>
-
-        <div className="mx-6 h-px bg-white/10 mb-4"></div>
-
-        <nav className="flex flex-col gap-1 px-4 flex-1">
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">Management</p>
-
-          <Link
-            href="/user-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>User Management</span>
-          </Link>
-
-          <Link
-            href="/admin-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20"
-          >
-            <span>Admin Management</span>
-          </Link>
-
-          <Link
-            href="/system-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>System Management</span>
-          </Link>
-
-          <Link
-            href="/super-admin-records"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>Digital Records</span>
-          </Link>
-        </nav>
-
-        <div className="px-4 py-6">
-          <div className="bg-white/10 rounded-2xl p-4 mb-4">
-            <p className="text-white text-sm font-semibold">Super Admin</p>
-            <p className="text-blue-300 text-xs mt-1">System Administrator</p>
-          </div>
-
-          <button
-            onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium w-full text-left"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      <main className="flex-1 ml-72 p-8">
-        <div className="flex items-center justify-between mb-8">
+      <div>
+        {/* Page header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-black text-[#1a237e]">Admin Management</h1>
             <p className="text-gray-400 text-sm mt-1">
@@ -419,7 +367,8 @@ function AdminManagementContent() {
           </button>
         </div>
 
-        <div className="grid grid-cols-4 gap-6 mb-8">
+        {/* Summary cards: 2 columns on small screens, 4 on xl */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">Total Admins</p>
             <p className="text-4xl font-black text-[#1a237e] mt-1">{users.length}</p>
@@ -441,7 +390,8 @@ function AdminManagementContent() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-6">
+        {/* Admins / Super Admins tabs */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
           <button
             onClick={() => setMainTab("admin")}
             className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
@@ -464,8 +414,9 @@ function AdminManagementContent() {
           </button>
         </div>
 
+        {/* Admins list card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5 border-b border-gray-100">
             <h2 className="font-black text-gray-700 text-lg">
               {mainTab === "admin" ? "All Admins" : "All Super Admins"}
             </h2>
@@ -474,7 +425,7 @@ function AdminManagementContent() {
               placeholder="Search by name or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-72"
+              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-full sm:w-72"
             />
           </div>
 
@@ -483,87 +434,89 @@ function AdminManagementContent() {
               <p className="font-bold">Loading admins...</p>
             </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Personnel</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {paginated.map((admin) => (
-                  <tr key={admin.id} className="hover:bg-gray-50 transition group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
-                          {getInitial(admin.name)}
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-700">{admin.name}</p>
-                          <p className="text-gray-400 text-xs mt-0.5">ID: {displayId(admin.id)}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg capitalize">
-                        {formatRole(admin.role)}
-                      </span>
-                      {admin.is_restricted && (
-                        <span className="ml-2 bg-orange-50 text-orange-600 text-xs font-bold px-2 py-1 rounded-lg">
-                          Restricted
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-gray-500 text-sm">{admin.email}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      {!admin.is_active ? (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600">REVOKED</span>
-                      ) : admin.is_restricted ? (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600">RESTRICTED</span>
-                      ) : (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-50 text-green-700">ACTIVE</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEditModal(admin)}
-                          disabled={!admin.is_active}
-                          className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          Edit
-                        </button>
-                        {admin.is_active && (
-                          <button
-                            onClick={() => setRestrictingAdmin(admin)}
-                            className={
-                              admin.is_restricted
-                                ? "bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                                : "bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                            }
-                          >
-                            {admin.is_restricted ? "Unrestrict" : "Restrict"}
-                          </button>
-                        )}
-                        {admin.is_active && (
-                          <button
-                            onClick={() => setRevokingAdmin(admin)}
-                            className="bg-red-50 hover:bg-red-600 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                          >
-                            Revoke
-                          </button>
-                        )}
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[48rem]">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Personnel</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {paginated.map((admin) => (
+                    <tr key={admin.id} className="hover:bg-gray-50 transition group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
+                            {getInitial(admin.name)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-700">{admin.name}</p>
+                            <p className="text-gray-400 text-xs mt-0.5">ID: {displayId(admin.id)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg capitalize">
+                          {formatRole(admin.role)}
+                        </span>
+                        {admin.is_restricted && (
+                          <span className="ml-2 bg-orange-50 text-orange-600 text-xs font-bold px-2 py-1 rounded-lg">
+                            Restricted
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-gray-500 text-sm">{admin.email}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {!admin.is_active ? (
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600">REVOKED</span>
+                        ) : admin.is_restricted ? (
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600">RESTRICTED</span>
+                        ) : (
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-50 text-green-700">ACTIVE</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEditModal(admin)}
+                            disabled={!admin.is_active}
+                            className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Edit
+                          </button>
+                          {admin.is_active && (
+                            <button
+                              onClick={() => setRestrictingAdmin(admin)}
+                              className={
+                                admin.is_restricted
+                                  ? "bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                                  : "bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                              }
+                            >
+                              {admin.is_restricted ? "Unrestrict" : "Restrict"}
+                            </button>
+                          )}
+                          {admin.is_active && (
+                            <button
+                              onClick={() => setRevokingAdmin(admin)}
+                              className="bg-red-50 hover:bg-red-600 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                            >
+                              Revoke
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {!loading && filtered.length === 0 && (
@@ -573,12 +526,12 @@ function AdminManagementContent() {
             </div>
           )}
 
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-gray-100 flex flex-wrap gap-3 items-center justify-between">
             <p className="text-gray-400 text-sm">
               Showing {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
               &ndash;{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} admins
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
@@ -611,11 +564,12 @@ function AdminManagementContent() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
+      
       {showAssignModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowAssignModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
@@ -667,7 +621,7 @@ function AdminManagementContent() {
                     onClick={() => setShowAssignPassword(!showAssignPassword)}
                     className="absolute right-4 top-1/2 mt-0.5 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold"
                   >
-                      {showAssignPassword ? "HIDE" : "SHOW"}
+                    {showAssignPassword ? "HIDE" : "SHOW"}
                   </button>
                 </div>
               </div>
@@ -722,7 +676,7 @@ function AdminManagementContent() {
 
       {showAssignPasswordCheck && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
             <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -754,7 +708,7 @@ function AdminManagementContent() {
 
       {showAssignConfirm && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Confirm New Admin</h2>
             <p className="text-gray-400 text-sm mb-6">Please review the details before assigning this role</p>
 
@@ -800,7 +754,7 @@ function AdminManagementContent() {
 
       {editingAdmin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setEditingAdmin(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
@@ -811,7 +765,7 @@ function AdminManagementContent() {
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Edit Admin</h2>
             <p className="text-gray-400 text-sm mb-6">Update {editingAdmin.name}&apos;s account details</p>
 
-            <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-4">
+            <div className="flex flex-wrap items-center gap-2 mb-6 border-b border-gray-100 pb-4">
               <button
                 onClick={() => setEditTab("credentials")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
@@ -866,7 +820,7 @@ function AdminManagementContent() {
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     New Password (leave blank to keep current)
                   </label>
-                                    <div className="relative mt-1">
+                  <div className="relative mt-1">
                     <input
                       type={editPwVisible ? "text" : "password"}
                       value={formData.password}
@@ -949,14 +903,14 @@ function AdminManagementContent() {
 
             {editTab === "restrictions" && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl">
                   <div>
                     <p className="font-bold text-gray-700 text-sm">Suspend Account</p>
                     <p className="text-gray-400 text-xs mt-0.5">Temporarily block access to the admin panel</p>
                   </div>
                   <button
                     onClick={() => setFormData({ ...formData, is_restricted: !formData.is_restricted })}
-                    className={`w-12 h-6 rounded-full transition-all duration-300 relative ${
+                    className={`w-12 h-6 shrink-0 rounded-full transition-all duration-300 relative ${
                       formData.is_restricted ? "bg-red-500" : "bg-gray-300"
                     }`}
                   >
@@ -1005,7 +959,7 @@ function AdminManagementContent() {
               >
                 Cancel
               </button>
-             <button
+              <button
                 onClick={handleEditSubmit}
                 disabled={formLoading}
                 className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
@@ -1019,7 +973,7 @@ function AdminManagementContent() {
 
       {showEditPasswordCheck && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
             <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -1051,7 +1005,7 @@ function AdminManagementContent() {
 
       {restrictingAdmin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">
               {restrictingAdmin.is_restricted ? "Lift Restriction?" : "Restrict This Account?"}
             </h2>
@@ -1084,7 +1038,7 @@ function AdminManagementContent() {
 
       {revokingAdmin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Permanently Revoke Access?</h2>
             <p className="text-gray-400 text-sm mb-3">
               {revokingAdmin.name} will permanently lose access to their account — use this when someone has left the school.
@@ -1111,6 +1065,6 @@ function AdminManagementContent() {
           </div>
         </div>
       )}
-    </div>
+    </SuperAdminLayout>
   );
 }
