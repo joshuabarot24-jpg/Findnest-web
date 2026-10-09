@@ -193,6 +193,7 @@ function SuperAdminRecordsContent() {
       const response = await api.get("/audit-logs", {
         params: {
           page: pageNum,
+          per_page: PAGE_SIZE,
           action: searchTerm || undefined,
           action_type: actionTypeFilter || undefined,
           sort: sortOrder,
