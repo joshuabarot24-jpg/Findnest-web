@@ -1,8 +1,10 @@
 "use client";
+// Super Admin > System Management (/system-management).
+// API: /system-settings, /system-stats, /audit-logs, /system/backup(s),
 import { useState, useEffect } from "react";
-import api, { logoutUser } from "@/lib/api";
+import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
-import Link from "next/link";
+import SuperAdminLayout from "@/components/SuperAdminLayout";
 
 interface LogEntry {
   action: string;
@@ -61,8 +63,9 @@ function SystemManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Locks page scroll while any popup is open
   useEffect(() => {
-        const anyModalOpen = showMaintenanceConfirm || showBackupsList || showAllLogs || !!importPreview || showVersionConfirm;
+    const anyModalOpen = showMaintenanceConfirm || showBackupsList || showAllLogs || !!importPreview || showVersionConfirm;
     if (anyModalOpen) {
       const scrollY = window.scrollY;
       document.body.style.position = "fixed";
@@ -83,6 +86,7 @@ function SystemManagementContent() {
     }
   }, [showMaintenanceConfirm, showBackupsList, showAllLogs, importPreview, showVersionConfirm]);
 
+  // Loads the saved AI match threshold
   const fetchSettings = async () => {
     try {
       const response = await api.get("/system-settings");
@@ -96,6 +100,7 @@ function SystemManagementContent() {
     }
   };
 
+  // Loads record counts, DB size and system version
   const fetchStats = async () => {
     try {
       const response = await api.get("/system-stats");
@@ -228,10 +233,11 @@ function SystemManagementContent() {
     }
   }
 
-    function formatTime(dateStr: string) {
+  function formatTime(dateStr: string) {
     return new Date(dateStr).toLocaleString();
   }
 
+  // Shows what the version will become (patch number +1)
   function nextVersionPreview(current: string) {
     const parts = current.split(".");
     parts[2] = String((parseInt(parts[2] || "0", 10) || 0) + 1);
@@ -269,6 +275,7 @@ function SystemManagementContent() {
     }
   }
 
+  // Read-only preview of a downloaded backup file
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -292,77 +299,19 @@ function SystemManagementContent() {
   const hasUnsavedChange = sensitivity !== savedSensitivity;
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
+    <SuperAdminLayout active="/system-management">
       {toast && (
         <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
           {toast}
         </div>
       )}
 
-      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div>
-            <a href="/user-management" className="text-white font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-blue-300 text-xs">Super Admin Panel</span>
-          </div>
-        </div>
-
-        <div className="mx-6 h-px bg-white/10 mb-4"></div>
-
-        <nav className="flex flex-col gap-1 px-4 flex-1">
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">Management</p>
-
-          <Link
-            href="/user-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>User Management</span>
-          </Link>
-
-          <Link
-            href="/admin-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>Admin Management</span>
-          </Link>
-
-          <Link
-            href="/system-management"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20"
-          >
-            <span>System Management</span>
-          </Link>
-
-          <Link
-            href="/super-admin-records"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium"
-          >
-            <span>Digital Records</span>
-          </Link>
-        </nav>
-
-        <div className="px-4 py-6">
-          <div className="bg-white/10 rounded-2xl p-4 mb-4">
-            <p className="text-white text-sm font-semibold">Super Admin</p>
-            <p className="text-blue-300 text-xs mt-1">System Administrator</p>
-          </div>
-
-          <button
-            onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium w-full text-left"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      <main className="flex-1 ml-72 p-8">
+      <div>
+        {/* Page header */}
         <div className="mb-8">
           <h1 className="text-3xl font-black text-[#1a237e]">System Management</h1>
           <p className="text-gray-400 text-sm mt-1">
-            Manage software versions, updates, maintenance, and deployments
+            Manage software versions, updates, and maintenance
           </p>
         </div>
 
@@ -378,7 +327,7 @@ function SystemManagementContent() {
             <p className="text-orange-600 text-xs mb-3">
               A fresh backup ({pendingCleanupFilename}) was just created. Would you like to clear current transactional records (reports, claims, matches) now that they're safely backed up? Student, Admin, and Super Admin accounts will NOT be affected.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => handleCleanupDecision(false)}
                 disabled={cleanupProcessing}
@@ -397,7 +346,8 @@ function SystemManagementContent() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        {/* Top cards: 1 column on small screens, 3 from md */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">System Version</p>
             <p className="text-3xl font-black text-[#1a237e] mt-1">v{systemVersion}</p>
@@ -418,11 +368,12 @@ function SystemManagementContent() {
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">Last Backup</p>
-            <p className="text-3xl font-black text-[#ffd700] mt-1">{lastBackup}</p>
+            <p className="text-xl xl:text-2xl font-black text-[#ffd700] mt-1">{lastBackup}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        {/* AI sensitivity + database cards: stacked below xl */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-6 mb-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="mb-6">
               <h2 className="font-black text-gray-700 text-lg">AI Matching Sensitivity</h2>
@@ -483,7 +434,7 @@ function SystemManagementContent() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl">
                 <div>
                   <p className="font-bold text-gray-700 text-sm">Total Records</p>
                   <p className="text-gray-400 text-xs mt-0.5">All system data</p>
@@ -494,7 +445,7 @@ function SystemManagementContent() {
               </div>
 
               {!statsLoading && Object.keys(breakdown).length > 0 && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
                     { key: "students", label: "Students" },
                     { key: "admins", label: "Admins" },
@@ -511,7 +462,7 @@ function SystemManagementContent() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl">
                 <div>
                   <p className="font-bold text-gray-700 text-sm">Database Size</p>
                   <p className="text-gray-400 text-xs mt-0.5">Current usage</p>
@@ -552,14 +503,14 @@ function SystemManagementContent() {
               </label>
               {importError && <p className="text-red-500 text-xs font-semibold">{importError}</p>}
 
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl">
                 <div>
                   <p className="font-bold text-gray-700 text-sm">Maintenance Mode</p>
                   <p className="text-gray-400 text-xs mt-0.5">Disable system access temporarily</p>
                 </div>
                 <button
                   onClick={requestMaintenanceToggle}
-                  className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                  className={`w-12 h-6 shrink-0 rounded-full transition-all duration-300 ${
                     maintenanceMode ? "bg-red-500" : "bg-gray-300"
                   } relative`}
                 >
@@ -574,8 +525,9 @@ function SystemManagementContent() {
           </div>
         </div>
 
+        {/* Recent system logs */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5 border-b border-gray-100">
             <div>
               <h2 className="font-black text-gray-700">System Logs</h2>
               <p className="text-gray-400 text-xs">All system activities are being recorded for auditing</p>
@@ -593,7 +545,7 @@ function SystemManagementContent() {
           ) : (
             <div className="divide-y divide-gray-50">
               {logs.slice(0, 5).map((log, index) => (
-                <div key={index} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition">
+                <div key={index} className="flex flex-wrap items-center justify-between gap-2 px-6 py-4 hover:bg-gray-50 transition">
                   <div>
                     <p className="font-semibold text-gray-700 text-sm">{log.action}</p>
                     <p className="text-gray-400 text-xs mt-0.5">By: {log.performed_by}</p>
@@ -607,11 +559,11 @@ function SystemManagementContent() {
             </div>
           )}
         </div>
-      </main>
+      </div>
 
       {showMaintenanceConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">
               {maintenanceMode ? "Disable Maintenance Mode?" : "Enable Maintenance Mode?"}
             </h2>
@@ -641,9 +593,9 @@ function SystemManagementContent() {
         </div>
       )}
 
-       {showVersionConfirm && (
+      {showVersionConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Mark System as Updated?</h2>
             <p className="text-gray-400 text-sm mb-2">
               Use this after a real update has been released.
@@ -686,7 +638,7 @@ function SystemManagementContent() {
 
             <div className="overflow-y-auto divide-y divide-gray-50 border border-gray-100 rounded-2xl">
               {backups.map((b) => (
-                <div key={b.filename} className="flex items-center justify-between px-5 py-4">
+                <div key={b.filename} className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
                   <div>
                     <p className="font-semibold text-gray-700 text-sm">{b.filename}</p>
                     <p className="text-gray-400 text-xs mt-0.5">{new Date(b.created_at * 1000).toLocaleString()} &middot; {b.size_kb} KB</p>
@@ -709,7 +661,7 @@ function SystemManagementContent() {
 
       {importPreview && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setImportPreview(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
@@ -750,7 +702,7 @@ function SystemManagementContent() {
 
             <div className="overflow-y-auto divide-y divide-gray-50 border border-gray-100 rounded-2xl">
               {logs.map((log, index) => (
-                <div key={index} className="flex items-center justify-between px-5 py-4">
+                <div key={index} className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
                   <div>
                     <p className="font-semibold text-gray-700 text-sm">{log.action}</p>
                     <p className="text-gray-400 text-xs mt-0.5">By: {log.performed_by}</p>
@@ -762,6 +714,6 @@ function SystemManagementContent() {
           </div>
         </div>
       )}
-    </div>
+    </SuperAdminLayout>
   );
 }
