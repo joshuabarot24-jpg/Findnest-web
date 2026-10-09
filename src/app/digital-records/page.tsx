@@ -1,9 +1,14 @@
 "use client";
+// Admin > Digital Records (/digital-records). Item and claim audit trail, per-case trail, appeals.
+// API: GET /audit-logs, /case-trail, /case-trail/{id}, /claims/appeals, POST /claims/{id}/resolve-appeal
 import { useState, useEffect, useMemo } from "react";
-import api, { logoutUser } from "@/lib/api";
+import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
-import Link from "next/link";
+import AdminLayout from "@/components/AdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+
+const PAGE_SIZE = 5;
+const BACKEND_PAGE = 500;
 
 interface AuditRecord {
   id: number;
@@ -56,6 +61,14 @@ interface AppealClaim {
 
 type FilterType = "all" | "lost" | "found" | "release";
 
+const FILTERS: { key: FilterType; label: string; active: string }[] = [
+  { key: "all", label: "All", active: "bg-blue-50 text-[#1a237e] border border-blue-200" },
+  { key: "lost", label: "Lost Item Report", active: "bg-red-50 text-red-600 border border-red-200" },
+  { key: "found", label: "Found Item Recorded", active: "bg-teal-50 text-teal-700 border border-teal-200" },
+  { key: "release", label: "Release Item", active: "bg-green-50 text-green-700 border border-green-200" },
+];
+
+// Badge color per action type
 function actionBadgeClass(action: string) {
   const a = action.toLowerCase();
   if (a.includes("approved") || a.includes("claimed") || a.includes("restored") || a.includes("created") || a.includes("logged")) {
@@ -73,6 +86,7 @@ function actionBadgeClass(action: string) {
   return "bg-gray-50 text-gray-600";
 }
 
+// Badge color per case status
 function statusBadge(status: string) {
   switch (status) {
     case "Returned": return "bg-green-50 text-green-700";
@@ -83,6 +97,7 @@ function statusBadge(status: string) {
   }
 }
 
+// Keeps only item and claim related log entries for this page
 function isAdminRelevant(action: string, targetType: string): boolean {
   const a = action.toLowerCase();
   const t = (targetType || "").toLowerCase();
@@ -101,12 +116,65 @@ function matchesFilter(action: string, filter: FilterType): boolean {
   const a = action.toLowerCase();
   if (filter === "lost") return a.includes("lost item reported") || a.includes("lost item report");
   if (filter === "found") return a.includes("found item recorded") || a.includes("found item record") || a.includes("item added") || a.includes("item logged");
-  if (filter === "release") return a.includes("claim approved") || a.includes("item released") || a.includes("claim approved");
+  if (filter === "release") return a.includes("claim approved") || a.includes("item released");
   return true;
 }
 
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleString();
+}
+
+// Slices a list into pages of 5 (page number is clamped to a valid one)
+function pageOf<T>(items: T[], page: number) {
+  const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const safe = Math.min(page, pages);
+  return { pages, safe, rows: items.slice((safe - 1) * PAGE_SIZE, safe * PAGE_SIZE) };
+}
+
+// Numbered pager: shows first, last and the pages next to the current one
+function Pager({ page, pages, total, onChange }: { page: number; pages: number; total: number; onChange: (p: number) => void }) {
+  if (total === 0) return null;
+  const from = (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
+  const nums = Array.from({ length: pages }, (_, i) => i + 1).filter(
+    (p) => p === 1 || p === pages || Math.abs(p - page) <= 1
+  );
+  return (
+    <div className="px-6 py-4 border-t border-gray-100 flex flex-wrap gap-3 items-center justify-between">
+      <p className="text-gray-400 text-sm">Showing {from}&ndash;{to} of {total}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => onChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-400 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        {nums.map((p, idx) => (
+          <span key={p} className="flex items-center gap-2">
+            {idx > 0 && p - nums[idx - 1] > 1 && <span className="text-gray-300">&hellip;</span>}
+            <button
+              onClick={() => onChange(p)}
+              className={
+                p === page
+                  ? "px-3 py-1.5 bg-[#1a237e] rounded-lg text-white text-sm font-bold"
+                  : "px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition"
+              }
+            >
+              {p}
+            </button>
+          </span>
+        ))}
+        <button
+          onClick={() => onChange(Math.min(pages, page + 1))}
+          disabled={page === pages}
+          className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-400 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function DigitalRecords() {
@@ -118,29 +186,32 @@ export default function DigitalRecords() {
 }
 
 function DigitalRecordsContent() {
-
   const [view, setView] = useState<"activity" | "cases" | "appeals">("activity");
   const [filterType, setFilterType] = useState<FilterType>("all");
 
+  // All Activity
   const [records, setRecords] = useState<AuditRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [lastPage, setLastPage] = useState(1);
   const [accessDenied, setAccessDenied] = useState(false);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [actionTypeFilter, setActionTypeFilter] = useState("");
 
+  // By Case
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [casesLoading, setCasesLoading] = useState(true);
   const [caseSearch, setCaseSearch] = useState("");
+  const [casePage, setCasePage] = useState(1);
   const [selectedCase, setSelectedCase] = useState<CaseSummary | null>(null);
   const [caseLogs, setCaseLogs] = useState<CaseLogEntry[]>([]);
   const [caseLogsLoading, setCaseLogsLoading] = useState(false);
   const [previewCase, setPreviewCase] = useState<CaseSummary | null>(null);
 
+  // Appeals
   const [appeals, setAppeals] = useState<AppealClaim[]>([]);
   const [appealsLoading, setAppealsLoading] = useState(true);
+  const [appealsPage, setAppealsPage] = useState(1);
   const [resolvingAppeal, setResolvingAppeal] = useState<AppealClaim | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [resolving, setResolving] = useState(false);
@@ -152,15 +223,13 @@ function DigitalRecordsContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const fetchRecords = async (pageNum: number, quiet = false) => {
+    // Loads the latest 100 audit entries and keeps the item/claim ones
+  const fetchRecords = async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await api.get("/audit-logs", { params: { page: pageNum } });
-      const data = response.data.logs;
-      const allRecords: AuditRecord[] = data.data || [];
-      const filtered = allRecords.filter((r) => isAdminRelevant(r.action, r.target_type));
-      setRecords(filtered);
-      setLastPage(data.last_page || 1);
+      const response = await api.get("/audit-logs", { params: { page: 1, per_page: BACKEND_PAGE } });
+      const all: AuditRecord[] = response.data.logs?.data || [];
+      setRecords(all.filter((r) => isAdminRelevant(r.action, r.target_type)));
     } catch (err: any) {
       if (err.response?.status === 403) {
         setAccessDenied(true);
@@ -172,8 +241,9 @@ function DigitalRecordsContent() {
     }
   };
 
-    const fetchCases = async (searchTerm: string, quiet = false) => {
-      if (!quiet) setCasesLoading(true);
+  // Loads the case list; keeps the selected case on quiet refresh
+  const fetchCases = async (searchTerm: string, quiet = false) => {
+    if (!quiet) setCasesLoading(true);
     try {
       const response = await api.get("/case-trail", { params: { search: searchTerm || undefined } });
       const result: CaseSummary[] = response.data.cases || [];
@@ -194,7 +264,7 @@ function DigitalRecordsContent() {
   };
 
   const fetchCaseLogs = async (reportId: number, quiet = false) => {
-     if (!quiet) setCaseLogsLoading(true);
+    if (!quiet) setCaseLogsLoading(true);
     try {
       const response = await api.get(`/case-trail/${reportId}`);
       setCaseLogs(response.data.logs || []);
@@ -221,9 +291,9 @@ function DigitalRecordsContent() {
     }
   };
 
-  useEffect(() => {
-    if (view === "activity") fetchRecords(page);
-  }, [view, page]);
+    useEffect(() => {
+    if (view === "activity") fetchRecords();
+  }, [view]);
 
   useEffect(() => {
     if (view === "cases") fetchCases(caseSearch);
@@ -244,13 +314,14 @@ function DigitalRecordsContent() {
     if (view === "appeals") fetchAppeals();
   }, [view]);
 
-    useEffect(() => {
+  // Loads appeals once so the tab badge shows the count
+  useEffect(() => {
     fetchAppeals(true);
   }, []);
 
   useAutoRefresh(async () => {
     if (view === "activity") {
-      await fetchRecords(page, true);
+        await fetchRecords(true);
     } else if (view === "cases") {
       await fetchCases(caseSearch, true);
       if (selectedCase) await fetchCaseLogs(selectedCase.report_id, true);
@@ -258,6 +329,7 @@ function DigitalRecordsContent() {
     await fetchAppeals(true);
   });
 
+  // Uphold or overturn a rejected claim's appeal
   const handleResolve = async (decision: "uphold" | "overturn") => {
     if (!resolvingAppeal) return;
     setResolving(true);
@@ -277,6 +349,7 @@ function DigitalRecordsContent() {
     }
   };
 
+  // Filter + search + sort on the loaded entries
   const displayed = records
     .filter((r) => {
       if (!matchesFilter(r.action, filterType)) return false;
@@ -304,67 +377,15 @@ function DigitalRecordsContent() {
     return Array.from(types).sort();
   }, [records]);
 
-  return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
-      {toast && (
-        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
-          {toast}
-        </div>
-      )}
+  // Current 5-row slice of each list
+  const activityView = pageOf(displayed, page);
+  const caseView = pageOf(cases, casePage);
+  const appealsView = pageOf(appeals, appealsPage);
 
-      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div>
-            <a href="/dashboard" className="text-white font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-blue-300 text-xs">Admin Panel</span>
-          </div>
-        </div>
-
-        <div className="mx-6 h-px bg-white/10 mb-4" />
-
-        <nav className="flex flex-col gap-1 px-4 flex-1">
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">Main Menu</p>
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Dashboard</span>
-          </Link>
-          <Link href="/item-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Item Management</span>
-          </Link>
-          <Link href="/claim-verification" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Claim Verification</span>
-          </Link>
-          <Link href="/location-analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Location Analytics</span>
-          </Link>
-          <Link href="/admin-user-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>User Management</span>
-          </Link>
-          <Link href="/digital-records" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20">
-            <span>Digital Records</span>
-          </Link>
-          <Link href="/admin-support" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Support Inbox</span>
-          </Link>
-        </nav>
-
-        <div className="px-4 py-6">
-          <div className="bg-white/10 rounded-2xl p-4 mb-4">
-            <p className="text-white text-sm font-semibold">Guidance Counselor</p>
-            <p className="text-blue-300 text-xs mt-1">Administrator</p>
-          </div>
-          <button
-            onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium w-full text-left"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {accessDenied ? (
-        <div className="flex-1 ml-72 flex items-center justify-center min-h-screen">
+  if (accessDenied) {
+    return (
+      <AdminLayout active="/digital-records">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center max-w-sm">
             <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -377,122 +398,120 @@ function DigitalRecordsContent() {
             </p>
           </div>
         </div>
-      ) : (
-      <main className="flex-1 ml-72 p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-[#1a237e]">Digital Records</h1>
-          <p className="text-gray-400 text-sm mt-1">Audit trail for found items and claim actions handled by this admin</p>
-        </div>
+      </AdminLayout>
+    );
+  }
 
-        <div className="flex items-center gap-2 mb-6">
-          <button
-            onClick={() => setView("activity")}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
-              view === "activity" ? "bg-[#1a237e] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
-            }`}
-          >
-            All Activity
-          </button>
-          <button
-            onClick={() => setView("cases")}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
-              view === "cases" ? "bg-[#1a237e] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
-            }`}
-          >
-            By Case
-          </button>
-          <button
-            onClick={() => setView("appeals")}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition relative ${
-              view === "appeals" ? "bg-[#1a237e] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
-            }`}
-          >
-            Appeals
-            {appeals.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                {appeals.length}
-              </span>
-            )}
-          </button>
+  return (
+    <AdminLayout active="/digital-records">
+      {toast && (
+        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
+          {toast}
         </div>
+      )}
 
-        {view === "activity" ? (
-          <>
-            <div className="flex items-center gap-2 mb-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-[#1a237e]">Digital Records</h1>
+        <p className="text-gray-400 text-sm mt-1">Audit trail for found items and claim actions handled by this admin</p>
+      </div>
+
+      {/* View tabs */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <button
+          onClick={() => setView("activity")}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
+            view === "activity" ? "bg-[#1a237e] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
+          }`}
+        >
+          All Activity
+        </button>
+        <button
+          onClick={() => setView("cases")}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
+            view === "cases" ? "bg-[#1a237e] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
+          }`}
+        >
+          By Case
+        </button>
+        <button
+          onClick={() => setView("appeals")}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold transition relative ${
+            view === "appeals" ? "bg-[#1a237e] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
+          }`}
+        >
+          Appeals
+          {appeals.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+              {appeals.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {view === "activity" ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            {FILTERS.map((f) => (
               <button
-                onClick={() => setFilterType("all")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${filterType === "all" ? "bg-blue-50 text-[#1a237e] border border-blue-200" : "bg-white text-gray-400 border border-gray-200"}`}
+                key={f.key}
+                onClick={() => { setFilterType(f.key); setPage(1); }}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
+                  filterType === f.key ? f.active : "bg-white text-gray-400 border border-gray-200"
+                }`}
               >
-                All
+                {f.label}
               </button>
-              <button
-                onClick={() => setFilterType("lost")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${filterType === "lost" ? "bg-red-50 text-red-600 border border-red-200" : "bg-white text-gray-400 border border-gray-200"}`}
-              >
-                Lost Item Report
-              </button>
-              <button
-                onClick={() => setFilterType("found")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${filterType === "found" ? "bg-teal-50 text-teal-700 border border-teal-200" : "bg-white text-gray-400 border border-gray-200"}`}
-              >
-                Found Item Recorded
-              </button>
-              <button
-                onClick={() => setFilterType("release")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${filterType === "release" ? "bg-green-50 text-green-700 border border-green-200" : "bg-white text-gray-400 border border-gray-200"}`}
-              >
-                Release Item
-              </button>
+            ))}
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
+              <div>
+                <h2 className="font-black text-gray-700">Item &amp; Claim Activity Log</h2>
+                <p className="text-gray-400 text-xs">Showing found item and claim-related actions only</p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => { setSortOrder("oldest"); setPage(1); }}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                    sortOrder === "oldest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                  }`}
+                >
+                  Oldest Report
+                </button>
+                <button
+                  onClick={() => { setSortOrder("newest"); setPage(1); }}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                    sortOrder === "newest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                  }`}
+                >
+                  Newest Report
+                </button>
+                <select
+                  value={actionTypeFilter}
+                  onChange={(e) => { setActionTypeFilter(e.target.value); setPage(1); }}
+                  className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+                >
+                  <option value="">All Action Types</option>
+                  {actionTypesList.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Search logs..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-full sm:w-56"
+                />
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
-                <div>
-                  <h2 className="font-black text-gray-700">Item & Claim Activity Log</h2>
-                  <p className="text-gray-400 text-xs">Showing found item and claim-related actions only</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={() => setSortOrder("oldest")}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
-                      sortOrder === "oldest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
-                    }`}
-                  >
-                    Oldest Report
-                  </button>
-                  <button
-                    onClick={() => setSortOrder("newest")}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
-                      sortOrder === "newest" ? "bg-[#1a237e] text-white" : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
-                    }`}
-                  >
-                    Newest Report
-                  </button>
-                  <select
-                    value={actionTypeFilter}
-                    onChange={(e) => setActionTypeFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-                  >
-                    <option value="">All Action Types</option>
-                    {actionTypesList.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Search logs..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-56"
-                  />
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="text-center py-16 text-gray-400 text-sm">Loading records...</div>
-              ) : (
-                <div className="overflow-x-auto">
-                <table className="w-full">
+            {loading ? (
+              <div className="text-center py-16 text-gray-400 text-sm">Loading records...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[48rem]">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Log ID</th>
@@ -503,7 +522,7 @@ function DigitalRecordsContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {displayed.map((record) => (
+                    {activityView.rows.map((record) => (
                       <tr key={record.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4">
                           <span className="font-black text-[#1a237e] text-sm">#REC-{String(record.id).padStart(3, "0")}</span>
@@ -524,60 +543,43 @@ function DigitalRecordsContent() {
                     ))}
                   </tbody>
                 </table>
-                </div>
-              )}
-
-              {!loading && displayed.length === 0 && (
-                <div className="text-center py-16 text-gray-400">
-                  <p className="font-bold text-lg">No records found</p>
-                  <p className="text-sm mt-1">Item and claim actions will appear here as they happen</p>
-                </div>
-              )}
-
-              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-                <p className="text-gray-400 text-sm">Showing {displayed.length} relevant records &mdash; page {page} of {lastPage}</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-3 py-1.5 bg-[#1a237e] rounded-lg text-white text-sm font-bold">{page}</span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-                    disabled={page === lastPage}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
               </div>
-            </div>
-          </>
-        ) : view === "cases" ? (
-          <div className="grid grid-cols-3 gap-6">
-            <div className="col-span-1">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100">
-                  <h2 className="font-black text-gray-700 text-sm mb-3">Case List</h2>
-                  <input
-                    type="text"
-                    placeholder="Search cases by item name..."
-                    value={caseSearch}
-                    onChange={(e) => setCaseSearch(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                  />
-                </div>
+            )}
 
-                {casesLoading ? (
-                  <div className="px-5 py-16 text-center text-gray-400 text-sm">Loading cases...</div>
-                ) : cases.length === 0 ? (
-                  <div className="px-5 py-16 text-center text-gray-400 text-sm">No lost item reports yet.</div>
-                ) : (
-                  <div className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
-                    {cases.map((c) => (
+            {!loading && displayed.length === 0 && (
+              <div className="text-center py-16 text-gray-400">
+                <p className="font-bold text-lg">No records found</p>
+                <p className="text-sm mt-1">Item and claim actions will appear here as they happen</p>
+              </div>
+            )}
+
+            <Pager page={activityView.safe} pages={activityView.pages} total={displayed.length} onChange={setPage} />
+          </div>
+        </>
+      ) : view === "cases" ? (
+        // By Case: list (5 per page) beside the trail; stacked below xl
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-1 min-w-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="font-black text-gray-700 text-sm mb-3">Case List</h2>
+                <input
+                  type="text"
+                  placeholder="Search cases by item name..."
+                  value={caseSearch}
+                  onChange={(e) => { setCaseSearch(e.target.value); setCasePage(1); }}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                />
+              </div>
+
+              {casesLoading ? (
+                <div className="px-5 py-16 text-center text-gray-400 text-sm">Loading cases...</div>
+              ) : cases.length === 0 ? (
+                <div className="px-5 py-16 text-center text-gray-400 text-sm">No lost item reports yet.</div>
+              ) : (
+                <>
+                  <div className="divide-y divide-gray-50">
+                    {caseView.rows.map((c) => (
                       <div
                         key={c.report_id}
                         className={`w-full flex items-center gap-3 px-5 py-4 transition ${
@@ -614,93 +616,97 @@ function DigitalRecordsContent() {
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            </div>
-
-            <div className="col-span-2">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                {selectedCase ? (
-                  <>
-                    <div className="bg-gradient-to-r from-[#1a237e] to-[#1565c0] px-6 py-5 flex items-center gap-4">
-                      <button
-                        onClick={() => setPreviewCase(selectedCase)}
-                        className="w-14 h-14 bg-white/15 rounded-2xl overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-white/50 transition cursor-zoom-in"
-                      >
-                        {selectedCase.photo_url ? (
-                          <img src={selectedCase.photo_url} alt={selectedCase.item_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/60 text-[10px] font-bold text-center px-1">No Photo</div>
-                        )}
-                      </button>
-                      <div className="flex-1">
-                        <p className="text-white font-black text-xl">{selectedCase.item_name}</p>
-                        <p className="text-blue-200 text-sm">{selectedCase.category} &middot; {selectedCase.case_id}</p>
-                        {selectedCase.reported_by && <p className="text-blue-200 text-xs mt-0.5">Reported by {selectedCase.reported_by}</p>}
-                      </div>
-                      <span className={`text-xs font-bold px-4 py-2 rounded-full ${statusBadge(selectedCase.status)}`}>{selectedCase.status}</span>
-                    </div>
-
-                    <div className="p-6">
-                      <p className="font-black text-gray-700 text-sm mb-6">Chronological Case Trail &mdash; {caseLogs.length} recorded actions</p>
-
-                      {caseLogsLoading ? (
-                        <div className="text-center py-16 text-gray-400 text-sm">Loading trail...</div>
-                      ) : caseLogs.length === 0 ? (
-                        <div className="text-center py-16 text-gray-400 text-sm">No recorded actions yet for this case.</div>
-                      ) : (
-                        <div className="relative">
-                          {caseLogs.map((entry, index) => {
-                            const isLast = index === caseLogs.length - 1;
-                            return (
-                              <div key={entry.id} className="flex gap-4 relative">
-                                {!isLast && <div className="absolute left-[7px] top-6 w-0.5 h-full bg-gray-200" />}
-                                <div className="w-4 h-4 rounded-full flex-shrink-0 z-10 mt-1.5 bg-[#1a237e]" />
-                                <div className={`flex-1 ${isLast ? "pb-2" : "pb-8"}`}>
-                                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-xs font-bold px-2 py-1 rounded-lg bg-white text-gray-700 border border-gray-200">{entry.action}</span>
-                                      <span className="text-xs font-mono text-gray-400">{formatTime(entry.created_at)}</span>
-                                    </div>
-                                    <p className="text-gray-700 text-sm">{entry.details}</p>
-                                    <p className="text-gray-400 text-xs mt-2">By: {entry.performed_by}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-24 text-gray-400 text-sm">Select a case from the list to view its full trail.</div>
-                )}
-              </div>
+                  <Pager page={caseView.safe} pages={caseView.pages} total={cases.length} onChange={setCasePage} />
+                </>
+              )}
             </div>
           </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100">
-              <h2 className="font-black text-gray-700">Pending Appeals</h2>
-              <p className="text-gray-400 text-xs">Rejected claims escalated by students &mdash; you make the final decision</p>
-            </div>
 
-            {appealsLoading ? (
-              <div className="text-center py-16 text-gray-400 text-sm">Loading appeals...</div>
-            ) : appeals.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <p className="font-bold text-lg">No pending appeals</p>
-                <p className="text-sm mt-1">Appealed claims will appear here for your review</p>
-              </div>
-            ) : (
+          <div className="xl:col-span-2 min-w-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {selectedCase ? (
+                <>
+                  <div className="bg-gradient-to-r from-[#1a237e] to-[#1565c0] px-6 py-5 flex flex-wrap items-center gap-4">
+                    <button
+                      onClick={() => setPreviewCase(selectedCase)}
+                      className="w-14 h-14 bg-white/15 rounded-2xl overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-white/50 transition cursor-zoom-in"
+                    >
+                      {selectedCase.photo_url ? (
+                        <img src={selectedCase.photo_url} alt={selectedCase.item_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white/60 text-[10px] font-bold text-center px-1">No Photo</div>
+                      )}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-black text-xl">{selectedCase.item_name}</p>
+                      <p className="text-blue-200 text-sm">{selectedCase.category} &middot; {selectedCase.case_id}</p>
+                      {selectedCase.reported_by && <p className="text-blue-200 text-xs mt-0.5">Reported by {selectedCase.reported_by}</p>}
+                    </div>
+                    <span className={`text-xs font-bold px-4 py-2 rounded-full ${statusBadge(selectedCase.status)}`}>{selectedCase.status}</span>
+                  </div>
+
+                  <div className="p-6">
+                    <p className="font-black text-gray-700 text-sm mb-6">Chronological Case Trail &mdash; {caseLogs.length} recorded actions</p>
+
+                    {caseLogsLoading ? (
+                      <div className="text-center py-16 text-gray-400 text-sm">Loading trail...</div>
+                    ) : caseLogs.length === 0 ? (
+                      <div className="text-center py-16 text-gray-400 text-sm">No recorded actions yet for this case.</div>
+                    ) : (
+                      <div className="relative">
+                        {caseLogs.map((entry, index) => {
+                          const isLast = index === caseLogs.length - 1;
+                          return (
+                            <div key={entry.id} className="flex gap-4 relative">
+                              {!isLast && <div className="absolute left-[7px] top-6 w-0.5 h-full bg-gray-200" />}
+                              <div className="w-4 h-4 rounded-full flex-shrink-0 z-10 mt-1.5 bg-[#1a237e]" />
+                              <div className={`flex-1 min-w-0 ${isLast ? "pb-2" : "pb-8"}`}>
+                                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                    <span className="text-xs font-bold px-2 py-1 rounded-lg bg-white text-gray-700 border border-gray-200">{entry.action}</span>
+                                    <span className="text-xs font-mono text-gray-400">{formatTime(entry.created_at)}</span>
+                                  </div>
+                                  <p className="text-gray-700 text-sm">{entry.details}</p>
+                                  <p className="text-gray-400 text-xs mt-2">By: {entry.performed_by}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-24 text-gray-400 text-sm">Select a case from the list to view its full trail.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Appeals: 5 per page
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100">
+            <h2 className="font-black text-gray-700">Pending Appeals</h2>
+            <p className="text-gray-400 text-xs">Rejected claims appealed by students &mdash; you make the final decision</p>
+          </div>
+
+          {appealsLoading ? (
+            <div className="text-center py-16 text-gray-400 text-sm">Loading appeals...</div>
+          ) : appeals.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <p className="font-bold text-lg">No pending appeals</p>
+              <p className="text-sm mt-1">Appealed claims will appear here for your review</p>
+            </div>
+          ) : (
+            <>
               <div className="divide-y divide-gray-50">
-                {appeals.map((claim) => {
+                {appealsView.rows.map((claim) => {
                   const itemName = claim.match?.foundRecord?.item_name || claim.match?.lostReport?.item_name || "Unknown Item";
                   return (
                     <div key={claim.id} className="px-6 py-5">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div>
+                      <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
+                        <div className="min-w-0">
                           <p className="font-black text-gray-700">{itemName}</p>
                           <p className="text-gray-400 text-xs mt-0.5">
                             {claim.student?.name} &middot; {claim.student?.school_id} &middot; Trust Score: {claim.student?.trust_score}
@@ -722,7 +728,7 @@ function DigitalRecordsContent() {
                       </div>
 
                       <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-4">
-                        <p className="text-orange-400 text-[10px] font-bold uppercase mb-1">Student's Appeal</p>
+                        <p className="text-orange-400 text-[10px] font-bold uppercase mb-1">Student&apos;s Appeal</p>
                         <p className="text-orange-700 text-sm">{claim.appeal_message}</p>
                         {claim.appeal_photo_url && (
                           <img src={claim.appeal_photo_url} alt="Appeal evidence" className="w-24 h-24 object-cover rounded-xl mt-3" />
@@ -739,10 +745,10 @@ function DigitalRecordsContent() {
                   );
                 })}
               </div>
-            )}
-          </div>
-        )}
-      </main>
+              <Pager page={appealsView.safe} pages={appealsView.pages} total={appeals.length} onChange={setAppealsPage} />
+            </>
+          )}
+        </div>
       )}
 
       {previewCase && (
@@ -752,11 +758,11 @@ function DigitalRecordsContent() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 cursor-default"
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 cursor-default max-h-[90vh] overflow-y-auto"
           >
-           <button
+            <button
               onClick={() => setPreviewCase(null)}
-              className="absolute -top-3 -right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none shadow-md border border-gray-100 z-10"
+              className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none shadow-md border border-gray-100 z-10"
             >
               &times;
             </button>
@@ -785,7 +791,7 @@ function DigitalRecordsContent() {
 
       {resolvingAppeal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setResolvingAppeal(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
@@ -795,7 +801,7 @@ function DigitalRecordsContent() {
 
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Resolve Appeal</h2>
             <p className="text-gray-400 text-sm mb-6">
-              For {resolvingAppeal.student?.name}'s claim
+              For {resolvingAppeal.student?.name}&apos;s claim
             </p>
 
             <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-2">
@@ -804,7 +810,7 @@ function DigitalRecordsContent() {
             </div>
 
             <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-5">
-              <p className="text-orange-400 text-[10px] font-bold uppercase mb-1">Student's Appeal</p>
+              <p className="text-orange-400 text-[10px] font-bold uppercase mb-1">Student&apos;s Appeal</p>
               <p className="text-orange-700 text-sm">{resolvingAppeal.appeal_message}</p>
               {resolvingAppeal.appeal_photo_url && (
                 <img src={resolvingAppeal.appeal_photo_url} alt="Appeal evidence" className="w-full max-h-48 object-cover rounded-xl mt-3" />
@@ -839,6 +845,6 @@ function DigitalRecordsContent() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }
