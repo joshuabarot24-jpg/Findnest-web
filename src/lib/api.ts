@@ -31,6 +31,10 @@ api.interceptors.response.use(
 );
 
 export async function logoutUser() {
+  // [UX] Ask before logging out (applies to every logout button on the web).
+  if (typeof window !== "undefined" && !window.confirm("Are you sure you want to log out of FindNest?")) {
+    return;
+  }
   try {
     await api.post("/auth/logout");
   } catch (err) {
