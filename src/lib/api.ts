@@ -30,11 +30,15 @@ api.interceptors.response.use(
   }
 );
 
-export async function logoutUser() {
-  // [UX] Ask before logging out (applies to every logout button on the web).
-  if (typeof window !== "undefined" && !window.confirm("Are you sure you want to log out of FindNest?")) {
-    return;
-  }
+// [UX] Every logout button calls this. It opens the styled confirmation popup
+// (see LogoutConfirmHost); nothing is logged out until the user confirms.
+export function logoutUser() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("findnest:confirm-logout"));
+}
+
+// Does the real logout. Only called by the popup after the user confirms.
+export async function performLogout() {
   try {
     await api.post("/auth/logout");
   } catch (err) {
