@@ -102,8 +102,14 @@ function ProfileContent() {
       setSetPasswordError("Please fill in both fields.");
       return;
     }
-    if (newPassword.length < 8) {
-      setSetPasswordError("Password must be at least 8 characters.");
+    if (
+      newPassword.length < 8 ||
+      !/[A-Z]/.test(newPassword) ||
+      !/[a-z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword) ||
+      !/[^A-Za-z0-9]/.test(newPassword)
+    ) {
+      setSetPasswordError("Password must be 8+ characters with an uppercase letter, a lowercase letter, a number and a special character.");
       return;
     }
     if (newPassword !== confirmPassword) {

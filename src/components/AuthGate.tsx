@@ -1,5 +1,6 @@
 "use client";
 import { useState, useLayoutEffect, ReactNode } from "react";
+import api from "@/lib/api";
 
 interface AuthGateProps {
   allowedRole: "super_admin" | "admin" | "student";
@@ -37,8 +38,24 @@ export default function AuthGate({ allowedRole, children }: AuthGateProps) {
     }
   }
 
+    // [Sec] Students with a temporary password must set their own before using the site.
+  // Fails open: if the request errors, the student is not blocked.
+  async function enforcePasswordChange() {
+    if (allowedRole !== "student") return;
+    if (window.location.pathname.startsWith("/profile")) return;
+    try {
+      const res = await api.get("/profile");
+      if (res.data?.user?.password_is_temporary) {
+        window.location.href = "/profile";
+      }
+    } catch {
+      // ignore: never trap a student because of a network error
+    }
+  }
+
   useLayoutEffect(() => {
     checkAuth();
+    enforcePasswordChange();
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "findnest_token" || e.key === "findnest_user") {

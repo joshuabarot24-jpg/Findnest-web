@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import SuperAdminLayout from "@/components/SuperAdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import { generatePassword } from "@/lib/generatePassword";
 
 interface SystemUser {
   id: number;
@@ -844,15 +845,29 @@ function UserManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Password
-                </label>
+                 <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const pw = generatePassword();
+                      setFormData({ ...formData, password: pw });
+                      setConfirmCreatePassword(pw);
+                      setShowCreatePassword(true);
+                    }}
+                    className="text-xs font-bold text-[#1a237e] hover:underline"
+                  >
+                    Generate
+                  </button>
+                </div>
                 <div className="relative">
                   <input
                     type={showCreatePassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Minimum 8 characters"
+                    placeholder="8+ characters: A-Z, a-z, 0-9, symbol"
                     autoComplete="new-password"
                     className="w-full mt-1 px-4 py-3 pr-16 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
                   />
@@ -1165,9 +1180,23 @@ function UserManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  New Password (leave blank to keep current)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    New Password (leave blank to keep current)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const pw = generatePassword();
+                      setFormData({ ...formData, password: pw });
+                      setConfirmEditPassword(pw);
+                      setEditPwVisible(true);
+                    }}
+                    className="text-xs font-bold text-[#1a237e] hover:underline"
+                  >
+                    Generate
+                  </button>
+                </div>
                 <div className="relative mt-1">
                   <input
                     type={editPwVisible ? "text" : "password"}
