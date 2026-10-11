@@ -331,7 +331,7 @@ function ProfileContent() {
                           type={showNewPassword ? "text" : "password"}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="At least 8 characters"
+                          placeholder="8+ chars, A-Z, a-z, 0-9, symbol"
                           maxLength={50}
                           className="w-full pl-4 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                         />
