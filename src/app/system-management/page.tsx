@@ -1,6 +1,6 @@
 "use client";
 // Super Admin > System Management (/system-management).
-// API: /system-settings, /system-stats, /audit-logs, /system/backup(s),
+// (AI match threshold is fixed at 75% in the backend; no slider here.)
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
@@ -22,11 +22,6 @@ export default function SystemManagement() {
 }
 
 function SystemManagementContent() {
-  const [sensitivity, setSensitivity] = useState(75);
-  const [savedSensitivity, setSavedSensitivity] = useState(75);
-  const [sensitivityLoading, setSensitivityLoading] = useState(true);
-  const [sensitivitySaving, setSensitivitySaving] = useState(false);
-
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -85,20 +80,6 @@ function SystemManagementContent() {
       }
     }
   }, [showMaintenanceConfirm, showBackupsList, showAllLogs, importPreview, showVersionConfirm]);
-
-  // Loads the saved AI match threshold
-  const fetchSettings = async () => {
-    try {
-      const response = await api.get("/system-settings");
-      const value = response.data.match_confidence_threshold ?? 75;
-      setSensitivity(value);
-      setSavedSensitivity(value);
-    } catch (err) {
-      console.error("Error fetching settings:", err);
-    } finally {
-      setSensitivityLoading(false);
-    }
-  };
 
   // Loads record counts, DB size and system version
   const fetchStats = async () => {
@@ -160,7 +141,6 @@ function SystemManagementContent() {
   };
 
   useEffect(() => {
-    fetchSettings();
     fetchStats();
     fetchLogs();
     fetchBackups();
@@ -174,20 +154,6 @@ function SystemManagementContent() {
 
     return () => clearInterval(interval);
   }, []);
-
-  async function handleSaveSensitivity() {
-    setSensitivitySaving(true);
-    try {
-      await api.put("/system-settings", { match_confidence_threshold: sensitivity });
-      setSavedSensitivity(sensitivity);
-      setToast(`Match confidence threshold updated to ${sensitivity}%.`);
-    } catch (err) {
-      console.error("Error saving settings:", err);
-      setToast("Failed to update threshold.");
-    } finally {
-      setSensitivitySaving(false);
-    }
-  }
 
   async function handleBackupNow() {
     if (isBackingUp) return;
@@ -296,8 +262,6 @@ function SystemManagementContent() {
     }
   }
 
-  const hasUnsavedChange = sensitivity !== savedSensitivity;
-
   return (
     <SuperAdminLayout active="/system-management">
       {toast && (
@@ -372,61 +336,8 @@ function SystemManagementContent() {
           </div>
         </div>
 
-        {/* AI sensitivity + database cards: stacked below xl */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-6 mb-6">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="mb-6">
-              <h2 className="font-black text-gray-700 text-lg">AI Matching Sensitivity</h2>
-              <p className="text-gray-400 text-sm">Minimum confidence score for the AI to create a lost-found match</p>
-            </div>
-
-            {sensitivityLoading ? (
-              <p className="text-gray-400 text-sm">Loading current threshold...</p>
-            ) : (
-              <>
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-gray-500">Flexible</span>
-                    <span className="text-2xl font-black text-[#1a237e]">{sensitivity}%</span>
-                    <span className="text-sm font-bold text-gray-500">Strict</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={50}
-                    max={100}
-                    value={sensitivity}
-                    onChange={(e) => setSensitivity(Number(e.target.value))}
-                    className="w-full accent-[#1a237e]"
-                  />
-                </div>
-
-                <div
-                  className={`mb-4 px-4 py-3 rounded-xl text-sm font-semibold ${
-                    sensitivity >= 80
-                      ? "bg-green-50 text-green-700"
-                      : sensitivity >= 65
-                      ? "bg-yellow-50 text-yellow-700"
-                      : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {sensitivity >= 80
-                    ? "High accuracy — fewer false matches"
-                    : sensitivity >= 65
-                    ? "Moderate — balanced matching"
-                    : "Low — may produce false matches"}
-                </div>
-
-                <button
-                  onClick={handleSaveSensitivity}
-                  disabled={sensitivitySaving || !hasUnsavedChange}
-                  className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {sensitivitySaving ? "Saving..." : hasUnsavedChange ? "Save Changes" : "Saved"}
-                </button>
-              </>
-            )}
-          </div>
-
+        {/* Database maintenance */}
+        <div className="grid grid-cols-1 gap-4 xl:gap-6 mb-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="mb-6">
               <h2 className="font-black text-gray-700 text-lg">Database Maintenance</h2>
@@ -445,7 +356,7 @@ function SystemManagementContent() {
               </div>
 
               {!statsLoading && Object.keys(breakdown).length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                   {[
                     { key: "students", label: "Students" },
                     { key: "admins", label: "Admins" },
