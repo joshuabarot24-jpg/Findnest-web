@@ -1,8 +1,10 @@
 "use client";
+// Admin > User Management (/admin-user-management). Read-only student list; accounts are managed by the Super Admin.
+// API: GET /users, /support (override requests), POST /users/{id}/toggle-manual-override, /support/{id}/resolve-override
 import { useState, useMemo, useEffect } from "react";
-import api, { logoutUser } from "@/lib/api";
+import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
-import Link from "next/link";
+import AdminLayout from "@/components/AdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface SystemUser {
@@ -23,6 +25,8 @@ interface SystemUser {
 }
 
 const PAGE_SIZE = 5;
+const TH = "text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider";
+const LEVELS = ["all", "college", "senior_high_school", "junior_high_school"] as const;
 
 const EDUCATION_LEVELS = [
   { value: "college", label: "College" },
@@ -39,6 +43,16 @@ function educationLabel(value: string | null) {
   return found ? found.label : value || "—";
 }
 
+// Label/value row used in the View popup
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+      <span className="text-gray-400 font-medium">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 export default function AdminUserManagement() {
   return (
     <AuthGate allowedRole="admin">
@@ -53,10 +67,9 @@ function AdminUserManagementContent() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "restricted" | "archived">("all");
-  const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school">("all");
+  const [studentSubTab, setStudentSubTab] = useState<(typeof LEVELS)[number]>("all");
 
   const [viewingUser, setViewingUser] = useState<SystemUser | null>(null);
-
   const [toast, setToast] = useState<string | null>(null);
 
   const [overrideRequests, setOverrideRequests] = useState<{ id: number; name: string; email: string; message: string; override_status: string; created_at: string }[]>([]);
@@ -64,6 +77,7 @@ function AdminUserManagementContent() {
   const [resolvingOverrideId, setResolvingOverrideId] = useState<number | null>(null);
   const [togglingOverride, setTogglingOverride] = useState(false);
 
+  // Turns the Manual AI Override on or off for one student
   async function handleToggleOverride(user: SystemUser) {
     setTogglingOverride(true);
     try {
@@ -80,6 +94,7 @@ function AdminUserManagementContent() {
     }
   }
 
+  // Pending manual-override requests sent through Support
   const fetchOverrideRequests = async () => {
     try {
       const response = await api.get("/support");
@@ -111,6 +126,7 @@ function AdminUserManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Loads all users, keeps students only
   const fetchUsers = async () => {
     try {
       const response = await api.get("/users");
@@ -130,9 +146,9 @@ function AdminUserManagementContent() {
   useAutoRefresh(fetchUsers);
   useAutoRefresh(fetchOverrideRequests);
 
+  // Education level first, then status. Status follows the table badge:
+  // archived > restricted > active. Archived accounts show under "All Status" and "Archived" only.
   const baseFiltered = useMemo(() => {
-    // [Filter] Education level first, then status. Status follows the table badge:
-    // archived > restricted > active. Archived accounts show under "All Status" and "Archived" only.
     const byLevel = studentSubTab === "all" ? users : users.filter((u) => u.education_level === studentSubTab);
     if (statusFilter === "active") return byLevel.filter((u) => u.is_active && !u.is_restricted);
     if (statusFilter === "restricted") return byLevel.filter((u) => u.is_active && u.is_restricted);
@@ -140,13 +156,12 @@ function AdminUserManagementContent() {
     return byLevel;
   }, [users, studentSubTab, statusFilter]);
 
+  // Search on top of the filters (also matches the status words)
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     if (!q) return baseFiltered;
     return baseFiltered.filter((u) => {
-      // [Search] Same status the table shows: revoked > restricted > active.
-      // "inactive" also finds revoked accounts.
-        const statusLabel = !u.is_active ? "archived inactive" : u.is_restricted ? "restricted" : "active";
+      const statusLabel = !u.is_active ? "archived inactive" : u.is_restricted ? "restricted" : "active";
       return (
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
@@ -181,187 +196,141 @@ function AdminUserManagementContent() {
     return "text-red-600 bg-red-50";
   }
 
+  // Numbered pager: first, last and the pages next to the current one
+  const pageNums = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+    (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1
+  );
+
   return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
+    <AdminLayout active="/admin-user-management">
       {toast && (
         <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
           {toast}
         </div>
       )}
 
-      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div>
-            <a href="/dashboard" className="text-white font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-blue-300 text-xs">Admin Panel</span>
-          </div>
-        </div>
+      {/* Page header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-[#1a237e]">User Management</h1>
+        <p className="text-gray-400 text-sm mt-1">View student accounts. Accounts are managed by the Super Admin.</p>
+      </div>
 
-        <div className="mx-6 h-px bg-white/10 mb-4" />
-
-        <nav className="flex flex-col gap-1 px-4 flex-1">
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">Main Menu</p>
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Dashboard</span>
-          </Link>
-          <Link href="/item-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Item Management</span>
-          </Link>
-          <Link href="/claim-verification" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Claim Verification</span>
-          </Link>
-          <Link href="/location-analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Location Analytics</span>
-          </Link>
-          <Link href="/admin-user-management" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20">
-            <span>User Management</span>
-          </Link>
-          <Link href="/digital-records" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Digital Records</span>
-          </Link>
-          <Link href="/admin-support" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Support Inbox</span>
-          </Link>
-        </nav>
-
-        <div className="px-4 py-6">
-          <div className="bg-white/10 rounded-2xl p-4 mb-4">
-            <p className="text-white text-sm font-semibold">Guidance Counselor</p>
-            <p className="text-blue-300 text-xs mt-1">Administrator</p>
-          </div>
-          <button
-            onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium w-full text-left"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      <main className="flex-1 ml-72 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-[#1a237e]">User Management</h1>
-            <p className="text-gray-400 text-sm mt-1">View student accounts. Accounts are managed by the Super Admin.</p>
-          </div>
-        </div>
-
-        {!overrideLoading && overrideRequests.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8">
-            <h2 className="font-black text-amber-800 text-lg mb-1">⚠ Pending Manual Override Requests ({overrideRequests.length})</h2>
-            <p className="text-amber-700 text-xs mb-4">Students requesting to bypass AI photo analysis due to an unclear photo.</p>
-            <div className="space-y-3">
-              {overrideRequests.map((req) => (
-                <div key={req.id} className="bg-white rounded-xl p-4 flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-700 text-sm">{req.name} <span className="text-gray-400 font-normal text-xs">({req.email})</span></p>
-                    <p className="text-gray-500 text-xs mt-1">{req.message}</p>
-                    <p className="text-gray-400 text-[10px] mt-1">{new Date(req.created_at).toLocaleString()}</p>
-                  </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => handleResolveOverride(req.id, "approve")}
-                      disabled={resolvingOverrideId === req.id}
-                      className="bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleResolveOverride(req.id, "deny")}
-                      disabled={resolvingOverrideId === req.id}
-                      className="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
-                    >
-                      Deny
-                    </button>
-                  </div>
+      {/* Pending manual override requests */}
+      {!overrideLoading && overrideRequests.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8">
+          <h2 className="font-black text-amber-800 text-lg mb-1">⚠ Pending Manual Override Requests ({overrideRequests.length})</h2>
+          <p className="text-amber-700 text-xs mb-4">Students requesting to bypass AI photo analysis due to an unclear photo.</p>
+          <div className="space-y-3">
+            {overrideRequests.map((req) => (
+              <div key={req.id} className="bg-white rounded-xl p-4 flex flex-wrap items-start justify-between gap-4">
+                <div className="flex-1 min-w-[12rem]">
+                  <p className="font-bold text-gray-700 text-sm">{req.name} <span className="text-gray-400 font-normal text-xs break-all">({req.email})</span></p>
+                  <p className="text-gray-500 text-xs mt-1">{req.message}</p>
+                  <p className="text-gray-400 text-[10px] mt-1">{new Date(req.created_at).toLocaleString()}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Total Students</p>
-            <p className="text-4xl font-black text-[#1a237e] mt-1">{users.length}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Active Accounts</p>
-            <p className="text-4xl font-black text-green-600 mt-1">{activeCount}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Restricted Accounts</p>
-            <p className="text-4xl font-black text-orange-500 mt-1">{restrictedCount}</p>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleResolveOverride(req.id, "approve")}
+                    disabled={resolvingOverrideId === req.id}
+                    className="bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleResolveOverride(req.id, "deny")}
+                    disabled={resolvingOverrideId === req.id}
+                    className="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                  >
+                    Deny
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      )}
 
-        <div className="flex items-center gap-2 mb-6 flex-wrap">
-          {(["all", "college", "senior_high_school", "junior_high_school"] as const).map((level) => (
-            <button
-              key={level}
-              onClick={() => setStudentSubTab(level)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
-                studentSubTab === level
-                  ? "bg-[#1a237e] text-white shadow-md"
-                  : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
-              }`}
+      {/* Stat cards: 1 column on small screens, 3 from sm */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6 mb-8">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">Total Students</p>
+          <p className="text-4xl font-black text-[#1a237e] mt-1">{users.length}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">Active Accounts</p>
+          <p className="text-4xl font-black text-green-600 mt-1">{activeCount}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">Restricted Accounts</p>
+          <p className="text-4xl font-black text-orange-500 mt-1">{restrictedCount}</p>
+        </div>
+      </div>
+
+      {/* Education level tabs */}
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        {LEVELS.map((level) => (
+          <button
+            key={level}
+            onClick={() => setStudentSubTab(level)}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
+              studentSubTab === level
+                ? "bg-[#1a237e] text-white shadow-md"
+                : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
+            }`}
+          >
+            {level === "all" ? "All" : educationLabel(level)}
+          </button>
+        ))}
+      </div>
+
+      {/* Students list: 5 rows per page */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
+          <h2 className="font-black text-gray-700 text-lg">
+            {studentSubTab === "all" ? "All Students" : educationLabel(studentSubTab) + " Students"}
+          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={studentSubTab}
+              onChange={(e) => setStudentSubTab(e.target.value as typeof studentSubTab)}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
             >
-              {level === "all" ? "All" : educationLabel(level)}
-            </button>
-          ))}
+              {LEVELS.map((level) => (
+                <option key={level} value={level}>{level === "all" ? "All" : educationLabel(level)}</option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="restricted">Restricted</option>
+              <option value="archived">Archived</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Search by name, email, or ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-full sm:w-64"
+            />
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
-            <h2 className="font-black text-gray-700 text-lg">
-              {studentSubTab === "all" ? "All Students" : educationLabel(studentSubTab) + " Students"}
-            </h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={studentSubTab}
-                onChange={(e) => setStudentSubTab(e.target.value as typeof studentSubTab)}
-                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-              >
-                {(["all", "college", "senior_high_school", "junior_high_school"] as const).map((level) => (
-                  <option key={level} value={level}>{level === "all" ? "All" : educationLabel(level)}</option>
-                ))}
-              </select>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="restricted">Restricted</option>
-                <option value="archived">Archived</option>
-              </select>
-              <input
-                type="text"
-                placeholder="Search by name, email, or ID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-64"
-              />
-            </div>
+        {loading ? (
+          <div className="text-center py-16 text-gray-400">
+            <p className="font-bold">Loading students...</p>
           </div>
-
-          {loading ? (
-            <div className="text-center py-16 text-gray-400">
-              <p className="font-bold">Loading students...</p>
-            </div>
-          ) : (
-            <table className="w-full">
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[46rem]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Student</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Level</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">School ID</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Trust Score</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
+                  {["Student", "Level", "School ID", "Trust Score", "Status", "Actions"].map((h) => (
+                    <th key={h} className={TH}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -404,44 +373,44 @@ function AdminUserManagementContent() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setViewingUser(user)}
-                          className="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                        >
-                          View
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => setViewingUser(user)}
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                      >
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
+          </div>
+        )}
 
-          {!loading && filtered.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
-              <p className="font-bold text-lg">No students found</p>
-              <p className="text-sm mt-1">Try searching with a different keyword</p>
-            </div>
-          )}
+        {!loading && filtered.length === 0 && (
+          <div className="text-center py-16 text-gray-400">
+            <p className="font-bold text-lg">No students found</p>
+            <p className="text-sm mt-1">Try searching with a different keyword</p>
+          </div>
+        )}
 
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-gray-400 text-sm">
-              Showing {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
-              &ndash;{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} students
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+        <div className="px-6 py-4 border-t border-gray-100 flex flex-wrap gap-3 items-center justify-between">
+          <p className="text-gray-400 text-sm">
+            Showing {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
+            &ndash;{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} students
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            {pageNums.map((p, idx) => (
+              <span key={p} className="flex items-center gap-2">
+                {idx > 0 && p - pageNums[idx - 1] > 1 && <span className="text-gray-300">&hellip;</span>}
                 <button
-                  key={p}
                   onClick={() => setPage(p)}
                   className={
                     p === page
@@ -451,22 +420,23 @@ function AdminUserManagementContent() {
                 >
                   {p}
                 </button>
-              ))}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
+              </span>
+            ))}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
           </div>
         </div>
-      </main>
+      </div>
 
+      {/* Student details (read-only) with the Manual AI Override toggle */}
       {viewingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setViewingUser(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
@@ -475,62 +445,41 @@ function AdminUserManagementContent() {
             </button>
 
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Student Details</h2>
-            <p className="text-gray-400 text-sm mb-6">
-              Managed by Super Admin — read-only.
-            </p>
+            <p className="text-gray-400 text-sm mb-6">Managed by Super Admin — read-only.</p>
 
             <div className="bg-blue-50 rounded-2xl p-4 mb-5">
               <p className="text-xs font-bold text-gray-400 uppercase">Trust Score</p>
               <p className="text-2xl font-black text-[#1a237e]">{viewingUser.trust_score}</p>
             </div>
 
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Full Name</span>
-                <span className="font-bold text-gray-700">{viewingUser.name}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Email</span>
-                <span className="font-bold text-gray-700">{viewingUser.email}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Education Level</span>
-                <span className="font-bold text-gray-700">{educationLabel(viewingUser.education_level)}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">School ID</span>
-                <span className="font-bold text-gray-700">{viewingUser.school_id || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">
-                  {viewingUser.education_level === "senior_high_school" ? "Strand" : viewingUser.education_level === "college" ? "Course" : "Section"}
-                </span>
-                <span className="font-bold text-gray-700">{viewingUser.course || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">
-                  {viewingUser.education_level === "college" ? "Year Level" : "Grade Level"}
-                </span>
-                <span className="font-bold text-gray-700">{viewingUser.year_level || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Status</span>
+            <div className="space-y-3 text-sm mb-4">
+              <DetailRow label="Full Name"><span className="font-bold text-gray-700 text-right">{viewingUser.name}</span></DetailRow>
+              <DetailRow label="Email"><span className="font-bold text-gray-700 text-right break-all">{viewingUser.email}</span></DetailRow>
+              <DetailRow label="Education Level"><span className="font-bold text-gray-700 text-right">{educationLabel(viewingUser.education_level)}</span></DetailRow>
+              <DetailRow label="School ID"><span className="font-bold text-gray-700 text-right">{viewingUser.school_id || "—"}</span></DetailRow>
+              <DetailRow label={viewingUser.education_level === "senior_high_school" ? "Strand" : viewingUser.education_level === "college" ? "Course" : "Section"}>
+                <span className="font-bold text-gray-700 text-right">{viewingUser.course || "—"}</span>
+              </DetailRow>
+              <DetailRow label={viewingUser.education_level === "college" ? "Year Level" : "Grade Level"}>
+                <span className="font-bold text-gray-700 text-right">{viewingUser.year_level || "—"}</span>
+              </DetailRow>
+              <DetailRow label="Status">
                 <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
                   !viewingUser.is_active ? "bg-gray-100 text-gray-600" : viewingUser.is_restricted ? "bg-orange-50 text-orange-600" : "bg-green-50 text-green-700"
                 }`}>
                   {!viewingUser.is_active ? "ARCHIVED" : viewingUser.is_restricted ? "RESTRICTED" : "ACTIVE"}
                 </span>
-              </div>
+              </DetailRow>
             </div>
 
-           {viewingUser.flagged_for_review && (
+            {viewingUser.flagged_for_review && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
                 <p className="text-red-700 text-xs font-bold">⚠ Flagged For Review</p>
                 <p className="text-red-600 text-[11px] mt-0.5">{viewingUser.flag_reason || "This student has a history of rejected claims and appeals."}</p>
               </div>
             )}
 
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl mb-4">
+            <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl mb-4">
               <div>
                 <p className="font-bold text-gray-700 text-sm">Manual AI Override</p>
                 <p className="text-gray-400 text-xs">{viewingUser.manual_override_granted ? "Active — AI photo analysis is skipped for this student" : "Off — normal AI analysis applies"}</p>
@@ -538,12 +487,11 @@ function AdminUserManagementContent() {
               <button
                 onClick={() => handleToggleOverride(viewingUser)}
                 disabled={togglingOverride}
-                className={`relative w-12 h-6 rounded-full transition-colors ${viewingUser.manual_override_granted ? "bg-amber-500" : "bg-gray-300"} disabled:opacity-50`}
+                className={`relative w-12 h-6 shrink-0 rounded-full transition-colors ${viewingUser.manual_override_granted ? "bg-amber-500" : "bg-gray-300"} disabled:opacity-50`}
               >
                 <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${viewingUser.manual_override_granted ? "translate-x-6" : "translate-x-0.5"}`} />
               </button>
             </div>
-
 
             <button
               onClick={() => setViewingUser(null)}
@@ -554,6 +502,6 @@ function AdminUserManagementContent() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }
