@@ -68,7 +68,7 @@ function actionBadgeClass(action: string) {
   if (a.includes("found")) return "bg-teal-50 text-teal-700";
   if (a.includes("assigned")) return "bg-purple-50 text-purple-700";
   if (a.includes("disposed")) return "bg-orange-50 text-orange-700";
-  if (a.includes("revoked") || a.includes("rejected") || a.includes("deleted")) return "bg-red-50 text-red-600";
+  if (a.includes("revoked") || a.includes("archived") || a.includes("rejected") || a.includes("deleted")) return "bg-red-50 text-red-600";
   if (a.includes("login")) return "bg-blue-50 text-blue-700";
   return "bg-gray-100 text-gray-600";
 }
@@ -315,7 +315,7 @@ function SuperAdminRecordsContent() {
 
   const claimedCount = records.filter((r) => r.action.toLowerCase().includes("claim")).length;
   const systemCount = records.filter((r) => r.performed_by.toLowerCase() === "system").length;
-  const revokedCount = records.filter((r) => r.action.toLowerCase().includes("revoked")).length;
+  const revokedCount = records.filter((r) => /revoked|archived/.test(r.action.toLowerCase())).length;
 
   // Current 5-row slice of each client-side list
   const caseView = pageOf(cases, casePage);
@@ -383,7 +383,7 @@ function SuperAdminRecordsContent() {
                 <p className="text-3xl font-black text-gray-600 mt-1">{systemCount}</p>
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <p className="text-gray-400 text-sm font-medium">Revoked (this page)</p>
+                <p className="text-gray-400 text-sm font-medium">Archived (this page)</p>
                 <p className="text-3xl font-black text-red-500 mt-1">{revokedCount}</p>
               </div>
             </div>
@@ -687,7 +687,7 @@ function SuperAdminRecordsContent() {
                   archiveSection === "revoked" ? "bg-gray-700 text-white" : "bg-gray-50 text-gray-500 hover:text-gray-700"
                 }`}
               >
-                Revoked Accounts ({archiveRevoked.length})
+              Archived Accounts ({archiveRevoked.length})
               </button>
             </div>
 
@@ -745,7 +745,7 @@ function SuperAdminRecordsContent() {
                 </>
               )
             ) : archiveRevoked.length === 0 ? (
-              <div className="text-center py-16 text-gray-400 text-sm mt-4">No revoked accounts in the last 30 days.</div>
+              <div className="text-center py-16 text-gray-400 text-sm mt-4">No archived accounts in the last 30 days.</div>
             ) : (
               <>
                 <div className="divide-y divide-gray-50 mt-4">
