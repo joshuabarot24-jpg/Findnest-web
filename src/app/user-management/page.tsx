@@ -125,11 +125,6 @@ function UserManagementContent() {
   const [formError, setFormError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
   const [confirmEditPassword, setConfirmEditPassword] = useState("");
-  const [adjustingTrustScore, setAdjustingTrustScore] = useState<SystemUser | null>(null);
-  const [trustScorePoints, setTrustScorePoints] = useState("");
-  const [trustScoreReason, setTrustScoreReason] = useState("");
-  const [trustScoreSubmitting, setTrustScoreSubmitting] = useState(false);
-  const [trustScoreError, setTrustScoreError] = useState("");
   const [showCreatePasswordConfirm, setShowCreatePasswordConfirm] = useState(false);
   const [passwordFieldLocked, setPasswordFieldLocked] = useState(false);
   const [editPasswordLocked, setEditPasswordLocked] = useState(false);
@@ -434,49 +429,7 @@ function UserManagementContent() {
     }
   }
 
-  async function handleAdjustTrustScore() {
-    if (!adjustingTrustScore) return;
-    const points = parseInt(trustScorePoints);
-    if (isNaN(points) || points === 0) {
-      setTrustScoreError("Please enter a non-zero number of points.");
-      return;
-    }
-    const resultingScore = adjustingTrustScore.trust_score + points;
-    if (resultingScore > 100) {
-      setTrustScoreError(`This would exceed the 100 limit. Maximum you can add right now is +${100 - adjustingTrustScore.trust_score}.`);
-      return;
-    }
-    if (resultingScore < 0) {
-      setTrustScoreError(`This would go below 0. Maximum you can deduct right now is -${adjustingTrustScore.trust_score}.`);
-      return;
-    }
-
-    if (!trustScoreReason.trim()) {
-      setTrustScoreError("Please provide a reason for this adjustment.");
-      return;
-    }
-    setTrustScoreError("");
-    setTrustScoreSubmitting(true);
-    try {
-      await api.post(`/users/${adjustingTrustScore.id}/adjust-trust-score`, {
-        points,
-        reason: trustScoreReason.trim(),
-      });
-      setToast(`${adjustingTrustScore.name}'s trust score adjusted by ${points > 0 ? "+" : ""}${points}.`);
-      const cappedScore = Math.max(0, Math.min(100, resultingScore));
-      if (editingUser && editingUser.id === adjustingTrustScore.id) {
-        setEditingUser({ ...editingUser, trust_score: cappedScore });
-      }
-      setAdjustingTrustScore(null);
-      setTrustScorePoints("");
-      setTrustScoreReason("");
-      fetchUsers();
-    } catch (err: any) {
-      setTrustScoreError(err.response?.data?.message || "Failed to adjust trust score.");
-    } finally {
-      setTrustScoreSubmitting(false);
-    }
-  }
+  
 
   const tabLabel = (tab: string) => {
     if (tab === "all") return "All";
@@ -1379,18 +1332,6 @@ function UserManagementContent() {
                 {formLoading ? "Saving..." : "Save Changes"}
               </button>
             </div>
-
-            <button
-              onClick={() => {
-                setAdjustingTrustScore(editingUser);
-                setTrustScorePoints("");
-                setTrustScoreReason("");
-                setTrustScoreError("");
-              }}
-              className="w-full mt-3 border-2 border-purple-200 text-purple-600 hover:bg-purple-50 font-bold py-3 rounded-2xl transition text-sm"
-            >
-              Manually Adjust Trust Score
-            </button>
           </div>
         </div>
       )}
@@ -1543,65 +1484,6 @@ function UserManagementContent() {
                 className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
               >
                 {restrictionSaving ? "Saving..." : "Save Settings"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {adjustingTrustScore && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-black text-[#1a237e] mb-1">Adjust Trust Score</h2>
-            <p className="text-gray-400 text-sm mb-5">
-              For {adjustingTrustScore.name} &mdash; current score: <strong>{adjustingTrustScore.trust_score}</strong>
-            </p>
-
-            <label className="block text-sm font-bold text-gray-600 mb-2">Points (use negative to deduct)</label>
-            <input
-              type="number"
-              value={trustScorePoints}
-              onChange={(e) => setTrustScorePoints(e.target.value)}
-              placeholder="e.g. 10 or -10"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition text-gray-700 mb-2"
-            />
-            {trustScorePoints && !isNaN(parseInt(trustScorePoints)) && (
-              <p className={`text-xs font-semibold mb-4 ${
-                adjustingTrustScore.trust_score + parseInt(trustScorePoints) > 100 || adjustingTrustScore.trust_score + parseInt(trustScorePoints) < 0
-                  ? "text-red-500"
-                  : "text-gray-400"
-              }`}>
-                New score will be: {Math.max(0, Math.min(100, adjustingTrustScore.trust_score + parseInt(trustScorePoints)))}
-                {(adjustingTrustScore.trust_score + parseInt(trustScorePoints) > 100 || adjustingTrustScore.trust_score + parseInt(trustScorePoints) < 0) && " (exceeds limit, will be capped)"}
-              </p>
-            )}
-
-            <label className="block text-sm font-bold text-gray-600 mb-2">Reason</label>
-            <textarea
-              value={trustScoreReason}
-              onChange={(e) => setTrustScoreReason(e.target.value)}
-              placeholder="Explain why this manual adjustment is needed..."
-              rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition text-gray-700 resize-none mb-4"
-            />
-
-            {trustScoreError && (
-              <p className="text-red-500 text-xs font-semibold mb-4">{trustScoreError}</p>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setAdjustingTrustScore(null)}
-                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAdjustTrustScore}
-                disabled={trustScoreSubmitting}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
-              >
-                {trustScoreSubmitting ? "Saving..." : "Confirm Adjustment"}
               </button>
             </div>
           </div>
