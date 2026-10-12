@@ -1,15 +1,18 @@
 "use client";
+// Admin > Item Management (/item-management). Found items + lost reports, add item, receipt, disposal.
+// Lists show 5 rows per page (refreshes every 20s).
 import { useState, useMemo, useEffect, useRef } from "react";
-import api, { logoutUser } from "@/lib/api";
+import api from "@/lib/api";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import AuthGate from "@/components/AuthGate";
+import AdminLayout from "@/components/AdminLayout";
 
+// Keeps only letters, spaces, dots, apostrophes and hyphens
 function filterLettersOnly(value: string) {
   return value.replace(/[^A-Za-z\s.'-]/g, "");
 }
-import AuthGate from "@/components/AuthGate";
-import Link from "next/link";
 
-type ItemStatus = "unclaimed" | "claimed" | "for_disposal" | "disposed" | "confiscated" | "found_item";
+type ItemStatus = "unclaimed" | "claimed" | "for_disposal" | "disposed" | "confiscated" | "found_item" | "others";
 type LostStatus = "searching" | "matched" | "returned";
 
 interface FoundItem {
@@ -52,11 +55,22 @@ const CATEGORY_OPTIONS = [
 
 const PAGE_SIZE = 5;
 
+// Add Item form: the four intake types and their selected colors
+const INTAKE_TYPES = [
+  { key: "found_item", label: "Found Item", active: "border-teal-500 bg-teal-50 text-teal-700" },
+  { key: "confiscated", label: "Confiscated", active: "border-purple-500 bg-purple-50 text-purple-700" },
+  { key: "lost_item", label: "Lost Item", active: "border-red-500 bg-red-50 text-red-700" },
+  { key: "others", label: "Others", active: "border-gray-500 bg-gray-100 text-gray-700" },
+] as const;
+
+const TH = "text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider";
+
+// Dot + badge + label per status
 function statusStyles(status: string) {
   switch (status) {
     case "claimed": return { dot: "bg-green-500", badge: "bg-green-50 text-green-700", label: "Claimed" };
     case "unclaimed": return { dot: "bg-blue-500", badge: "bg-blue-50 text-blue-700", label: "Unclaimed" };
-   case "confiscated": return { dot: "bg-purple-500", badge: "bg-purple-50 text-purple-700", label: "Confiscated" };
+    case "confiscated": return { dot: "bg-purple-500", badge: "bg-purple-50 text-purple-700", label: "Confiscated" };
     case "others": return { dot: "bg-gray-500", badge: "bg-gray-100 text-gray-700", label: "Others" };
     case "found_item": return { dot: "bg-teal-500", badge: "bg-teal-50 text-teal-700", label: "Found Item" };
     case "searching": return { dot: "bg-yellow-500", badge: "bg-yellow-50 text-yellow-700", label: "Searching" };
@@ -70,6 +84,86 @@ function statusStyles(status: string) {
 
 function formatDateTime(dateStr: string) {
   return new Date(dateStr).toLocaleString();
+}
+
+// Photo thumbnail used in both tables
+function Thumb({ src, alt }: { src: string | null; alt: string }) {
+  return (
+    <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
+      {src ? (
+        <img src={src} alt={alt} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">N/A</div>
+      )}
+    </div>
+  );
+}
+
+// Colored dot + status label
+function StatusPill({ status }: { status: string }) {
+  const s = statusStyles(status);
+  return (
+    <div className="flex items-center gap-2">
+      <div className={`w-2 h-2 rounded-full ${s.dot}`} />
+      <span className={`text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap ${s.badge}`}>{s.label}</span>
+    </div>
+  );
+}
+
+// Label/value row used in the detail popups
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+      <span className="text-gray-400 font-medium">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+// Numbered pager: shows first, last and the pages next to the current one
+function Pager({ page, pages, total, label, onChange }: { page: number; pages: number; total: number; label: string; onChange: (p: number) => void }) {
+  if (total === 0) return null;
+  const from = (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
+  const nums = Array.from({ length: pages }, (_, i) => i + 1).filter(
+    (p) => p === 1 || p === pages || Math.abs(p - page) <= 1
+  );
+  return (
+    <div className="px-6 py-4 border-t border-gray-100 flex flex-wrap gap-3 items-center justify-between">
+      <p className="text-gray-400 text-sm">Showing {from}&ndash;{to} of {total} {label}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => onChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-400 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        {nums.map((p, idx) => (
+          <span key={p} className="flex items-center gap-2">
+            {idx > 0 && p - nums[idx - 1] > 1 && <span className="text-gray-300">&hellip;</span>}
+            <button
+              onClick={() => onChange(p)}
+              className={
+                p === page
+                  ? "px-3 py-1.5 bg-[#1a237e] rounded-lg text-white text-sm font-bold"
+                  : "px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition"
+              }
+            >
+              {p}
+            </button>
+          </span>
+        ))}
+        <button
+          onClick={() => onChange(Math.min(pages, page + 1))}
+          disabled={page === pages}
+          className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-400 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function ItemManagement() {
@@ -100,18 +194,21 @@ function ItemManagementContent() {
   const [disposalSubmitting, setDisposalSubmitting] = useState(false);
   const [confirmingReceipt, setConfirmingReceipt] = useState(false);
 
+  // Add Item form
   const [formName, setFormName] = useState("");
   const [formCategory, setFormCategory] = useState(CATEGORY_OPTIONS[0]);
   const [formLocationFound, setFormLocationFound] = useState("");
   const [formStorageLocation, setFormStorageLocation] = useState("");
   const [formDateFound, setFormDateFound] = useState("");
   const [formDescription, setFormDescription] = useState("");
- const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item" | "others">("found_item");
+  const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item" | "others">("found_item");
   const [formOthersSpecify, setFormOthersSpecify] = useState("");
   const [choosingItemUrl, setChoosingItemUrl] = useState<string | null>(null);
   const uploadCancelledRef = useRef(false);
   const [itemChoices, setItemChoices] = useState<string[]>([]);
   const [resolvingChoice, setResolvingChoice] = useState(false);
+
+  // Manila-time date, N days back (used for the 3-day date window)
   function getManilaDate(daysAgo: number) {
     const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
     d.setDate(d.getDate() - daysAgo);
@@ -138,6 +235,7 @@ function ItemManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Locks page scroll while a popup is open
   useEffect(() => {
     const anyModalOpen = showAddModal || !!viewingFoundItem || !!viewingLostItem || !!deletingItem;
     if (anyModalOpen) {
@@ -200,6 +298,7 @@ function ItemManagementContent() {
     setPage(1);
   }, [mainTab, search]);
 
+  // Found items after status filter + search
   const filteredFound = useMemo(() => {
     const byStatus = foundStatusFilter === "all" ? foundItems : foundItems.filter((i) => i.status === foundStatusFilter);
     const q = search.toLowerCase().trim();
@@ -220,6 +319,7 @@ function ItemManagementContent() {
     });
   }, [foundItems, search, foundStatusFilter]);
 
+  // Lost reports after status filter + search
   const filteredLost = useMemo(() => {
     const byStatus = lostStatusFilter === "all" ? lostItems : lostItems.filter((i) => i.status === lostStatusFilter);
     const q = search.toLowerCase().trim();
@@ -247,6 +347,7 @@ function ItemManagementContent() {
     if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
 
+  // Flagged unclaimed items float to the top of the found list
   const flagRank = (i: FoundItem) =>
     i.status !== "unclaimed" ? 2 : i.needs_disposal_review ? 0 : i.unclaimed_flagged_at ? 1 : 2;
   const sortedFound = [...filteredFound].sort((a, b) => flagRank(a) - flagRank(b));
@@ -256,10 +357,22 @@ function ItemManagementContent() {
   const unclaimedCount = foundItems.filter((i) => i.status === "unclaimed").length;
   const claimedCount = foundItems.filter((i) => i.status === "claimed").length;
   const disposalCount = foundItems.filter((i) => i.status === "for_disposal" || i.status === "disposed").length;
-  const disposalReviewCount = foundItems.filter((i) => i.needs_disposal_review && i.status === "unclaimed").length;
   const searchingCount = lostItems.filter((i) => i.status === "searching").length;
   const matchedCount = lostItems.filter((i) => i.status === "matched").length;
   const returnedCount = lostItems.filter((i) => i.status === "returned").length;
+
+  const statCards =
+    mainTab === "found"
+      ? [
+          { label: "Unclaimed Items", value: unclaimedCount, color: "text-[#1a237e]" },
+          { label: "Claimed Items", value: claimedCount, color: "text-green-600" },
+          { label: "For Disposal", value: disposalCount, color: "text-red-500" },
+        ]
+      : [
+          { label: "Searching", value: searchingCount, color: "text-yellow-500" },
+          { label: "Matched", value: matchedCount, color: "text-indigo-500" },
+          { label: "Returned", value: returnedCount, color: "text-green-600" },
+        ];
 
   function resetForm() {
     setFormName("");
@@ -277,6 +390,7 @@ function ItemManagementContent() {
     setFormLoading(false);
   }
 
+  // Uploads the photo and fills the form from the AI result
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -318,6 +432,7 @@ function ItemManagementContent() {
     }
   }
 
+  // Multi-item photo: analyze only the item the admin picked
   async function handleChooseItem(choice: string) {
     if (!choosingItemUrl) return;
     setResolvingChoice(true);
@@ -338,9 +453,10 @@ function ItemManagementContent() {
     }
   }
 
+  // Saves a lost report or a found/confiscated/others item
   async function handleAddSubmit() {
     if (formIntakeType === "lost_item") {
-    if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
+      if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
         setFormError("Item name, location lost, date lost, and photo are required.");
         return;
       }
@@ -412,7 +528,8 @@ function ItemManagementContent() {
     }
   }
 
-    async function handleConfirmReceipt(item: FoundItem) {
+  // Admin confirms a student's found item was physically surrendered
+  async function handleConfirmReceipt(item: FoundItem) {
     setConfirmingReceipt(true);
     try {
       await api.post(`/found-items/${item.id}/confirm-receipt`);
@@ -426,6 +543,7 @@ function ItemManagementContent() {
     }
   }
 
+  // Records how a 30-day unclaimed item was disposed of
   async function handleDocumentDisposal() {
     if (!documentingDisposal || !disposalNotes.trim()) return;
     setDisposalSubmitting(true);
@@ -446,67 +564,10 @@ function ItemManagementContent() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
-      {toast && (
-        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
-          {toast}
-        </div>
-      )}
-
-      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div>
-            <a href="/dashboard" className="text-white font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-blue-300 text-xs">Admin Panel</span>
-          </div>
-        </div>
-
-        <div className="mx-6 h-px bg-white/10 mb-4" />
-
-        <nav className="flex flex-col gap-1 px-4 flex-1">
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">Main Menu</p>
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Dashboard</span>
-          </Link>
-          <Link href="/item-management" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20">
-            <span>Item Management</span>
-          </Link>
-          <Link href="/claim-verification" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Claim Verification</span>
-          </Link>
-          <Link href="/location-analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Location Analytics</span>
-          </Link>
-          <Link href="/admin-user-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>User Management</span>
-          </Link>
-          <Link href="/digital-records" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Digital Records</span>
-          </Link>
-          <Link href="/admin-support" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Support Inbox</span>
-          </Link>
-        </nav>
-
-        <div className="px-4 py-6">
-          <div className="bg-white/10 rounded-2xl p-4 mb-4">
-            <p className="text-white text-sm font-semibold">Guidance Counselor</p>
-            <p className="text-blue-300 text-xs mt-1">Administrator</p>
-          </div>
-          <button
-            onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium w-full text-left"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {accessDenied ? (
-        <div className="flex-1 ml-72 flex items-center justify-center min-h-screen">
+  if (accessDenied) {
+    return (
+      <AdminLayout active="/item-management">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center max-w-sm">
             <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -519,313 +580,220 @@ function ItemManagementContent() {
             </p>
           </div>
         </div>
-      ) : (
-      <main className="flex-1 ml-72 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-[#1a237e]">Item Management</h1>
-            <p className="text-gray-400 text-sm mt-1">Review, approve and manage all lost and found item reports</p>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout active="/item-management">
+      {toast && (
+        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
+          {toast}
+        </div>
+      )}
+
+      {/* Page header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-[#1a237e]">Item Management</h1>
+          <p className="text-gray-400 text-sm mt-1">Review, approve and manage all lost and found item reports</p>
+        </div>
+        {mainTab === "found" && (
+          <button
+            onClick={() => { resetForm(); setShowAddModal(true); }}
+            className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
+          >
+            + Add Item
+          </button>
+        )}
+      </div>
+
+      {/* Found / Lost tabs */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        {([
+          { key: "found", label: "Found Items Reports" },
+          { key: "lost", label: "Lost Items Reports" },
+        ] as const).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setMainTab(t.key)}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
+              mainTab === t.key
+                ? "bg-[#1a237e] text-white shadow-md"
+                : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stat cards: 1 column on small screens, 3 from sm */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6 mb-8">
+        {statCards.map((c) => (
+          <div key={c.label} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <p className="text-gray-400 text-sm font-medium">{c.label}</p>
+            <p className={`text-4xl font-black mt-1 ${c.color}`}>{c.value}</p>
           </div>
-          {mainTab === "found" && (
-            <button
-              onClick={() => { resetForm(); setShowAddModal(true); }}
-              className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
-            >
-              + Add Item
-            </button>
-          )}
+        ))}
+      </div>
+
+      {/* List card: 5 rows per page */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
+          <h2 className="font-black text-gray-700 text-lg">
+            {mainTab === "found" ? "All Found Items" : "All Lost Item Reports"}
+          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            {mainTab === "found" ? (
+              <select
+                value={foundStatusFilter}
+                onChange={(e) => { setFoundStatusFilter(e.target.value); setPage(1); }}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                <option value="all">All Statuses</option>
+                <option value="unclaimed">Unclaimed</option>
+                <option value="claimed">Claimed</option>
+                <option value="confiscated">Confiscated</option>
+                <option value="others">Others</option>
+                <option value="disposed">Disposed</option>
+              </select>
+            ) : (
+              <select
+                value={lostStatusFilter}
+                onChange={(e) => { setLostStatusFilter(e.target.value); setPage(1); }}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                <option value="all">All Statuses</option>
+                <option value="searching">Searching</option>
+                <option value="matched">Matched</option>
+                <option value="returned">Returned</option>
+              </select>
+            )}
+            <input
+              type="text"
+              placeholder="Search by name, category, or location..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-full sm:w-64"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-6">
-          <button
-            onClick={() => setMainTab("found")}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
-              mainTab === "found"
-                ? "bg-[#1a237e] text-white shadow-md"
-                : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
-            }`}
-          >
-            Found Items Reports
-          </button>
-          <button
-            onClick={() => setMainTab("lost")}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
-              mainTab === "lost"
-                ? "bg-[#1a237e] text-white shadow-md"
-                : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
-            }`}
-          >
-            Lost Items Reports
-          </button>
-        </div>
-
-        {mainTab === "found" ? (
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <p className="text-gray-400 text-sm font-medium">Unclaimed Items</p>
-              <p className="text-4xl font-black text-[#1a237e] mt-1">{unclaimedCount}</p>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <p className="text-gray-400 text-sm font-medium">Claimed Items</p>
-              <p className="text-4xl font-black text-green-600 mt-1">{claimedCount}</p>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <p className="text-gray-400 text-sm font-medium">For Disposal</p>
-              <p className="text-4xl font-black text-red-500 mt-1">{disposalCount}</p>
-            </div>
+        {loading ? (
+          <div className="text-center py-16 text-gray-400 text-sm">Loading items...</div>
+        ) : mainTab === "found" ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[60rem]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  {["Photo", "Item Name", "Category", "Storage Location", "Reported By", "Status", "Logged", "Actions"].map((h) => (
+                    <th key={h} className={TH}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {paginatedFound.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50 transition">
+                    <td className="px-6 py-4"><Thumb src={item.photo_url} alt={item.item_name} /></td>
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-gray-700">{item.item_name}</p>
+                      <p className="text-gray-400 text-xs mt-0.5">ID: ITM-{String(item.id).padStart(3, "0")}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg">{item.category}</span>
+                    </td>
+                    <td className="px-6 py-4"><p className="text-gray-500 text-sm">{item.storage_location || "—"}</p></td>
+                    <td className="px-6 py-4"><p className="text-gray-500 text-sm">{item.admin?.name || "—"}</p></td>
+                    <td className="px-6 py-4"><StatusPill status={item.status} /></td>
+                    <td className="px-6 py-4"><p className="text-gray-400 text-xs">{formatDateTime(item.created_at)}</p></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setViewingFoundItem(item)} className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition">View</button>
+                        {item.status === "unclaimed" && item.needs_disposal_review ? (
+                          <span className="bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">Document disposal</span>
+                        ) : item.status === "unclaimed" && item.unclaimed_flagged_at ? (
+                          <span className="bg-yellow-50 text-yellow-700 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">Unclaimed 10+ days</span>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <p className="text-gray-400 text-sm font-medium">Searching</p>
-              <p className="text-4xl font-black text-yellow-500 mt-1">{searchingCount}</p>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <p className="text-gray-400 text-sm font-medium">Matched</p>
-              <p className="text-4xl font-black text-indigo-500 mt-1">{matchedCount}</p>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <p className="text-gray-400 text-sm font-medium">Returned</p>
-              <p className="text-4xl font-black text-green-600 mt-1">{returnedCount}</p>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[52rem]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  {["Photo", "Item Name", "Category", "Reported By", "Status", "Logged", "Actions"].map((h) => (
+                    <th key={h} className={TH}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {paginatedLost.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50 transition">
+                    <td className="px-6 py-4"><Thumb src={item.photo_url} alt={item.item_name} /></td>
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-gray-700">{item.item_name}</p>
+                      <p className="text-gray-400 text-xs mt-0.5">ID: LST-{String(item.id).padStart(3, "0")}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg">{item.category}</span>
+                    </td>
+                    <td className="px-6 py-4"><p className="text-gray-500 text-sm">{item.user?.name || "—"}</p></td>
+                    <td className="px-6 py-4"><StatusPill status={item.status} /></td>
+                    <td className="px-6 py-4"><p className="text-gray-400 text-xs">{formatDateTime(item.created_at)}</p></td>
+                    <td className="px-6 py-4">
+                      <button onClick={() => setViewingLostItem(item)} className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition">View</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
-            <h2 className="font-black text-gray-700 text-lg">
-              {mainTab === "found" ? "All Found Items" : "All Lost Item Reports"}
-            </h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              {mainTab === "found" ? (
-                <select
-                  value={foundStatusFilter}
-                  onChange={(e) => { setFoundStatusFilter(e.target.value); setPage(1); }}
-                  className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="unclaimed">Unclaimed</option>
-                  <option value="claimed">Claimed</option>
-                  <option value="confiscated">Confiscated</option>
-                  <option value="others">Others</option>
-                  <option value="disposed">Disposed</option>
-                </select>
-              ) : (
-                <select
-                  value={lostStatusFilter}
-                  onChange={(e) => { setLostStatusFilter(e.target.value); setPage(1); }}
-                  className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="searching">Searching</option>
-                  <option value="matched">Matched</option>
-                  <option value="returned">Returned</option>
-                </select>
-              )}
-              <input
-                type="text"
-                placeholder="Search by name, category, or location..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-64"
-              />
-            </div>
+        {!loading && activeFiltered.length === 0 && (
+          <div className="text-center py-16 text-gray-400">
+            <p className="font-bold text-lg">No items found</p>
+            <p className="text-sm mt-1">Try searching with a different keyword</p>
           </div>
+        )}
 
-          {loading ? (
-            <div className="text-center py-16 text-gray-400 text-sm">Loading items...</div>
-          ) : mainTab === "found" ? (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Photo</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Item Name</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
-                 <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Storage Location</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Reported By</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Logged</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {paginatedFound.map((item) => {
-                  const styles = statusStyles(item.status);
-                  return (
-                    <tr key={item.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4">
-                        <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-                          {item.photo_url ? (
-                            <img src={item.photo_url} alt={item.item_name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">N/A</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-700">{item.item_name}</p>
-                        <p className="text-gray-400 text-xs mt-0.5">ID: ITM-{String(item.id).padStart(3, "0")}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg">{item.category}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-gray-500 text-sm">{item.storage_location || "—"}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-gray-500 text-sm">{item.admin?.name || "—"}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${styles.dot}`} />
-                          <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${styles.badge}`}>{styles.label}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-gray-400 text-xs">{formatDateTime(item.created_at)}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                       <div className="flex items-center gap-2">
-                          <button onClick={() => setViewingFoundItem(item)} className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition">View</button>
-                          {item.status === "unclaimed" && item.needs_disposal_review ? (
-                            <span className="bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">Document disposal</span>
-                          ) : item.status === "unclaimed" && item.unclaimed_flagged_at ? (
-                            <span className="bg-yellow-50 text-yellow-700 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">Unclaimed 10+ days</span>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Photo</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Item Name</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Reported By</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Logged</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {paginatedLost.map((item) => {
-                  const styles = statusStyles(item.status);
-                  return (
-                    <tr key={item.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4">
-                        <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-                          {item.photo_url ? (
-                            <img src={item.photo_url} alt={item.item_name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">N/A</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-700">{item.item_name}</p>
-                        <p className="text-gray-400 text-xs mt-0.5">ID: LST-{String(item.id).padStart(3, "0")}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg">{item.category}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-gray-500 text-sm">{item.user?.name || "—"}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${styles.dot}`} />
-                          <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${styles.badge}`}>{styles.label}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-gray-400 text-xs">{formatDateTime(item.created_at)}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button onClick={() => setViewingLostItem(item)} className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition">View</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+        <Pager page={Math.min(page, totalPages)} pages={totalPages} total={activeFiltered.length} label="items" onChange={setPage} />
+      </div>
 
-          {!loading && activeFiltered.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
-              <p className="font-bold text-lg">No items found</p>
-              <p className="text-sm mt-1">Try searching with a different keyword</p>
-            </div>
-          )}
-
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-gray-400 text-sm">
-              Showing {activeFiltered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}&ndash;{Math.min(page * PAGE_SIZE, activeFiltered.length)} of {activeFiltered.length} items
-            </p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button key={p} onClick={() => setPage(p)} className={p === page ? "px-3 py-1.5 bg-[#1a237e] rounded-lg text-white text-sm font-bold" : "px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition"}>
-                  {p}
-                </button>
-              ))}
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
-            </div>
-          </div>
-        </div>
-      </main>
-      )}
-
+      
+      {/* Add Item */}
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
-           <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+            <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Add Item</h2>
             <p className="text-gray-400 text-sm mb-6">Record an item that was physically received by the office</p>
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Intake Type {!!formPhotoPreview && <span className="text-gray-400 font-normal normal-case">(locked after photo upload — click the photo to change)</span>}
+                  Intake Type {!!formPhotoPreview && <span className="text-gray-400 font-normal normal-case">(locked after photo upload)</span>}
                 </label>
-                <div className="flex gap-2 mt-1">
-                  <button
-                    type="button"
-                    disabled={!!formPhotoPreview}
-                    onClick={() => setFormIntakeType("found_item")}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "found_item" ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    Found Item
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!!formPhotoPreview}
-                    onClick={() => setFormIntakeType("confiscated")}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "confiscated" ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    Confiscated
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!!formPhotoPreview}
-                    onClick={() => setFormIntakeType("lost_item")}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "lost_item" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    Lost Item
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!!formPhotoPreview}
-                    onClick={() => setFormIntakeType("others")}
-                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === "others" ? "border-gray-500 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    Others
-                  </button>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                  {INTAKE_TYPES.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      disabled={!!formPhotoPreview}
+                      onClick={() => setFormIntakeType(t.key)}
+                      className={`py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === t.key ? t.active : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
               </div>
+
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Photo <span className="text-red-500">*</span></label>
                 <label className="mt-1 block cursor-pointer">
@@ -847,16 +815,19 @@ function ItemManagementContent() {
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={formUploading} className="hidden" />
                 </label>
               </div>
+
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Item Name</label>
                 <input type="text" value={formName} onChange={(e) => setFormName(filterLettersOnly(e.target.value))} placeholder="e.g. Grey Backpack" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
               </div>
+
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Category</label>
                 <select value={formCategory} onChange={(e) => setFormCategory(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm">
                   {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+
               {formIntakeType === "others" && (
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Please Specify (Optional)</label>
@@ -869,15 +840,17 @@ function ItemManagementContent() {
                   />
                 </div>
               )}
+
               {formIntakeType !== "others" && (
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
-                <input type="text" value={formLocationFound} onChange={(e) => setFormLocationFound(e.target.value)} placeholder={formIntakeType === "lost_item" ? "e.g. Room 305" : "e.g. Near the canteen"} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
-              </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
+                  <input type="text" value={formLocationFound} onChange={(e) => setFormLocationFound(e.target.value)} placeholder={formIntakeType === "lost_item" ? "e.g. Room 305" : "e.g. Near the canteen"} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+                </div>
               )}
+
               <div>
-               <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"}</label>
-              <input
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"}</label>
+                <input
                   type="date"
                   value={formDateFound}
                   onChange={(e) => setFormDateFound(e.target.value)}
@@ -892,15 +865,18 @@ function ItemManagementContent() {
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Storage Location (Optional)</label>
                   <input type="text" value={formStorageLocation} onChange={(e) => setFormStorageLocation(e.target.value)} placeholder="e.g. Cabinet A-08" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
                 </div>
-                )}
+              )}
+
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Description (Optional)</label>
                 <textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Describe the item..." rows={2} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm resize-none" />
               </div>
+
               {formError && <p className="text-red-500 text-xs font-semibold">{formError}</p>}
             </div>
+
             <div className="flex gap-3 mt-8">
-             <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
+              <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
               <button onClick={handleAddSubmit} disabled={formLoading || formUploading} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50">
                 {formLoading ? "Adding..." : "Add Item"}
               </button>
@@ -909,9 +885,10 @@ function ItemManagementContent() {
         </div>
       )}
 
+      {/* View found item */}
       {viewingFoundItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[85vh] overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setViewingFoundItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
               {viewingFoundItem.photo_url ? (
@@ -973,30 +950,14 @@ function ItemManagementContent() {
             )}
 
             <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Category</span>
-                <span className="font-bold text-gray-700">{viewingFoundItem.category}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Location Found</span>
-                <span className="font-bold text-gray-700">{viewingFoundItem.location_found}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Storage Location</span>
-                <span className="font-bold text-gray-700">{viewingFoundItem.storage_location || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Date Found</span>
-                <span className="font-bold text-gray-700">{viewingFoundItem.date_found || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Logged</span>
-                <span className="font-bold text-gray-700 text-xs">{formatDateTime(viewingFoundItem.created_at)}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Status</span>
+              <DetailRow label="Category"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.category}</span></DetailRow>
+              <DetailRow label="Location Found"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.location_found || "—"}</span></DetailRow>
+              <DetailRow label="Storage Location"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.storage_location || "—"}</span></DetailRow>
+              <DetailRow label="Date Found"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.date_found || "—"}</span></DetailRow>
+              <DetailRow label="Logged"><span className="font-bold text-gray-700 text-xs text-right">{formatDateTime(viewingFoundItem.created_at)}</span></DetailRow>
+              <DetailRow label="Status">
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${statusStyles(viewingFoundItem.status).badge}`}>{statusStyles(viewingFoundItem.status).label}</span>
-              </div>
+              </DetailRow>
               {viewingFoundItem.description && (
                 <div className="p-3 bg-gray-50 rounded-xl">
                   <span className="text-gray-400 font-medium text-sm block mb-1">Description</span>
@@ -1012,9 +973,10 @@ function ItemManagementContent() {
         </div>
       )}
 
+      {/* Multi-item chooser */}
       {choosingItemUrl && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Multiple Items Detected</h2>
             <p className="text-gray-400 text-sm mb-6">We found several items in this photo. Which one is this?</p>
 
@@ -1046,12 +1008,13 @@ function ItemManagementContent() {
         </div>
       )}
 
+      {/* Document disposal */}
       {documentingDisposal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Document Disposal Method</h2>
             <p className="text-gray-400 text-sm mb-6">
-              For "{documentingDisposal.item_name}" — this item has been unclaimed for over 30 days.
+              For &quot;{documentingDisposal.item_name}&quot; — this item has been unclaimed for over 30 days.
             </p>
             <label className="block text-sm font-bold text-gray-600 mb-2">Disposal Method</label>
             <textarea
@@ -1080,9 +1043,10 @@ function ItemManagementContent() {
         </div>
       )}
 
+      {/* View lost report */}
       {viewingLostItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[85vh] overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setViewingLostItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
               {viewingLostItem.photo_url ? (
@@ -1094,30 +1058,14 @@ function ItemManagementContent() {
             <h2 className="text-xl font-black text-[#1a237e]">{viewingLostItem.item_name}</h2>
             <p className="text-gray-400 text-xs mb-4">ID: LST-{String(viewingLostItem.id).padStart(3, "0")}</p>
             <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Category</span>
-                <span className="font-bold text-gray-700">{viewingLostItem.category}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Reported By</span>
-                <span className="font-bold text-gray-700">{viewingLostItem.user?.name || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Location Lost</span>
-                <span className="font-bold text-gray-700">{viewingLostItem.location_lost}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Date Lost</span>
-                <span className="font-bold text-gray-700">{viewingLostItem.date_lost || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Logged</span>
-                <span className="font-bold text-gray-700 text-xs">{formatDateTime(viewingLostItem.created_at)}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-400 font-medium">Status</span>
+              <DetailRow label="Category"><span className="font-bold text-gray-700 text-right">{viewingLostItem.category}</span></DetailRow>
+              <DetailRow label="Reported By"><span className="font-bold text-gray-700 text-right">{viewingLostItem.user?.name || "—"}</span></DetailRow>
+              <DetailRow label="Location Lost"><span className="font-bold text-gray-700 text-right">{viewingLostItem.location_lost}</span></DetailRow>
+              <DetailRow label="Date Lost"><span className="font-bold text-gray-700 text-right">{viewingLostItem.date_lost || "—"}</span></DetailRow>
+              <DetailRow label="Logged"><span className="font-bold text-gray-700 text-xs text-right">{formatDateTime(viewingLostItem.created_at)}</span></DetailRow>
+              <DetailRow label="Status">
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${statusStyles(viewingLostItem.status).badge}`}>{statusStyles(viewingLostItem.status).label}</span>
-              </div>
+              </DetailRow>
               {viewingLostItem.description && (
                 <div className="p-3 bg-gray-50 rounded-xl">
                   <span className="text-gray-400 font-medium text-sm block mb-1">Description</span>
@@ -1132,9 +1080,10 @@ function ItemManagementContent() {
         </div>
       )}
 
+      {/* Delete found item */}
       {deletingItem && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Delete This Item?</h2>
             <p className="text-gray-400 text-sm mb-8">
               {deletingItem.item_name} will be permanently removed. This cannot be undone.
@@ -1146,6 +1095,6 @@ function ItemManagementContent() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }
