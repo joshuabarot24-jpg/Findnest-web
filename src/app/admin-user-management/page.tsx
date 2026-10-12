@@ -52,6 +52,7 @@ function AdminUserManagementContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "restricted">("all");
   const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school">("all");
 
   const [viewingUser, setViewingUser] = useState<SystemUser | null>(null);
@@ -132,30 +133,39 @@ function AdminUserManagementContent() {
   useAutoRefresh(fetchOverrideRequests);
 
   const baseFiltered = useMemo(() => {
-    if (studentSubTab === "all") return users;
-    return users.filter((u) => u.education_level === studentSubTab);
-  }, [users, studentSubTab]);
+    // [Filter] Education level first, then status. Status follows the table badge:
+    // revoked > restricted > active. Revoked accounts only show under "All Status".
+    const byLevel = studentSubTab === "all" ? users : users.filter((u) => u.education_level === studentSubTab);
+    if (statusFilter === "active") return byLevel.filter((u) => u.is_active && !u.is_restricted);
+    if (statusFilter === "restricted") return byLevel.filter((u) => u.is_active && u.is_restricted);
+    return byLevel;
+  }, [users, studentSubTab, statusFilter]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     if (!q) return baseFiltered;
-    return baseFiltered.filter(
-      (u) =>
+    return baseFiltered.filter((u) => {
+      // [Search] Same status the table shows: revoked > restricted > active.
+      // "inactive" also finds revoked accounts.
+      const statusLabel = !u.is_active ? "revoked inactive" : u.is_restricted ? "restricted" : "active";
+      return (
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         (u.school_id || "").toLowerCase().includes(q) ||
         (u.course || "").toLowerCase().includes(q) ||
         (u.year_level || "").toLowerCase().includes(q) ||
         (u.education_level || "").toLowerCase().includes(q) ||
-        educationLabel(u.education_level).toLowerCase().includes(q)
-    );
+        educationLabel(u.education_level).toLowerCase().includes(q) ||
+        statusLabel.includes(q)
+      );
+    });
   }, [baseFiltered, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [studentSubTab, search]);
+  }, [studentSubTab, search, statusFilter]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -334,6 +344,15 @@ function AdminUserManagementContent() {
                 {(["all", "college", "senior_high_school", "junior_high_school"] as const).map((level) => (
                   <option key={level} value={level}>{level === "all" ? "All" : educationLabel(level)}</option>
                 ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="restricted">Restricted</option>
               </select>
               <input
                 type="text"
