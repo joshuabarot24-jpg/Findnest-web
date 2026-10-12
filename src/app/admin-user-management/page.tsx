@@ -56,8 +56,6 @@ function AdminUserManagementContent() {
   const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school">("all");
 
   const [viewingUser, setViewingUser] = useState<SystemUser | null>(null);
-  const [deletingUser, setDeletingUser] = useState<SystemUser | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [toast, setToast] = useState<string | null>(null);
 
@@ -147,7 +145,7 @@ function AdminUserManagementContent() {
     return baseFiltered.filter((u) => {
       // [Search] Same status the table shows: revoked > restricted > active.
       // "inactive" also finds revoked accounts.
-      const statusLabel = !u.is_active ? "revoked inactive" : u.is_restricted ? "restricted" : "active";
+        const statusLabel = !u.is_active ? "archived inactive" : u.is_restricted ? "restricted" : "active";
       return (
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
@@ -175,22 +173,6 @@ function AdminUserManagementContent() {
 
   const activeCount = users.filter((u) => u.is_active).length;
   const restrictedCount = users.filter((u) => u.is_restricted).length;
-
-  async function handleDeleteConfirm() {
-    if (!deletingUser) return;
-    setDeleteLoading(true);
-    try {
-      await api.delete(`/users/${deletingUser.id}`);
-      setToast(`${deletingUser.name}'s account was permanently deleted.`);
-      setDeletingUser(null);
-      setViewingUser(null);
-      fetchUsers();
-    } catch (err: any) {
-      setToast(err.response?.data?.message || "Failed to delete account.");
-    } finally {
-      setDeleteLoading(false);
-    }
-  }
 
   function trustScoreColor(score: number) {
     if (score >= 70) return "text-green-600 bg-green-50";
@@ -409,7 +391,7 @@ function AdminUserManagementContent() {
                     </td>
                     <td className="px-6 py-4">
                       {!user.is_active ? (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600">REVOKED</span>
+                        <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600">ARCHIVED</span>
                       ) : user.is_restricted ? (
                         <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600">RESTRICTED</span>
                       ) : (
@@ -427,14 +409,6 @@ function AdminUserManagementContent() {
                         >
                           View
                         </button>
-                        {!user.is_active && (
-                          <button
-                            onClick={() => setDeletingUser(user)}
-                            className="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                          >
-                            Delete
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -540,9 +514,9 @@ function AdminUserManagementContent() {
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <span className="text-gray-400 font-medium">Status</span>
                 <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                  !viewingUser.is_active ? "bg-red-50 text-red-600" : viewingUser.is_restricted ? "bg-orange-50 text-orange-600" : "bg-green-50 text-green-700"
+                  !viewingUser.is_active ? "bg-gray-100 text-gray-600" : viewingUser.is_restricted ? "bg-orange-50 text-orange-600" : "bg-green-50 text-green-700"
                 }`}>
-                  {!viewingUser.is_active ? "REVOKED" : viewingUser.is_restricted ? "RESTRICTED" : "ACTIVE"}
+                  {!viewingUser.is_active ? "ARCHIVED" : viewingUser.is_restricted ? "RESTRICTED" : "ACTIVE"}
                 </span>
               </div>
             </div>
@@ -568,14 +542,6 @@ function AdminUserManagementContent() {
               </button>
             </div>
 
-            {!viewingUser.is_active && (
-              <button
-                onClick={() => setDeletingUser(viewingUser)}
-                className="w-full mt-4 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-bold py-3 rounded-2xl transition"
-              >
-                Permanently Delete Account
-              </button>
-            )}
 
             <button
               onClick={() => setViewingUser(null)}
@@ -583,35 +549,6 @@ function AdminUserManagementContent() {
             >
               Close
             </button>
-          </div>
-        </div>
-      )}
-
-      {deletingUser && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
-            <h2 className="text-xl font-black text-[#1a237e] mb-2">Permanently Delete Account?</h2>
-            <p className="text-gray-400 text-sm mb-3">
-              {deletingUser.name}&apos;s account, along with all their lost/found reports, claims, and matches, will be permanently erased.
-            </p>
-            <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-6">
-              <p className="text-red-600 text-xs font-bold">This action CANNOT be undone.</p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeletingUser(null)}
-                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleteLoading}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
-              >
-                {deleteLoading ? "Deleting..." : "Permanently Delete"}
-              </button>
-            </div>
           </div>
         </div>
       )}
