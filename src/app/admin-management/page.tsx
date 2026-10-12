@@ -6,7 +6,6 @@ import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import SuperAdminLayout from "@/components/SuperAdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
-import { generatePassword } from "@/lib/generatePassword";
 
 interface AdminUser {
   id: number;
@@ -94,8 +93,6 @@ function AdminManagementContent() {
   const [revokingAdmin, setRevokingAdmin] = useState<AdminUser | null>(null);
   const [restoringAdmin, setRestoringAdmin] = useState<AdminUser | null>(null);
   const [viewingArchived, setViewingArchived] = useState<AdminUser | null>(null);
-  const [restorePassword, setRestorePassword] = useState("");
-  const [restoredPassword, setRestoredPassword] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreError, setRestoreError] = useState("");
   const [revokeActionLoading, setRevokeActionLoading] = useState(false);
@@ -334,36 +331,29 @@ function AdminManagementContent() {
     }
   }
 
-    // Opens the restore popup with a generated temporary password
+  // Opens the restore confirmation (admins keep their existing password)
   function openRestore(admin: AdminUser) {
     setRestoringAdmin(admin);
-    setRestorePassword(generatePassword());
-    setRestoredPassword("");
     setRestoreError("");
   }
 
   function closeRestore() {
     setRestoringAdmin(null);
-    setRestorePassword("");
-    setRestoredPassword("");
     setRestoreError("");
   }
 
-  // Restores an archived admin; the backend marks the new password temporary
+  // Restores an archived admin; no new password is needed
   async function handleRestoreConfirm() {
     if (!restoringAdmin) return;
     setRestoreLoading(true);
     setRestoreError("");
     try {
-      await api.post(`/users/${restoringAdmin.id}/restore`, { new_password: restorePassword });
-      setRestoredPassword(restorePassword);
+      await api.post(`/users/${restoringAdmin.id}/restore`);
+      setToast(`${restoringAdmin.name}'s account was restored.`);
+      setRestoringAdmin(null);
       fetchUsers();
     } catch (err: any) {
-      setRestoreError(
-        err.response?.data?.errors?.new_password?.[0] ||
-          err.response?.data?.message ||
-          "Failed to restore the account."
-      );
+      setRestoreError(err.response?.data?.message || "Failed to restore the account.");
     } finally {
       setRestoreLoading(false);
     }
@@ -1131,74 +1121,29 @@ function AdminManagementContent() {
         </div>
       )}
 
-      {restoringAdmin && (
+            {restoringAdmin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 max-h-[90vh] overflow-y-auto">
-            {restoredPassword ? (
-              <>
-                <h2 className="text-xl font-black text-[#1a237e] mb-2 text-center">Account Restored</h2>
-                <p className="text-gray-400 text-sm mb-4 text-center">
-                  Give this temporary password to {restoringAdmin.name}. Ask them to change it after logging in.
-                </p>
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                  <p className="font-mono font-bold text-gray-700 text-lg break-all text-center">{restoredPassword}</p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(restoredPassword); setToast("Password copied."); }}
-                    className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
-                  >
-                    Copy
-                  </button>
-                  <button
-                    onClick={closeRestore}
-                    className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
-                  >
-                    Done
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 className="text-xl font-black text-[#1a237e] mb-2 text-center">Restore This Account?</h2>
-                <p className="text-gray-400 text-sm mb-4 text-center">
-                  {restoringAdmin.name} will be able to log in again. A new temporary password is required.
-                </p>
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">New temporary password</label>
-                  <button
-                    type="button"
-                    onClick={() => setRestorePassword(generatePassword())}
-                    className="text-xs font-bold text-[#1a237e] hover:underline"
-                  >
-                    Generate
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={restorePassword}
-                  onChange={(e) => setRestorePassword(e.target.value)}
-                  autoComplete="off"
-                  className="w-full mt-1 mb-2 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm font-mono"
-                />
-                {restoreError && <p className="text-red-500 text-xs font-semibold mb-2">{restoreError}</p>}
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={closeRestore}
-                    className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleRestoreConfirm}
-                    disabled={restoreLoading || !restorePassword}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
-                  >
-                    {restoreLoading ? "Restoring..." : "Restore"}
-                  </button>
-                </div>
-              </>
-            )}
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-black text-[#1a237e] mb-2">Restore This Account?</h2>
+            <p className="text-gray-400 text-sm mb-6">
+              {restoringAdmin.name} will be able to log in again with their existing password.
+            </p>
+            {restoreError && <p className="text-red-500 text-xs font-semibold mb-4">{restoreError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={closeRestore}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRestoreConfirm}
+                disabled={restoreLoading}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+              >
+                {restoreLoading ? "Restoring..." : "Restore"}
+              </button>
+            </div>
           </div>
         </div>
       )}
