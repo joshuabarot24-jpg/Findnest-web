@@ -52,7 +52,7 @@ function AdminUserManagementContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "restricted">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "restricted" | "archived">("all");
   const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school">("all");
 
   const [viewingUser, setViewingUser] = useState<SystemUser | null>(null);
@@ -132,10 +132,11 @@ function AdminUserManagementContent() {
 
   const baseFiltered = useMemo(() => {
     // [Filter] Education level first, then status. Status follows the table badge:
-    // revoked > restricted > active. Revoked accounts only show under "All Status".
+    // archived > restricted > active. Archived accounts show under "All Status" and "Archived" only.
     const byLevel = studentSubTab === "all" ? users : users.filter((u) => u.education_level === studentSubTab);
     if (statusFilter === "active") return byLevel.filter((u) => u.is_active && !u.is_restricted);
     if (statusFilter === "restricted") return byLevel.filter((u) => u.is_active && u.is_restricted);
+    if (statusFilter === "archived") return byLevel.filter((u) => !u.is_active);
     return byLevel;
   }, [users, studentSubTab, statusFilter]);
 
@@ -335,6 +336,7 @@ function AdminUserManagementContent() {
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="restricted">Restricted</option>
+                <option value="archived">Archived</option>
               </select>
               <input
                 type="text"
