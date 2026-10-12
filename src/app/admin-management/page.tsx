@@ -93,6 +93,7 @@ function AdminManagementContent() {
   const [restrictActionLoading, setRestrictActionLoading] = useState(false);
   const [revokingAdmin, setRevokingAdmin] = useState<AdminUser | null>(null);
   const [restoringAdmin, setRestoringAdmin] = useState<AdminUser | null>(null);
+  const [viewingArchived, setViewingArchived] = useState<AdminUser | null>(null);
   const [restorePassword, setRestorePassword] = useState("");
   const [restoredPassword, setRestoredPassword] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
@@ -525,11 +526,10 @@ function AdminManagementContent() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => openEditModal(admin)}
-                            disabled={!admin.is_active}
-                            className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            onClick={() => (admin.is_active ? openEditModal(admin) : setViewingArchived(admin))}
+                            className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition"
                           >
-                            Edit
+                            {admin.is_active ? "Edit" : "View"}
                           </button>
                           {admin.is_active && (
                             <button
@@ -1085,7 +1085,53 @@ function AdminManagementContent() {
         </div>
       )}
 
-        {restoringAdmin && (
+            {viewingArchived && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setViewingArchived(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-2xl font-black text-[#1a237e] mb-1">{viewingArchived.name}</h2>
+            <span className="inline-block text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 mb-4">ARCHIVED</span>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 font-medium">Email</span>
+                <span className="font-bold text-gray-700 text-right break-all">{viewingArchived.email}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 font-medium">Role</span>
+                <span className="font-bold text-gray-700 text-right capitalize">{formatRole(viewingArchived.role)}</span>
+              </div>
+            </div>
+
+            <p className="text-gray-400 text-xs mt-4 text-center">
+              This account is archived and read-only. Use Restore to give it access again.
+            </p>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setViewingArchived(null)}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => { const a = viewingArchived; setViewingArchived(null); openRestore(a); }}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-2xl transition"
+              >
+                Restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {restoringAdmin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 max-h-[90vh] overflow-y-auto">
             {restoredPassword ? (
