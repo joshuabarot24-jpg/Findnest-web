@@ -82,7 +82,8 @@ function DashboardContent() {
   const [activityTypeFilter, setActivityTypeFilter] = useState<"all" | "found" | "lost">("all");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-    const [dateRange, setDateRange] = useState<"all" | "today" | "7d" | "10d" | "15d" | "30d">("all");
+  const [dateRange, setDateRange] = useState<"all" | "today" | "7d" | "10d" | "15d" | "30d">("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
   // Loads all three lists, builds today's counts, alerts and the merged activity feed
   useEffect(() => {
@@ -168,12 +169,14 @@ function DashboardContent() {
   const manilaDay = (ts: number) =>
     new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
   const todayKey = manilaDay(Date.now());
-  const displayedActivity = bySearch.filter((a) => {
+    const byDate = bySearch.filter((a) => {
     if (dateRange === "all") return true;
     if (dateRange === "today") return manilaDay(a.ts) === todayKey;
-     const days = { "7d": 7, "10d": 10, "15d": 15, "30d": 30 }[dateRange];
+    const days = { "7d": 7, "10d": 10, "15d": 15, "30d": 30 }[dateRange];
     return a.ts >= Date.now() - days * 24 * 60 * 60 * 1000;
   });
+  // [Sort] Newest first (default) or oldest first, by the real timestamp
+  const displayedActivity = [...byDate].sort((a, b) => (sortOrder === "newest" ? b.ts - a.ts : a.ts - b.ts));
   const totalPages = Math.max(1, Math.ceil(displayedActivity.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageRows = displayedActivity.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -290,6 +293,14 @@ function DashboardContent() {
               <option value="10d">Last 10 Days</option>
               <option value="15d">Last 15 Days</option>
               <option value="30d">Last 30 Days</option>
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value as typeof sortOrder); setPage(1); }}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
             </select>
             <input
               type="text"
