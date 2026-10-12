@@ -81,6 +81,8 @@ function DashboardContent() {
   const [previewItem, setPreviewItem] = useState<ActivityItem | null>(null);
   const [activityTypeFilter, setActivityTypeFilter] = useState<"all" | "found" | "lost">("all");
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+    const [dateRange, setDateRange] = useState<"all" | "today" | "7d" | "10d" | "15d" | "30d">("all");
 
   // Loads all three lists, builds today's counts, alerts and the merged activity feed
   useEffect(() => {
@@ -152,10 +154,26 @@ function DashboardContent() {
     return () => clearInterval(refreshInterval);
   }, []);
 
-  // Filter, then slice to the current page of 5
-  const displayedActivity = activityTypeFilter === "all"
+    // Type filter first, then search by item name or who reported it
+  const byType = activityTypeFilter === "all"
     ? recentActivity
     : recentActivity.filter((a) => a.type === activityTypeFilter);
+  const q = search.toLowerCase().trim();
+  const bySearch = q
+    ? byType.filter((a) => a.item.toLowerCase().includes(q) || a.reported_by.toLowerCase().includes(q))
+    : byType;
+
+  // [Filter] Date range, in Manila time. "Today" = since midnight in Manila;
+  // 7d / 30d = that many days back from now.
+  const manilaDay = (ts: number) =>
+    new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const todayKey = manilaDay(Date.now());
+  const displayedActivity = bySearch.filter((a) => {
+    if (dateRange === "all") return true;
+    if (dateRange === "today") return manilaDay(a.ts) === todayKey;
+     const days = { "7d": 7, "10d": 10, "15d": 15, "30d": 30 }[dateRange];
+    return a.ts >= Date.now() - days * 24 * 60 * 60 * 1000;
+  });
   const totalPages = Math.max(1, Math.ceil(displayedActivity.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageRows = displayedActivity.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -251,21 +269,44 @@ function DashboardContent() {
             <h2 className="font-black text-gray-700">Recent Activity</h2>
             <p className="text-gray-400 text-xs">Latest lost and found reports</p>
           </div>
-          <select
-            value={activityTypeFilter}
-            onChange={(e) => { setActivityTypeFilter(e.target.value as "all" | "found" | "lost"); setPage(1); }}
-            className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-          >
-            <option value="all">All</option>
-            <option value="found">Found Only</option>
-            <option value="lost">Lost Only</option>
-          </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={activityTypeFilter}
+              onChange={(e) => { setActivityTypeFilter(e.target.value as "all" | "found" | "lost"); setPage(1); }}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="all">All</option>
+              <option value="found">Found Only</option>
+              <option value="lost">Lost Only</option>
+            </select>
+            <select
+              value={dateRange}
+              onChange={(e) => { setDateRange(e.target.value as typeof dateRange); setPage(1); }}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="10d">Last 10 Days</option>
+              <option value="15d">Last 15 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Search item or reporter..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-full sm:w-64"
+            />
+          </div>
         </div>
 
         {loading ? (
           <div className="px-6 py-16 text-center text-gray-400 text-sm">Loading recent activity...</div>
         ) : displayedActivity.length === 0 ? (
-          <div className="px-6 py-16 text-center text-gray-400 text-sm">No recent activity yet.</div>
+          <div className="px-6 py-16 text-center text-gray-400 text-sm">
+            {recentActivity.length === 0 ? "No recent activity yet." : "No matching activity."}
+          </div>
         ) : (
           <>
             <div className="overflow-x-auto">
