@@ -24,6 +24,7 @@ interface SystemUser {
   password_change_approved: boolean;
   password_change_reason: string | null;
   password_last_changed_at: string | null;
+  restored_at?: string | null;
   created_at?: string;
 }
 
@@ -101,7 +102,7 @@ function UserManagementContent() {
   const [page, setPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
-  const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school" | "revoked" | "password_requests" | "restricted">("all");
+  const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school" | "archived" | "restored" | "password_requests" | "restricted">("all");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
@@ -109,6 +110,12 @@ function UserManagementContent() {
   const [approvingPassword, setApprovingPassword] = useState(false);
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
   const [revokingUser, setRevokingUser] = useState<SystemUser | null>(null);
+  const [restoringUser, setRestoringUser] = useState<SystemUser | null>(null);
+  const [viewingArchived, setViewingArchived] = useState<SystemUser | null>(null);
+  const [restorePassword, setRestorePassword] = useState("");
+  const [restoredPassword, setRestoredPassword] = useState("");
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreError, setRestoreError] = useState("");
   const [restrictingUser, setRestrictingUser] = useState<SystemUser | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -170,7 +177,8 @@ function UserManagementContent() {
   // Rows for the selected tab (before search/sort)
   const baseFiltered = useMemo(() => {
     if (studentSubTab === "all") return users.filter((u) => u.is_active);
-    if (studentSubTab === "revoked") return users.filter((u) => !u.is_active);
+    if (studentSubTab === "archived") return users.filter((u) => !u.is_active);
+    if (studentSubTab === "restored") return users.filter((u) => u.is_active && !!u.restored_at);
     if (studentSubTab === "password_requests") return users.filter((u) => u.password_change_requested);
     if (studentSubTab === "restricted") return users.filter((u) => u.is_restricted && u.is_active);
     return users.filter((u) => u.education_level === studentSubTab && u.is_active);
@@ -346,12 +354,47 @@ function UserManagementContent() {
     }
   }
 
+    // Opens the restore popup with a generated temporary password
+  function openRestore(user: SystemUser) {
+    setRestoringUser(user);
+    setRestorePassword(generatePassword());
+    setRestoredPassword("");
+    setRestoreError("");
+  }
+
+  function closeRestore() {
+    setRestoringUser(null);
+    setRestorePassword("");
+    setRestoredPassword("");
+    setRestoreError("");
+  }
+
+  // Restores an archived account; the backend marks the new password temporary
+  async function handleRestoreConfirm() {
+    if (!restoringUser) return;
+    setRestoreLoading(true);
+    setRestoreError("");
+    try {
+      await api.post(`/users/${restoringUser.id}/restore`, { new_password: restorePassword });
+      setRestoredPassword(restorePassword);
+      fetchUsers();
+    } catch (err: any) {
+      setRestoreError(
+        err.response?.data?.errors?.new_password?.[0] ||
+          err.response?.data?.message ||
+          "Failed to restore the account."
+      );
+    } finally {
+      setRestoreLoading(false);
+    }
+  }
+
   async function handleRevokeConfirm() {
     if (!revokingUser) return;
     setActionLoading(true);
     try {
       await api.post(`/users/${revokingUser.id}/revoke`);
-      setToast(`${revokingUser.name}'s access was permanently revoked.`);
+      setToast(`${revokingUser.name}'s account was archived.`);
       setRevokingUser(null);
       fetchUsers();
     } catch (err) {
@@ -433,7 +476,8 @@ function UserManagementContent() {
 
   const tabLabel = (tab: string) => {
     if (tab === "all") return "All";
-    if (tab === "revoked") return "Revoked";
+    if (tab === "archived") return "Archived";
+    if (tab === "restored") return "Restored";
     if (tab === "password_requests") return "Password Requests";
     if (tab === "restricted") return "Restricted";
     return educationLabel(tab);
@@ -485,7 +529,7 @@ function UserManagementContent() {
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Revoked Students</p>
+            <p className="text-gray-400 text-sm font-medium">Archived Students</p>
             <p className="text-4xl font-black text-red-500 mt-1">{inactiveCount}</p>
           </div>
 
@@ -497,13 +541,13 @@ function UserManagementContent() {
 
         {/* Tab buttons */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-          {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "revoked", "password_requests"] as const).map((level) => (
+          {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "archived", "restored", "password_requests"] as const).map((level) => (
             <button
               key={level}
               onClick={() => setStudentSubTab(level)}
               className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
                 studentSubTab === level
-                  ? level === "revoked"
+                  ? level === "archived"
                     ? "bg-red-500 text-white shadow-md"
                     : level === "password_requests"
                     ? "bg-orange-500 text-white shadow-md"
@@ -546,7 +590,7 @@ function UserManagementContent() {
                 onChange={(e) => setStudentSubTab(e.target.value as typeof studentSubTab)}
                 className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
               >
-                {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "revoked", "password_requests"] as const).map((level) => (
+                {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "archived", "password_requests"] as const).map((level) => (
                   <option key={level} value={level}>{tabLabel(level)}</option>
                 ))}
               </select>
@@ -660,7 +704,7 @@ function UserManagementContent() {
                       </td>
                       <td className="px-6 py-4">
                         {!user.is_active ? (
-                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600">REVOKED</span>
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600">ARCHIVED</span>
                         ) : user.is_restricted ? (
                           <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600">RESTRICTED</span>
                         ) : (
@@ -670,11 +714,10 @@ function UserManagementContent() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => openEditModal(user)}
-                            disabled={!user.is_active}
-                            className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            onClick={() => (user.is_active ? openEditModal(user) : setViewingArchived(user))}
+                            className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition"
                           >
-                            Edit
+                            {user.is_active ? "Edit" : "View"}
                           </button>
                           {user.is_active && (
                             <button
@@ -693,7 +736,15 @@ function UserManagementContent() {
                               onClick={() => setRevokingUser(user)}
                               className="bg-red-50 hover:bg-red-600 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
                             >
-                              Revoke
+                              Archive
+                            </button>
+                          )}
+                          {!user.is_active && (
+                            <button
+                              onClick={() => openRestore(user)}
+                              className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                            >
+                              Restore
                             </button>
                           )}
                         </div>
@@ -1401,15 +1452,154 @@ function UserManagementContent() {
         </div>
       )}
 
+            {viewingArchived && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setViewingArchived(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-2xl font-black text-[#1a237e] mb-1">{viewingArchived.name}</h2>
+            <span className="inline-block text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 mb-4">ARCHIVED</span>
+
+            <div className="bg-blue-50 rounded-2xl p-4 mb-4">
+              <p className="text-xs font-bold text-gray-400 uppercase">Trust Score</p>
+              <p className="text-2xl font-black text-[#1a237e]">{viewingArchived.trust_score}</p>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 font-medium">Email</span>
+                <span className="font-bold text-gray-700 text-right break-all">{viewingArchived.email}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 font-medium">Education Level</span>
+                <span className="font-bold text-gray-700 text-right">{educationLabel(viewingArchived.education_level)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 font-medium">School ID</span>
+                <span className="font-bold text-gray-700 text-right">{viewingArchived.school_id || "—"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 font-medium">
+                  {viewingArchived.education_level === "senior_high_school" ? "Strand" : viewingArchived.education_level === "college" ? "Course" : "Section"}
+                </span>
+                <span className="font-bold text-gray-700 text-right">{viewingArchived.course || "—"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+                <span className="text-gray-400 font-medium">
+                  {viewingArchived.education_level === "college" ? "Year Level" : "Grade Level"}
+                </span>
+                <span className="font-bold text-gray-700 text-right">{viewingArchived.year_level || "—"}</span>
+              </div>
+            </div>
+
+            <p className="text-gray-400 text-xs mt-4 text-center">
+              This account is archived and read-only. Use Restore to give it access again.
+            </p>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setViewingArchived(null)}
+                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => { const u = viewingArchived; setViewingArchived(null); openRestore(u); }}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-2xl transition"
+              >
+                Restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {restoringUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 max-h-[90vh] overflow-y-auto">
+            {restoredPassword ? (
+              <>
+                <h2 className="text-xl font-black text-[#1a237e] mb-2 text-center">Account Restored</h2>
+                <p className="text-gray-400 text-sm mb-4 text-center">
+                  Give this temporary password to {restoringUser.name}. They must set their own password when they log in.
+                </p>
+                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                  <p className="font-mono font-bold text-gray-700 text-lg break-all text-center">{restoredPassword}</p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(restoredPassword); setToast("Password copied."); }}
+                    className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    onClick={closeRestore}
+                    className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-black text-[#1a237e] mb-2 text-center">Restore This Account?</h2>
+                <p className="text-gray-400 text-sm mb-4 text-center">
+                  {restoringUser.name} will be able to log in again. Their reports and claims are kept. A new temporary password is required.
+                </p>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">New temporary password</label>
+                  <button
+                    type="button"
+                    onClick={() => setRestorePassword(generatePassword())}
+                    className="text-xs font-bold text-[#1a237e] hover:underline"
+                  >
+                    Generate
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={restorePassword}
+                  onChange={(e) => setRestorePassword(e.target.value)}
+                  autoComplete="off"
+                  className="w-full mt-1 mb-2 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm font-mono"
+                />
+                {restoreError && <p className="text-red-500 text-xs font-semibold mb-2">{restoreError}</p>}
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={closeRestore}
+                    className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRestoreConfirm}
+                    disabled={restoreLoading || !restorePassword}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+                  >
+                    {restoreLoading ? "Restoring..." : "Restore"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      
       {revokingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-black text-[#1a237e] mb-2">Permanently Revoke Access?</h2>
+            <h2 className="text-xl font-black text-[#1a237e] mb-2">Archive This Account?</h2>
             <p className="text-gray-400 text-sm mb-3">
-              {revokingUser.name} will permanently lose access to their account.
+              {revokingUser.name} will no longer be able to log in. Their account, reports and claims are kept, and the account can be restored later.
             </p>
             <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-6">
-              <p className="text-red-600 text-xs font-bold">This action CANNOT be undone. There is no restore option once revoked.</p>
+              <p className="text-red-600 text-xs font-bold">The account can be restored later with a new temporary password.</p>
             </div>
 
             <div className="flex gap-3">
@@ -1424,7 +1614,7 @@ function UserManagementContent() {
                 disabled={actionLoading}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
               >
-                {actionLoading ? "Revoking..." : "Permanently Revoke"}
+                {actionLoading ? "Archiving..." : "Archive"}
               </button>
             </div>
           </div>
