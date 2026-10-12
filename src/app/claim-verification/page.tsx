@@ -117,7 +117,9 @@ function ClaimVerificationContent() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<"all" | "today" | "7d" | "10d" | "15d" | "30d">("all");
   const [page, setPage] = useState(1);
   const [viewingClaim, setViewingClaim] = useState<Claim | null>(null);
   const [rejectingClaim, setRejectingClaim] = useState<Claim | null>(null);
@@ -190,8 +192,26 @@ function ClaimVerificationContent() {
       if (statusFilter === "collected") return c.claim_status === "approved" && !!c.collected_at;
       return c.claim_status === statusFilter;
     });
-    if (!q) return byStatus;
-      return byStatus.filter((c) => {
+    // [Filter] Category (of the found item) + date range on claim submission, Manila time
+    const manilaDay = (ts: number) =>
+      new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+    const todayKey = manilaDay(Date.now());
+    const standardCategories = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Books", "Vapes"];
+    const byCategoryDate = byStatus.filter((c) => {
+      const category = c.match?.found_record?.category || "";
+      if (categoryFilter === "Others") {
+        if (standardCategories.includes(category)) return false;
+      } else if (categoryFilter !== "all" && category !== categoryFilter) {
+        return false;
+      }
+      if (dateRange === "all") return true;
+      const ts = new Date(c.created_at).getTime();
+      if (dateRange === "today") return manilaDay(ts) === todayKey;
+      const days = { "7d": 7, "10d": 10, "15d": 15, "30d": 30 }[dateRange];
+      return ts >= Date.now() - days * 24 * 60 * 60 * 1000;
+    });
+    if (!q) return byCategoryDate;
+      return byCategoryDate.filter((c) => {
       const dateStr = new Date(c.created_at).toLocaleDateString().toLowerCase();
       return (
         (c.student?.name || "").toLowerCase().includes(q) ||
@@ -203,7 +223,7 @@ function ClaimVerificationContent() {
         dateStr.includes(q)
       );
     });
-  }, [claims, search, statusFilter]);
+  }, [claims, search, statusFilter, categoryFilter, dateRange]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -377,6 +397,28 @@ function ClaimVerificationContent() {
                 <option value="rejected">Rejected</option>
                 <option value="abandoned">Abandoned</option>
                 <option value="multiple">Multiple Claimants</option>
+              </select>
+              <select
+                value={categoryFilter}
+                onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                <option value="all">All Categories</option>
+                {["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Books", "Vapes", "Others"].map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select
+                value={dateRange}
+                onChange={(e) => { setDateRange(e.target.value as typeof dateRange); setPage(1); }}
+                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="10d">Last 10 Days</option>
+                <option value="15d">Last 15 Days</option>
+                <option value="30d">Last 30 Days</option>
               </select>
               <input
                 type="text"
