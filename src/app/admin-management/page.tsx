@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import SuperAdminLayout from "@/components/SuperAdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import { generatePassword } from "@/lib/generatePassword";
 
 interface AdminUser {
   id: number;
@@ -91,6 +92,11 @@ function AdminManagementContent() {
   const [restrictingAdmin, setRestrictingAdmin] = useState<AdminUser | null>(null);
   const [restrictActionLoading, setRestrictActionLoading] = useState(false);
   const [revokingAdmin, setRevokingAdmin] = useState<AdminUser | null>(null);
+  const [restoringAdmin, setRestoringAdmin] = useState<AdminUser | null>(null);
+  const [restorePassword, setRestorePassword] = useState("");
+  const [restoredPassword, setRestoredPassword] = useState("");
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreError, setRestoreError] = useState("");
   const [revokeActionLoading, setRevokeActionLoading] = useState(false);
   const [editTab, setEditTab] = useState<"credentials" | "privileges" | "restrictions">("credentials");
 
@@ -327,12 +333,47 @@ function AdminManagementContent() {
     }
   }
 
+    // Opens the restore popup with a generated temporary password
+  function openRestore(admin: AdminUser) {
+    setRestoringAdmin(admin);
+    setRestorePassword(generatePassword());
+    setRestoredPassword("");
+    setRestoreError("");
+  }
+
+  function closeRestore() {
+    setRestoringAdmin(null);
+    setRestorePassword("");
+    setRestoredPassword("");
+    setRestoreError("");
+  }
+
+  // Restores an archived admin; the backend marks the new password temporary
+  async function handleRestoreConfirm() {
+    if (!restoringAdmin) return;
+    setRestoreLoading(true);
+    setRestoreError("");
+    try {
+      await api.post(`/users/${restoringAdmin.id}/restore`, { new_password: restorePassword });
+      setRestoredPassword(restorePassword);
+      fetchUsers();
+    } catch (err: any) {
+      setRestoreError(
+        err.response?.data?.errors?.new_password?.[0] ||
+          err.response?.data?.message ||
+          "Failed to restore the account."
+      );
+    } finally {
+      setRestoreLoading(false);
+    }
+  }
+
   async function handleRevokeConfirm() {
     if (!revokingAdmin) return;
     setRevokeActionLoading(true);
     try {
       await api.post(`/users/${revokingAdmin.id}/revoke`);
-      setToast(`${revokingAdmin.name}'s admin access was permanently revoked.`);
+      setToast(`${revokingAdmin.name}'s admin account was archived.`);
       setRevokingAdmin(null);
       fetchUsers();
     } catch (err) {
@@ -356,7 +397,7 @@ function AdminManagementContent() {
           <div>
             <h1 className="text-3xl font-black text-[#1a237e]">Admin Management</h1>
             <p className="text-gray-400 text-sm mt-1">
-              Assign or revoke administrator roles and control panel access
+              Assign or archive administrator accounts and control panel access
             </p>
           </div>
           <button
@@ -385,7 +426,7 @@ function AdminManagementContent() {
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Revoked Admins</p>
+            <p className="text-gray-400 text-sm font-medium">	Archived Admins</p>
             <p className="text-4xl font-black text-red-500 mt-1">{revokedCount}</p>
           </div>
         </div>
@@ -474,7 +515,7 @@ function AdminManagementContent() {
                       </td>
                       <td className="px-6 py-4">
                         {!admin.is_active ? (
-                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600">REVOKED</span>
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600">ARCHIVED</span>
                         ) : admin.is_restricted ? (
                           <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600">RESTRICTED</span>
                         ) : (
@@ -502,12 +543,20 @@ function AdminManagementContent() {
                               {admin.is_restricted ? "Unrestrict" : "Restrict"}
                             </button>
                           )}
-                          {admin.is_active && (
+                         {admin.is_active && admin.role !== "super_admin" && (
                             <button
                               onClick={() => setRevokingAdmin(admin)}
                               className="bg-red-50 hover:bg-red-600 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
                             >
-                              Revoke
+                             Archive
+                            </button>
+                          )}
+                                                    {!admin.is_active && (
+                            <button
+                              onClick={() => openRestore(admin)}
+                              className="bg-green-50 hover:bg-green-600 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                            >
+                              Restore
                             </button>
                           )}
                         </div>
@@ -1036,15 +1085,87 @@ function AdminManagementContent() {
         </div>
       )}
 
+        {restoringAdmin && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 max-h-[90vh] overflow-y-auto">
+            {restoredPassword ? (
+              <>
+                <h2 className="text-xl font-black text-[#1a237e] mb-2 text-center">Account Restored</h2>
+                <p className="text-gray-400 text-sm mb-4 text-center">
+                  Give this temporary password to {restoringAdmin.name}. Ask them to change it after logging in.
+                </p>
+                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                  <p className="font-mono font-bold text-gray-700 text-lg break-all text-center">{restoredPassword}</p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(restoredPassword); setToast("Password copied."); }}
+                    className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    onClick={closeRestore}
+                    className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-black text-[#1a237e] mb-2 text-center">Restore This Account?</h2>
+                <p className="text-gray-400 text-sm mb-4 text-center">
+                  {restoringAdmin.name} will be able to log in again. A new temporary password is required.
+                </p>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">New temporary password</label>
+                  <button
+                    type="button"
+                    onClick={() => setRestorePassword(generatePassword())}
+                    className="text-xs font-bold text-[#1a237e] hover:underline"
+                  >
+                    Generate
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={restorePassword}
+                  onChange={(e) => setRestorePassword(e.target.value)}
+                  autoComplete="off"
+                  className="w-full mt-1 mb-2 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm font-mono"
+                />
+                {restoreError && <p className="text-red-500 text-xs font-semibold mb-2">{restoreError}</p>}
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={closeRestore}
+                    className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRestoreConfirm}
+                    disabled={restoreLoading || !restorePassword}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+                  >
+                    {restoreLoading ? "Restoring..." : "Restore"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {revokingAdmin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-black text-[#1a237e] mb-2">Permanently Revoke Access?</h2>
+            <h2 className="text-xl font-black text-[#1a237e] mb-2">Archive This Account?</h2>
             <p className="text-gray-400 text-sm mb-3">
-              {revokingAdmin.name} will permanently lose access to their account — use this when someone has left the school.
+              {revokingAdmin.name} will no longer be able to log in. The account is kept and can be restored later — use this when someone has left the school.
             </p>
             <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-6">
-              <p className="text-red-600 text-xs font-bold">This action CANNOT be undone. There is no restore option once revoked.</p>
+              <p className="text-red-600 text-xs font-bold">The account can be restored later with a new temporary password.	</p>
             </div>
 
             <div className="flex gap-3">
@@ -1059,7 +1180,7 @@ function AdminManagementContent() {
                 disabled={revokeActionLoading}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
               >
-                {revokeActionLoading ? "Revoking..." : "Permanently Revoke"}
+                {revokeActionLoading ? "Archiving..." : "Archive"}
               </button>
             </div>
           </div>
