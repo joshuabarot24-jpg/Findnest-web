@@ -1,9 +1,11 @@
 "use client";
+// Admin > Location Analytics (/location-analytics). Where items are most often reported lost and found.
+// API: GET /locations/top-locations (refreshes automatically)
 import { useState, useEffect } from "react";
-import api, { logoutUser } from "@/lib/api";
+import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
+import AdminLayout from "@/components/AdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
-import Link from "next/link";
 
 interface TopEntry {
   location: string;
@@ -28,15 +30,16 @@ export default function LocationAnalytics() {
   );
 }
 
+// One ranked list (Top 3) with a percentage bar per location
 function TopList({ title, tone, group, emptyText }: { title: string; tone: "red" | "green"; group: TopGroup; emptyText: string }) {
   const rankColors = ["bg-red-500", "bg-orange-400", "bg-yellow-400"];
   const barColor = tone === "red" ? "bg-red-400" : "bg-green-500";
 
   return (
     <div className="px-6 py-5">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3">
         <p className="font-black text-gray-700 text-sm">{title}</p>
-        <span className="text-gray-400 text-xs">{group.total} report{group.total !== 1 ? "s" : ""}</span>
+        <span className="text-gray-400 text-xs whitespace-nowrap">{group.total} report{group.total !== 1 ? "s" : ""}</span>
       </div>
 
       {group.top.length === 0 ? (
@@ -50,7 +53,7 @@ function TopList({ title, tone, group, emptyText }: { title: string; tone: "red"
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-bold text-gray-700 text-sm truncate">{entry.location}</p>
+                  <p className="font-bold text-gray-700 text-sm truncate" title={entry.location}>{entry.location}</p>
                   <span className="font-black text-gray-700 text-sm flex-shrink-0">{entry.percent}%</span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
@@ -73,6 +76,7 @@ function LocationAnalyticsContent() {
   const [topLost, setTopLost] = useState<TopGroup>(EMPTY_GROUP);
   const [topFound, setTopFound] = useState<TopGroup>(EMPTY_GROUP);
 
+  // Loads the Top 3 lost and found locations
   const fetchAll = async () => {
     try {
       const res = await api.get("/locations/top-locations");
@@ -107,62 +111,10 @@ function LocationAnalyticsContent() {
   const mostActiveArea =
     visibleTop.length > 0 ? [...visibleTop].sort((a, b) => b.count - a.count)[0].location : "—";
 
-  return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
-
-      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div>
-            <a href="/dashboard" className="text-white font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-blue-300 text-xs">Admin Panel</span>
-          </div>
-        </div>
-
-        <div className="mx-6 h-px bg-white/10 mb-4" />
-
-        <nav className="flex flex-col gap-1 px-4 flex-1">
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">Main Menu</p>
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Dashboard</span>
-          </Link>
-          <Link href="/item-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Item Management</span>
-          </Link>
-          <Link href="/claim-verification" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Claim Verification</span>
-          </Link>
-          <Link href="/location-analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20">
-            <span>Location Analytics</span>
-          </Link>
-          <Link href="/admin-user-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>User Management</span>
-          </Link>
-          <Link href="/digital-records" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Digital Records</span>
-          </Link>
-          <Link href="/admin-support" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Support Inbox</span>
-          </Link>
-        </nav>
-
-        <div className="px-4 py-6">
-          <div className="bg-white/10 rounded-2xl p-4 mb-4">
-            <p className="text-white text-sm font-semibold">Guidance Counselor</p>
-            <p className="text-blue-300 text-xs mt-1">Administrator</p>
-          </div>
-          <button
-            onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium w-full text-left"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {accessDenied ? (
-        <div className="flex-1 ml-72 flex items-center justify-center min-h-screen">
+  if (accessDenied) {
+    return (
+      <AdminLayout active="/location-analytics">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center max-w-sm">
             <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -175,114 +127,119 @@ function LocationAnalyticsContent() {
             </p>
           </div>
         </div>
-      ) : (
-      <main className="flex-1 ml-72 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-[#1a237e]">Location Analytics</h1>
-            <p className="text-gray-400 text-sm mt-1">Where items are most frequently reported lost and found</p>
-          </div>
-          <div className="flex items-center gap-2 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100">
-            {(["lost", "both", "found"] as FilterType[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
-                  filter === f
-                    ? "bg-[#1a237e] text-white"
-                    : "text-gray-400 hover:text-[#1a237e]"
-                }`}
-              >
-                {f === "lost" ? "Lost Only" : f === "found" ? "Found Only" : "Both"}
-              </button>
-            ))}
-          </div>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout active="/location-analytics">
+      {/* Page header + Lost / Both / Found filter */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-[#1a237e]">Location Analytics</h1>
+          <p className="text-gray-400 text-sm mt-1">Where items are most frequently reported lost and found</p>
         </div>
-
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Total Reports</p>
-            <p className="text-4xl font-black text-[#1a237e] mt-1">{totalReports}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">High Risk Areas</p>
-            <p className="text-4xl font-black text-red-500 mt-1">{highRiskAreas}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Most Active Area</p>
-            <p className="text-2xl font-black text-[#ffd700] mt-1 truncate">{mostActiveArea}</p>
-          </div>
+        <div className="flex items-center gap-2 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100">
+          {(["lost", "both", "found"] as FilterType[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
+                filter === f
+                  ? "bg-[#1a237e] text-white"
+                  : "text-gray-400 hover:text-[#1a237e]"
+              }`}
+            >
+              {f === "lost" ? "Lost Only" : f === "found" ? "Found Only" : "Both"}
+            </button>
+          ))}
         </div>
+      </div>
 
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100">
-              <h2 className="font-black text-gray-700">Campus Hotspot Map</h2>
-              <p className="text-gray-400 text-xs mt-0.5">SJDM Cornerstone College Inc. Grounds</p>
-            </div>
+      {/* Summary cards: 1 column on small screens, 3 from sm */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6 mb-8">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">Total Reports</p>
+          <p className="text-4xl font-black text-[#1a237e] mt-1">{totalReports}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">High Risk Areas</p>
+          <p className="text-4xl font-black text-red-500 mt-1">{highRiskAreas}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">Most Active Area</p>
+          <p className="text-2xl font-black text-[#ffd700] mt-1 truncate" title={mostActiveArea}>{mostActiveArea}</p>
+        </div>
+      </div>
 
-            <div className="flex items-center justify-center bg-gray-50 m-6 rounded-2xl" style={{ minHeight: 300 }}>
-              {loading ? (
-                <p className="text-gray-400 text-sm">Loading map data...</p>
-              ) : totalReports === 0 ? (
-                <div className="text-center p-8">
-                  <p className="text-gray-400 font-bold text-lg">No location data yet</p>
-                  <p className="text-gray-400 text-sm mt-1">Location logs will appear here as reports are submitted</p>
-                </div>
-              ) : (
-                <div className="text-center p-8">
-                  <p className="text-gray-500 font-bold">Campus Map</p>
-                  <p className="text-gray-400 text-sm mt-2">School campus image will be integrated here once available.</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    {totalReports} report{totalReports !== 1 ? "s" : ""} on record.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="px-6 pb-4 flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full" />
-                <span className="text-xs text-gray-500 font-medium">High</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-yellow-400 rounded-full" />
-                <span className="text-xs text-gray-500 font-medium">Medium</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full" />
-                <span className="text-xs text-gray-500 font-medium">Low</span>
-              </div>
-            </div>
+      {/* Map card (2/3) + Top locations (1/3); stacked below xl */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6">
+        <div className="xl:col-span-2 min-w-0 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100">
+            <h2 className="font-black text-gray-700">Campus Hotspot Map</h2>
+            <p className="text-gray-400 text-xs mt-0.5">SJDM Cornerstone College Inc. Grounds</p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100">
-              <h2 className="font-black text-gray-700">Top Locations</h2>
-              <p className="text-gray-400 text-xs mt-0.5">Most reported areas on campus</p>
-            </div>
-
+          <div className="flex items-center justify-center bg-gray-50 m-4 sm:m-6 rounded-2xl min-h-[14rem] sm:min-h-[18rem]">
             {loading ? (
-              <div className="px-6 py-8 text-center text-gray-400 text-sm">Loading...</div>
+              <p className="text-gray-400 text-sm">Loading map data...</p>
             ) : totalReports === 0 ? (
-              <div className="px-6 py-8 text-center text-gray-400 text-sm">
-                <p className="font-bold">No location data yet</p>
-                <p className="text-xs mt-1">Statistics will appear as reports are submitted</p>
+              <div className="text-center p-8">
+                <p className="text-gray-400 font-bold text-lg">No location data yet</p>
+                <p className="text-gray-400 text-sm mt-1">Location logs will appear here as reports are submitted</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-50">
-                {showLost && (
-                  <TopList title="Top 3 Lost Locations" tone="red" group={topLost} emptyText="No lost reports yet" />
-                )}
-                {showFound && (
-                  <TopList title="Top 3 Found Locations" tone="green" group={topFound} emptyText="No found reports yet" />
-                )}
+              <div className="text-center p-8">
+                <p className="text-gray-500 font-bold">Campus Map</p>
+                <p className="text-gray-400 text-sm mt-2">School campus image will be integrated here once available.</p>
+                <p className="text-gray-400 text-xs mt-1">
+                  {totalReports} report{totalReports !== 1 ? "s" : ""} on record.
+                </p>
               </div>
             )}
           </div>
+
+          <div className="px-6 pb-4 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full" />
+              <span className="text-xs text-gray-500 font-medium">High</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-yellow-400 rounded-full" />
+              <span className="text-xs text-gray-500 font-medium">Medium</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full" />
+              <span className="text-xs text-gray-500 font-medium">Low</span>
+            </div>
+          </div>
         </div>
-      </main>
-      )}
-    </div>
+
+        <div className="min-w-0 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100">
+            <h2 className="font-black text-gray-700">Top Locations</h2>
+            <p className="text-gray-400 text-xs mt-0.5">Most reported areas on campus</p>
+          </div>
+
+          {loading ? (
+            <div className="px-6 py-8 text-center text-gray-400 text-sm">Loading...</div>
+          ) : totalReports === 0 ? (
+            <div className="px-6 py-8 text-center text-gray-400 text-sm">
+              <p className="font-bold">No location data yet</p>
+              <p className="text-xs mt-1">Statistics will appear as reports are submitted</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {showLost && (
+                <TopList title="Top 3 Lost Locations" tone="red" group={topLost} emptyText="No lost reports yet" />
+              )}
+              {showFound && (
+                <TopList title="Top 3 Found Locations" tone="green" group={topFound} emptyText="No found reports yet" />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </AdminLayout>
   );
 }
