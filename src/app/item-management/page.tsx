@@ -183,6 +183,9 @@ function ItemManagementContent() {
   const [search, setSearch] = useState("");
   const [foundStatusFilter, setFoundStatusFilter] = useState("all");
   const [lostStatusFilter, setLostStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<"all" | "today" | "7d" | "10d" | "15d" | "30d">("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [page, setPage] = useState(1);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -296,11 +299,33 @@ function ItemManagementContent() {
 
   useEffect(() => {
     setPage(1);
-  }, [mainTab, search]);
+  }, [mainTab, search, categoryFilter, dateRange, sortOrder]);
+
+  // Found items after status filter + search
+    // [Filter] Category + date range (Manila time), shared by both tabs.
+  // "Others" also matches any custom category a student typed in.
+  const manilaDay = (ts: number) =>
+    new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const todayKey = manilaDay(Date.now());
+  const standardCategories = CATEGORY_OPTIONS.filter((c) => c !== "Others");
+  const passesCategoryAndDate = (category: string, createdAt: string) => {
+    if (categoryFilter === "Others") {
+      if (standardCategories.includes(category)) return false;
+    } else if (categoryFilter !== "all" && category !== categoryFilter) {
+      return false;
+    }
+    if (dateRange === "all") return true;
+    const ts = new Date(createdAt).getTime();
+    if (dateRange === "today") return manilaDay(ts) === todayKey;
+    const days = { "7d": 7, "10d": 10, "15d": 15, "30d": 30 }[dateRange];
+    return ts >= Date.now() - days * 24 * 60 * 60 * 1000;
+  };
 
   // Found items after status filter + search
   const filteredFound = useMemo(() => {
-    const byStatus = foundStatusFilter === "all" ? foundItems : foundItems.filter((i) => i.status === foundStatusFilter);
+    const byStatus = foundItems.filter(
+      (i) => (foundStatusFilter === "all" || i.status === foundStatusFilter) && passesCategoryAndDate(i.category, i.created_at)
+    );
     const q = search.toLowerCase().trim();
     if (!q) return byStatus;
     return byStatus.filter((i) => {
@@ -317,11 +342,13 @@ function ItemManagementContent() {
         dateStr.includes(q)
       );
     });
-  }, [foundItems, search, foundStatusFilter]);
+  }, [foundItems, search, foundStatusFilter, categoryFilter, dateRange]);
 
   // Lost reports after status filter + search
   const filteredLost = useMemo(() => {
-    const byStatus = lostStatusFilter === "all" ? lostItems : lostItems.filter((i) => i.status === lostStatusFilter);
+    const byStatus = lostItems.filter(
+      (i) => (lostStatusFilter === "all" || i.status === lostStatusFilter) && passesCategoryAndDate(i.category, i.created_at)
+    );
     const q = search.toLowerCase().trim();
     if (!q) return byStatus;
     return byStatus.filter((i) => {
@@ -338,7 +365,7 @@ function ItemManagementContent() {
         dateStr.includes(q)
       );
     });
-  }, [lostItems, search, lostStatusFilter]);
+  }, [lostItems, search, lostStatusFilter, categoryFilter, dateRange]);
 
   const activeFiltered = mainTab === "found" ? filteredFound : filteredLost;
   const totalPages = Math.max(1, Math.ceil(activeFiltered.length / PAGE_SIZE));
@@ -350,9 +377,15 @@ function ItemManagementContent() {
   // Flagged unclaimed items float to the top of the found list
   const flagRank = (i: FoundItem) =>
     i.status !== "unclaimed" ? 2 : i.needs_disposal_review ? 0 : i.unclaimed_flagged_at ? 1 : 2;
-  const sortedFound = [...filteredFound].sort((a, b) => flagRank(a) - flagRank(b));
+  // [Sort] By logged time; on the Found tab flagged items still stay on top (stable sort)
+  const byTime = (a: { created_at: string }, b: { created_at: string }) => {
+    const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return sortOrder === "oldest" ? diff : -diff;
+  };
+  const sortedFound = [...filteredFound].sort(byTime).sort((a, b) => flagRank(a) - flagRank(b));
+  const sortedLost = [...filteredLost].sort(byTime);
   const paginatedFound = sortedFound.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const paginatedLost = filteredLost.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginatedLost = sortedLost.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const unclaimedCount = foundItems.filter((i) => i.status === "unclaimed").length;
   const claimedCount = foundItems.filter((i) => i.status === "claimed").length;
@@ -670,6 +703,34 @@ function ItemManagementContent() {
                 <option value="returned">Returned</option>
               </select>
             )}
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="all">All Categories</option>
+              {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value as typeof dateRange)}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="10d">Last 10 Days</option>
+              <option value="15d">Last 15 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
             <input
               type="text"
               placeholder="Search by name, category, or location..."
