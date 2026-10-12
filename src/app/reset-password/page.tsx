@@ -31,8 +31,14 @@ function ResetPasswordForm() {
       setError("Passwords do not match.");
       return;
     }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (
+      password.length < 8 ||
+      !/[A-Z]/.test(password) ||
+      !/[a-z]/.test(password) ||
+      !/[0-9]/.test(password) ||
+      !/[^A-Za-z0-9]/.test(password)
+    ) {
+      setError("Password must be 8+ characters with an uppercase letter, a lowercase letter, a number and a special character.");
       return;
     }
 
@@ -108,7 +114,7 @@ function ResetPasswordForm() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimum 8 characters"
+                  placeholder="8+ chars, A-Z, a-z, 0-9, symbol"
                   className="w-full pl-5 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                   required
                 />
