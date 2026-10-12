@@ -1,8 +1,10 @@
 "use client";
+// Admin > Claim Verification (/claim-verification). Review student claims through the 5-layer check.
+// API: GET /claims, POST /claims/{id}/approve | reject | collected
 import { useState, useEffect, useMemo } from "react";
-import api, { logoutUser } from "@/lib/api";
+import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
-import Link from "next/link";
+import AdminLayout from "@/components/AdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface OwnershipQuestion {
@@ -82,7 +84,10 @@ interface Claim {
 }
 
 const PAGE_SIZE = 5;
+const TH = "text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider";
+const CATEGORIES = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Books", "Vapes", "Others"];
 
+// Dot + badge + label for a claim's status
 function statusStyles(status: string, collectedAt?: string | null) {
   if (status === "approved" && collectedAt) {
     return { dot: "bg-blue-500", badge: "bg-blue-50 text-blue-700", label: "Collected" };
@@ -99,12 +104,60 @@ function statusStyles(status: string, collectedAt?: string | null) {
   }
 }
 
+// Correct / answered count for the secret questions (null when none answered)
 function questionScore(questions: OwnershipQuestion[]) {
   const answered = questions.filter((q) => q.student_answer !== null);
   if (answered.length === 0) return null;
   const correct = answered.filter((q) => q.student_answer === q.correct_option).length;
   return { correct, total: answered.length };
 }
+
+// Numbered pager: shows first, last and the pages next to the current one
+function Pager({ page, pages, total, label, onChange }: { page: number; pages: number; total: number; label: string; onChange: (p: number) => void }) {
+  if (total === 0) return null;
+  const from = (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
+  const nums = Array.from({ length: pages }, (_, i) => i + 1).filter(
+    (p) => p === 1 || p === pages || Math.abs(p - page) <= 1
+  );
+  return (
+    <div className="px-6 py-4 border-t border-gray-100 flex flex-wrap gap-3 items-center justify-between">
+      <p className="text-gray-400 text-sm">Showing {from}&ndash;{to} of {total} {label}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => onChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-400 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        {nums.map((p, idx) => (
+          <span key={p} className="flex items-center gap-2">
+            {idx > 0 && p - nums[idx - 1] > 1 && <span className="text-gray-300">&hellip;</span>}
+            <button
+              onClick={() => onChange(p)}
+              className={
+                p === page
+                  ? "px-3 py-1.5 bg-[#1a237e] rounded-lg text-white text-sm font-bold"
+                  : "px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition"
+              }
+            >
+              {p}
+            </button>
+          </span>
+        ))}
+        <button
+          onClick={() => onChange(Math.min(pages, page + 1))}
+          disabled={page === pages}
+          className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-400 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ClaimVerification() {
   return (
     <AuthGate allowedRole="admin">
@@ -117,7 +170,7 @@ function ClaimVerificationContent() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateRange, setDateRange] = useState<"all" | "today" | "7d" | "10d" | "15d" | "30d">("all");
   const [page, setPage] = useState(1);
@@ -136,6 +189,7 @@ function ClaimVerificationContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Loads claims. The backend decides which competing claim is visible (sequential queue).
   const fetchClaims = async () => {
     try {
       const res = await api.get("/claims");
@@ -154,6 +208,7 @@ function ClaimVerificationContent() {
   useEffect(() => { fetchClaims(); }, []);
   useAutoRefresh(fetchClaims);
 
+  // Locks page scroll while a popup is open
   useEffect(() => {
     const anyModalOpen = !!viewingClaim || !!rejectingClaim || !!comparingClaim || !!viewingEvidence;
     if (anyModalOpen) {
@@ -183,7 +238,8 @@ function ClaimVerificationContent() {
     };
   }, [viewingClaim, rejectingClaim, comparingClaim, viewingEvidence]);
 
-    const filtered = useMemo(() => {
+  // Status filter, then category + date range (Manila time), then search
+  const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     const byStatus = claims.filter((c) => {
       if (statusFilter === "all") return true;
@@ -192,11 +248,10 @@ function ClaimVerificationContent() {
       if (statusFilter === "collected") return c.claim_status === "approved" && !!c.collected_at;
       return c.claim_status === statusFilter;
     });
-    // [Filter] Category (of the found item) + date range on claim submission, Manila time
     const manilaDay = (ts: number) =>
       new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
     const todayKey = manilaDay(Date.now());
-    const standardCategories = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Books", "Vapes"];
+    const standardCategories = CATEGORIES.filter((c) => c !== "Others");
     const byCategoryDate = byStatus.filter((c) => {
       const category = c.match?.found_record?.category || "";
       if (categoryFilter === "Others") {
@@ -211,7 +266,7 @@ function ClaimVerificationContent() {
       return ts >= Date.now() - days * 24 * 60 * 60 * 1000;
     });
     if (!q) return byCategoryDate;
-      return byCategoryDate.filter((c) => {
+    return byCategoryDate.filter((c) => {
       const dateStr = new Date(c.created_at).toLocaleDateString().toLowerCase();
       return (
         (c.student?.name || "").toLowerCase().includes(q) ||
@@ -284,67 +339,10 @@ function ClaimVerificationContent() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-[#f0f2f5] flex">
-      {toast && (
-        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
-          {toast}
-        </div>
-      )}
-
-      <aside className="w-72 bg-[#1a237e] h-screen flex flex-col fixed left-0 top-0 bottom-0 overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div>
-            <a href="/dashboard" className="text-white font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-blue-300 text-xs">Admin Panel</span>
-          </div>
-        </div>
-
-        <div className="mx-6 h-px bg-white/10 mb-4" />
-
-        <nav className="flex flex-col gap-1 px-4 flex-1">
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-wider px-4 mb-2">Main Menu</p>
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Dashboard</span>
-          </Link>
-          <Link href="/item-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Item Management</span>
-          </Link>
-          <Link href="/claim-verification" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/20 text-white font-semibold border border-white/20">
-            <span>Claim Verification</span>
-          </Link>
-          <Link href="/location-analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Location Analytics</span>
-          </Link>
-          <Link href="/admin-user-management" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>User Management</span>
-          </Link>
-          <Link href="/digital-records" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Digital Records</span>
-          </Link>
-          <Link href="/admin-support" className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium">
-            <span>Support Inbox</span>
-          </Link>
-        </nav>
-
-        <div className="px-4 py-6">
-          <div className="bg-white/10 rounded-2xl p-4 mb-4">
-            <p className="text-white text-sm font-semibold">Guidance Counselor</p>
-            <p className="text-blue-300 text-xs mt-1">Administrator</p>
-          </div>
-          <button
-            onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-200 hover:bg-white/10 transition font-medium w-full text-left"
-          >
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {accessDenied ? (
-        <div className="flex-1 ml-72 flex items-center justify-center min-h-screen">
+  if (accessDenied) {
+    return (
+      <AdminLayout active="/claim-verification">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center max-w-sm">
             <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -357,96 +355,105 @@ function ClaimVerificationContent() {
             </p>
           </div>
         </div>
-      ) : (
-      <main className="flex-1 ml-72 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-[#1a237e]">Claim Verification</h1>
-            <p className="text-gray-400 text-sm mt-1">Review and process student item claims through the 5-layer verification system</p>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout active="/claim-verification">
+      {toast && (
+        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
+          {toast}
+        </div>
+      )}
+
+      {/* Page header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-[#1a237e]">Claim Verification</h1>
+        <p className="text-gray-400 text-sm mt-1">Review and process student item claims through the 5-layer verification system</p>
+      </div>
+
+      {/* Stat cards: 1 column on small screens, 3 from sm */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6 mb-8">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">Pending Review</p>
+          <p className="text-4xl font-black text-yellow-500 mt-1">{pendingCount}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">Approved Claims</p>
+          <p className="text-4xl font-black text-green-600 mt-1">{approvedCount}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <p className="text-gray-400 text-sm font-medium">Rejected Claims</p>
+          <p className="text-4xl font-black text-red-500 mt-1">{rejectedCount}</p>
+        </div>
+      </div>
+
+      {/* Claims list: 5 rows per page */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
+          <h2 className="font-black text-gray-700 text-lg">All Claims</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="all">All Claims</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved (Not Collected)</option>
+              <option value="collected">Collected</option>
+              <option value="rejected">Rejected</option>
+              <option value="abandoned">Abandoned</option>
+              <option value="multiple">Multiple Claimants</option>
+            </select>
+            <select
+              value={categoryFilter}
+              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="all">All Categories</option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <select
+              value={dateRange}
+              onChange={(e) => { setDateRange(e.target.value as typeof dateRange); setPage(1); }}
+              className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="10d">Last 10 Days</option>
+              <option value="15d">Last 15 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Search by student, item, or status..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-full sm:w-64"
+            />
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Pending Review</p>
-            <p className="text-4xl font-black text-yellow-500 mt-1">{pendingCount}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Approved Claims</p>
-            <p className="text-4xl font-black text-green-600 mt-1">{approvedCount}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Rejected Claims</p>
-            <p className="text-4xl font-black text-red-500 mt-1">{rejectedCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
-            <h2 className="font-black text-gray-700 text-lg">All Claims</h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-              >
-                <option value="all">All Claims</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved (Not Collected)</option>
-                <option value="collected">Collected</option>
-                <option value="rejected">Rejected</option>
-                <option value="abandoned">Abandoned</option>
-                <option value="multiple">Multiple Claimants</option>
-              </select>
-              <select
-                value={categoryFilter}
-                onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-              >
-                <option value="all">All Categories</option>
-                {["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Books", "Vapes", "Others"].map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <select
-                value={dateRange}
-                onChange={(e) => { setDateRange(e.target.value as typeof dateRange); setPage(1); }}
-                className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
-              >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="7d">Last 7 Days</option>
-                <option value="10d">Last 10 Days</option>
-                <option value="15d">Last 15 Days</option>
-                <option value="30d">Last 30 Days</option>
-              </select>
-              <input
-                type="text"
-                placeholder="Search by student, item, or status..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm w-64"
-              />
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-16 text-gray-400 text-sm">Loading claims...</div>
-          ) : (
-            <table className="w-full">
+        {loading ? (
+          <div className="text-center py-16 text-gray-400 text-sm">Loading claims...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[52rem]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Claimant</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Item Claimed</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">AI Score</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Submitted</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
+                  {["Claimant", "Item Claimed", "AI Score", "Status", "Submitted", "Actions"].map((h) => (
+                    <th key={h} className={TH}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {paginated.map((claim) => {
-                    const styles = statusStyles(claim.claim_status, claim.collected_at);
+                  const styles = statusStyles(claim.claim_status, claim.collected_at);
                   return (
                     <tr key={claim.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4">
@@ -475,7 +482,7 @@ function ClaimVerificationContent() {
                         {claim.match?.confidence_score != null ? (
                           <button
                             onClick={() => setComparingClaim(claim)}
-                            className={`text-xs font-bold px-3 py-1.5 rounded-lg transition hover:ring-2 hover:ring-offset-1 cursor-pointer ${
+                            className={`text-xs font-bold px-3 py-1.5 rounded-lg transition hover:ring-2 hover:ring-offset-1 cursor-pointer whitespace-nowrap ${
                               claim.match.confidence_score >= 80
                                 ? "bg-green-50 text-green-700 hover:ring-green-300"
                                 : claim.match.confidence_score >= 60
@@ -511,46 +518,34 @@ function ClaimVerificationContent() {
                 })}
               </tbody>
             </table>
-          )}
-
-          {!loading && filtered.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
-              <p className="font-bold text-lg">No claims found</p>
-              <p className="text-sm mt-1">Claims will appear here once students submit them</p>
-            </div>
-          )}
-
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-gray-400 text-sm">
-              Showing {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}&ndash;{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} claims
-            </p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button key={p} onClick={() => setPage(p)} className={p === page ? "px-3 py-1.5 bg-[#1a237e] rounded-lg text-white text-sm font-bold" : "px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition"}>
-                  {p}
-                </button>
-              ))}
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-sm hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
-            </div>
           </div>
-        </div>
-      </main>
-      )}
+        )}
 
+        {!loading && filtered.length === 0 && (
+          <div className="text-center py-16 text-gray-400">
+            <p className="font-bold text-lg">No claims found</p>
+            <p className="text-sm mt-1">Claims will appear here once students submit them</p>
+          </div>
+        )}
+
+        <Pager page={Math.min(page, totalPages)} pages={totalPages} total={filtered.length} label="claims" onChange={setPage} />
+      </div>
+
+      
+      {/* Claim review */}
       {viewingClaim && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4 p-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setViewingClaim(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Claim Review</h2>
             <p className="text-gray-400 text-sm mb-6">Claim #{String(viewingClaim.id).padStart(4, "0")} &mdash; submitted {new Date(viewingClaim.created_at).toLocaleString()}</p>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div className="bg-gray-50 rounded-2xl p-4">
                 <p className="text-xs font-bold text-gray-400 uppercase mb-3">Claimant</p>
                 <p className="font-black text-gray-700">{viewingClaim.student?.name || "Unknown"}</p>
-                <p className="text-gray-400 text-xs mt-1">{viewingClaim.student?.email}</p>
+                <p className="text-gray-400 text-xs mt-1 break-all">{viewingClaim.student?.email}</p>
                 <p className="text-gray-400 text-xs">{viewingClaim.student?.school_id} &mdash; {viewingClaim.student?.course} {viewingClaim.student?.year_level}</p>
                 <div className="mt-3 flex items-center gap-2">
                   <span className="text-xs text-gray-400">Trust Score:</span>
@@ -578,7 +573,7 @@ function ClaimVerificationContent() {
                 {viewingClaim.claim_status === "pending" && (viewingClaim.competing_claims_count ?? 1) > 1 && (
                   <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl p-2.5">
                     <p className="text-orange-700 text-xs font-bold">
-                   ⚠ {(viewingClaim.competing_claims_count ?? 1) - 1} other student{(viewingClaim.competing_claims_count ?? 1) - 1 !== 1 ? "s are" : " is"} also waiting for this item. If you reject this claim, the next one will be reviewed automatically.
+                      ⚠ {(viewingClaim.competing_claims_count ?? 1) - 1} other student{(viewingClaim.competing_claims_count ?? 1) - 1 !== 1 ? "s are" : " is"} also waiting for this item. If you reject this claim, the next one will be reviewed automatically.
                     </p>
                   </div>
                 )}
@@ -591,7 +586,7 @@ function ClaimVerificationContent() {
                 {viewingClaim.match?.lost_report?.photo_url && (
                   <img src={viewingClaim.match.lost_report.photo_url} alt="Lost item" className="w-20 h-20 object-cover rounded-xl flex-shrink-0" />
                 )}
-                <div>
+                <div className="min-w-0">
                   <p className="font-black text-gray-700">{viewingClaim.match?.lost_report?.item_name || "—"}</p>
                   <p className="text-gray-400 text-xs mt-1">Lost at: {viewingClaim.match?.lost_report?.location_lost}</p>
                   <p className="text-gray-400 text-xs">Date lost: {viewingClaim.match?.lost_report?.date_lost}</p>
@@ -602,24 +597,24 @@ function ClaimVerificationContent() {
             <div className="bg-gray-50 rounded-2xl p-4 mb-4">
               <p className="text-xs font-bold text-gray-400 uppercase mb-3">5-Layer Verification</p>
               <div className="space-y-2">
-                <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-gray-200">
                   <span className="text-sm text-gray-600 font-medium">Layer 1 &mdash; Identity Check</span>
                   <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">Student Verified</span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-gray-200">
                   <span className="text-sm text-gray-600 font-medium">Layer 2 &mdash; Found Item Report</span>
                   <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">{viewingClaim.match ? "Match Linked" : "No Match"}</span>
                 </div>
                 <button
                   onClick={() => setViewingEvidence(viewingClaim)}
-                  className="w-full flex items-center justify-between py-2 border-b border-gray-200 hover:bg-blue-50 transition rounded-lg px-2 -mx-2"
+                  className="w-full flex flex-wrap items-center justify-between gap-2 py-2 border-b border-gray-200 hover:bg-blue-50 transition rounded-lg px-2 -mx-2 text-left"
                 >
                   <span className="text-sm text-gray-600 font-medium">Layer 3 &mdash; Evidence Photo + Description <span className="text-blue-500 text-xs">(click to see evidence)</span></span>
                   <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">{viewingClaim.proof_description ? "Submitted" : "Not Submitted"}</span>
                 </button>
                 <button
                   onClick={() => setComparingClaim(viewingClaim)}
-                  className="w-full flex items-center justify-between py-2 border-b border-gray-200 hover:bg-blue-50 transition rounded-lg px-2 -mx-2"
+                  className="w-full flex flex-wrap items-center justify-between gap-2 py-2 border-b border-gray-200 hover:bg-blue-50 transition rounded-lg px-2 -mx-2 text-left"
                 >
                   <span className="text-sm text-gray-600 font-medium">Layer 4 &mdash; AI Similarity Score <span className="text-blue-500 text-xs">(click to compare)</span></span>
                   <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
@@ -634,7 +629,7 @@ function ClaimVerificationContent() {
                     {viewingClaim.match?.confidence_score != null ? `${viewingClaim.match.confidence_score}%` : "Pending AI"}
                   </span>
                 </button>
-                <div className="flex items-center justify-between py-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span className="text-sm text-gray-600 font-medium">Layer 5 &mdash; Secret Questions</span>
                   {(() => {
                     const score = questionScore(viewingClaim.ownership_questions || []);
@@ -659,7 +654,7 @@ function ClaimVerificationContent() {
               </div>
             </div>
 
-             {viewingClaim.verification_skipped && (
+            {viewingClaim.verification_skipped && (
               <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-4">
                 <p className="text-xs font-bold text-blue-400 uppercase mb-1">Verification Questions Skipped</p>
                 <p className="text-blue-700 text-sm">{viewingClaim.verification_skip_reason || "This item had no distinguishing features to base questions on."} The decision relies on the AI similarity score, photo, and description alone.</p>
@@ -768,9 +763,10 @@ function ClaimVerificationContent() {
         </div>
       )}
 
+      {/* Claimant's evidence */}
       {viewingEvidence && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 max-h-[85vh] overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setViewingEvidence(null)}
               className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none z-10"
@@ -787,7 +783,7 @@ function ClaimVerificationContent() {
                 {viewingEvidence.match?.lost_report?.photo_url && (
                   <img src={viewingEvidence.match.lost_report.photo_url} alt="Lost item" className="w-16 h-16 object-cover rounded-xl flex-shrink-0" />
                 )}
-                <div>
+                <div className="min-w-0">
                   <p className="font-black text-gray-700 text-sm">{viewingEvidence.match?.lost_report?.item_name || "—"}</p>
                   <p className="text-gray-400 text-xs mt-1">Lost at: {viewingEvidence.match?.lost_report?.location_lost}</p>
                 </div>
@@ -832,9 +828,10 @@ function ClaimVerificationContent() {
         </div>
       )}
 
+      {/* Side-by-side comparison */}
       {comparingClaim && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl p-8 my-auto">
+        <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl p-6 sm:p-8 my-auto">
             <button
               onClick={() => setComparingClaim(null)}
               className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none z-10"
@@ -845,7 +842,7 @@ function ClaimVerificationContent() {
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Side-by-Side Comparison</h2>
             <p className="text-gray-400 text-sm mb-6">Full details of the lost report and found item being compared by AI</p>
 
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <p className="text-xs font-bold text-red-500 uppercase mb-2">Report Lost</p>
                 <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">
@@ -856,38 +853,21 @@ function ClaimVerificationContent() {
                   )}
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Item Name</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.lost_report?.item_name || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Category</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.lost_report?.category || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Location</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.lost_report?.location_lost || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Date Lost</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.lost_report?.date_lost || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Approx. Time</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.lost_report?.approx_time || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Primary Color(s)</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.lost_report?.primary_color || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Brand & Model</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.lost_report?.brand_model || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">AI Similarity Score</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.confidence_score != null ? `${comparingClaim.match.confidence_score}%` : "—"}</span>
-                  </div>
+                  {[
+                    ["Item Name", comparingClaim.match?.lost_report?.item_name],
+                    ["Category", comparingClaim.match?.lost_report?.category],
+                    ["Location", comparingClaim.match?.lost_report?.location_lost],
+                    ["Date Lost", comparingClaim.match?.lost_report?.date_lost],
+                    ["Approx. Time", comparingClaim.match?.lost_report?.approx_time],
+                    ["Primary Color(s)", comparingClaim.match?.lost_report?.primary_color],
+                    ["Brand & Model", comparingClaim.match?.lost_report?.brand_model],
+                    ["AI Similarity Score", comparingClaim.match?.confidence_score != null ? `${comparingClaim.match.confidence_score}%` : null],
+                  ].map(([label, value]) => (
+                    <div key={label as string} className="flex justify-between gap-2">
+                      <span className="text-gray-400 font-medium">{label}</span>
+                      <span className="font-bold text-gray-700 text-right">{value || "—"}</span>
+                    </div>
+                  ))}
                   <div>
                     <span className="text-gray-400 font-medium block mb-1">Description</span>
                     <p className="text-gray-700 bg-gray-50 rounded-xl p-3 text-xs leading-relaxed">
@@ -907,38 +887,21 @@ function ClaimVerificationContent() {
                   )}
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Item Name</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.found_record?.item_name || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Category</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.found_record?.category || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Location</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.found_record?.location_found || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Date Found</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.found_record?.date_found || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Approx. Time</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.found_record?.approx_time || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Primary Color(s)</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.found_record?.primary_color || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">Brand & Model</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.found_record?.brand_model || "—"}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400 font-medium">AI Similarity Score</span>
-                    <span className="font-bold text-gray-700 text-right">{comparingClaim.match?.confidence_score != null ? `${comparingClaim.match.confidence_score}%` : "—"}</span>
-                  </div>
+                  {[
+                    ["Item Name", comparingClaim.match?.found_record?.item_name],
+                    ["Category", comparingClaim.match?.found_record?.category],
+                    ["Location", comparingClaim.match?.found_record?.location_found],
+                    ["Date Found", comparingClaim.match?.found_record?.date_found],
+                    ["Approx. Time", comparingClaim.match?.found_record?.approx_time],
+                    ["Primary Color(s)", comparingClaim.match?.found_record?.primary_color],
+                    ["Brand & Model", comparingClaim.match?.found_record?.brand_model],
+                    ["AI Similarity Score", comparingClaim.match?.confidence_score != null ? `${comparingClaim.match.confidence_score}%` : null],
+                  ].map(([label, value]) => (
+                    <div key={label as string} className="flex justify-between gap-2">
+                      <span className="text-gray-400 font-medium">{label}</span>
+                      <span className="font-bold text-gray-700 text-right">{value || "—"}</span>
+                    </div>
+                  ))}
                   <div>
                     <span className="text-gray-400 font-medium block mb-1">Description</span>
                     <p className="text-gray-700 bg-gray-50 rounded-xl p-3 text-xs leading-relaxed">
@@ -954,7 +917,7 @@ function ClaimVerificationContent() {
               const attrs = typeof rawAttrs === "string" ? JSON.parse(rawAttrs) : rawAttrs;
               if (!attrs) return null;
               return (
-                <div className="grid grid-cols-5 gap-3 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
                   {[
                     { label: "Description", value: attrs.description_score },
                     { label: "Photo", value: attrs.photo_score },
@@ -962,15 +925,15 @@ function ClaimVerificationContent() {
                     { label: "Date", value: attrs.date_score },
                     { label: "Location", value: attrs.location_score },
                   ].map((field) => (
-                  <div key={field.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
-                    <p className="text-gray-400 text-[10px] font-bold uppercase mb-1">{field.label}</p>
-                    <p className={`text-lg font-black ${
-                      field.value == null ? "text-gray-300" :
-                      field.value >= 80 ? "text-green-600" :
-                      field.value >= 50 ? "text-yellow-600" : "text-red-500"
-                    }`}>
-                      {field.value != null ? `${field.value}%` : "—"}
-                    </p>
+                    <div key={field.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+                      <p className="text-gray-400 text-[10px] font-bold uppercase mb-1">{field.label}</p>
+                      <p className={`text-lg font-black ${
+                        field.value == null ? "text-gray-300" :
+                        field.value >= 80 ? "text-green-600" :
+                        field.value >= 50 ? "text-yellow-600" : "text-red-500"
+                      }`}>
+                        {field.value != null ? `${field.value}%` : "—"}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -1011,9 +974,10 @@ function ClaimVerificationContent() {
         </div>
       )}
 
+      {/* Reject claim (above the review popup) */}
       {rejectingClaim && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8">
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Reject This Claim?</h2>
             <p className="text-gray-400 text-sm mb-4">
               This will notify {rejectingClaim.student?.name || "the student"} and decrease their trust score.
@@ -1037,6 +1001,6 @@ function ClaimVerificationContent() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }
