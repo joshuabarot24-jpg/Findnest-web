@@ -309,6 +309,14 @@ function ReportLostContent() {
             </div>
 
             <form onSubmit={handleReview} className="p-8 space-y-5">
+              {/* [UX] While a photo is being analyzed, everything in the form is locked */}
+              <fieldset disabled={anyUploading} className="space-y-5 min-w-0 border-0 p-0 m-0">
+              {anyUploading && (
+                <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+                  <div className="w-5 h-5 border-4 border-blue-300 border-t-blue-500 rounded-full animate-spin shrink-0" />
+                  <p className="text-blue-700 text-sm font-semibold">Analyzing your photo... please wait. The form is locked until it finishes.</p>
+                </div>
+              )}
 
               <div className="block">
                 <p className="text-sm font-bold text-gray-600 mb-2">
@@ -501,6 +509,7 @@ function ReportLostContent() {
               >
                 {anyUploading ? "Waiting for photo analysis..." : "Review Report"}
               </button>
+              </fieldset>
             </form>
           </div>
         )}
