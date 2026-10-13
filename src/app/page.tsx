@@ -309,12 +309,12 @@ export default function Home() {
       {/* [UI] Nav: text links hide below md, padding scales with width */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 xl:px-12 py-4 bg-[#1a237e]/90 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <a href="/" className="text-xl font-black text-white tracking-wide hover:opacity-80 transition">
+          <a href="#top" className="text-xl font-black text-white tracking-wide hover:opacity-80 transition">
             FIND<span className="text-[#ffd700]">NEST</span>
           </a>
         </div>
         <div className="flex items-center gap-3 sm:gap-6">
-          <a href="/" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOME</a>
+          <a href="#top" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOME</a>
           <a href="#about" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">ABOUT FINDNEST</a>
           <a href="#how-it-works" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOW IT WORKS</a>
           <button
