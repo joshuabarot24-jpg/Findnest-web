@@ -835,7 +835,14 @@ function ItemManagementContent() {
             <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Add Item</h2>
             <p className="text-gray-400 text-sm mb-6">Record an item that was physically received by the office</p>
-            <div className="space-y-4">
+            {/* [UX] While the photo is being analyzed, every field is locked */}
+            {formUploading && (
+              <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4">
+                <div className="w-5 h-5 border-4 border-blue-300 border-t-blue-500 rounded-full animate-spin shrink-0" />
+                <p className="text-blue-700 text-sm font-semibold">Analyzing photo... please wait. The form is locked until it finishes.</p>
+              </div>
+            )}
+            <fieldset disabled={formUploading} className="space-y-4 min-w-0 border-0 p-0 m-0">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Intake Type {!!formPhotoPreview && <span className="text-gray-400 font-normal normal-case">(locked after photo upload)</span>}
@@ -934,7 +941,7 @@ function ItemManagementContent() {
               </div>
 
               {formError && <p className="text-red-500 text-xs font-semibold">{formError}</p>}
-            </div>
+            </fieldset>
 
             <div className="flex gap-3 mt-8">
               <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
