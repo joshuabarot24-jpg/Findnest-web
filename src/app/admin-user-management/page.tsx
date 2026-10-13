@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import AdminLayout from "@/components/AdminLayout";
+import StudentActivityModal from "@/components/StudentActivityModal";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface SystemUser {
@@ -70,6 +71,7 @@ function AdminUserManagementContent() {
   const [studentSubTab, setStudentSubTab] = useState<(typeof LEVELS)[number]>("all");
 
   const [viewingUser, setViewingUser] = useState<SystemUser | null>(null);
+  const [activityUser, setActivityUser] = useState<SystemUser | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const [overrideRequests, setOverrideRequests] = useState<{ id: number; name: string; email: string; message: string; override_status: string; created_at: string }[]>([]);
@@ -494,6 +496,12 @@ function AdminUserManagementContent() {
             </div>
 
             <button
+              onClick={() => setActivityUser(viewingUser)}
+              className="w-full mt-3 border-2 border-[#1a237e] text-[#1a237e] hover:bg-blue-50 font-bold py-3 rounded-2xl transition"
+            >
+              See student&apos;s postings
+            </button>
+            <button
               onClick={() => setViewingUser(null)}
               className="w-full mt-3 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
             >
@@ -501,6 +509,14 @@ function AdminUserManagementContent() {
             </button>
           </div>
         </div>
+      )}
+
+      {activityUser && (
+        <StudentActivityModal
+          studentId={activityUser.id}
+          studentName={activityUser.name}
+          onClose={() => setActivityUser(null)}
+        />
       )}
     </AdminLayout>
   );
