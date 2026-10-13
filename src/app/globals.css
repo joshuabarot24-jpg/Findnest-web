@@ -35,6 +35,16 @@ html, body {
   background-color: #f0f2f5;
 }
 
+/* [UX] Smooth scrolling for in-page links (About, How It Works). Respects "reduce motion". */
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 /* [UI] Base size stays 16px so browser zoom works like other sites;
    only large screens (TVs) scale up. */
 html {
