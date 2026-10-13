@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import SuperAdminLayout from "@/components/SuperAdminLayout";
+import StudentActivityModal from "@/components/StudentActivityModal";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { generatePassword } from "@/lib/generatePassword";
 
@@ -112,6 +113,7 @@ function UserManagementContent() {
   const [revokingUser, setRevokingUser] = useState<SystemUser | null>(null);
   const [restoringUser, setRestoringUser] = useState<SystemUser | null>(null);
   const [viewingArchived, setViewingArchived] = useState<SystemUser | null>(null);
+  const [activityUser, setActivityUser] = useState<SystemUser | null>(null);
   const [restorePassword, setRestorePassword] = useState("");
   const [restoredPassword, setRestoredPassword] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
@@ -1383,6 +1385,15 @@ function UserManagementContent() {
                 {formLoading ? "Saving..." : "Save Changes"}
               </button>
             </div>
+
+            {editingUser && (
+              <button
+                onClick={() => setActivityUser(editingUser)}
+                className="w-full mt-3 border-2 border-[#1a237e] text-[#1a237e] hover:bg-blue-50 font-bold py-3 rounded-2xl transition text-sm"
+              >
+                See student&apos;s postings
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1501,7 +1512,14 @@ function UserManagementContent() {
               This account is archived and read-only. Use Restore to give it access again.
             </p>
 
-            <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => setActivityUser(viewingArchived)}
+              className="w-full mt-6 border-2 border-[#1a237e] text-[#1a237e] hover:bg-blue-50 font-bold py-3 rounded-2xl transition"
+            >
+              See student&apos;s postings
+            </button>
+
+            <div className="flex gap-3 mt-3">
               <button
                 onClick={() => setViewingArchived(null)}
                 className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
@@ -1678,6 +1696,13 @@ function UserManagementContent() {
             </div>
           </div>
         </div>
+      )}
+      {activityUser && (
+        <StudentActivityModal
+          studentId={activityUser.id}
+          studentName={activityUser.name}
+          onClose={() => setActivityUser(null)}
+        />
       )}
     </SuperAdminLayout>
   );

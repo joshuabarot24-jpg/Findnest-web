@@ -103,7 +103,7 @@ export default function StudentActivityModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[150] flex items-center justify-center px-4" onClick={onClose}>
       <div
         className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
