@@ -10,7 +10,7 @@ export function useUnreadCount() {
   const refresh = useCallback(async () => {
     try {
       const res = await api.get("/notifications/unread-count");
-      setCount(res.data.count || 0);
+      setCount(res.data.unread_count ?? res.data.count ?? 0);
     } catch {
       // ignore: a failed refresh keeps the last known count
     }
