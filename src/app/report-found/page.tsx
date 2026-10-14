@@ -44,6 +44,7 @@ function ReportFoundContent() {
   const [time, setTime] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [photoError, setPhotoError] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [photoErrorMessage, setPhotoErrorMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -83,6 +84,21 @@ function ReportFoundContent() {
     if (data.ai_details?.brand_or_markings) {
       setBrandModel(data.ai_details.brand_or_markings);
     }
+  };
+
+    // [UX] Drag and drop: hands the dropped image to the same upload function as the file picker
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (anyUploading) return;
+    const images = Array.from(e.dataTransfer.files || []).filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) {
+      setPhotoError(true);
+      setPhotoErrorMessage("Please drop an image file (JPG, PNG, etc.).");
+      return;
+    }
+    handlePhotoUpload({ target: { files: images, value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>);
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -326,9 +342,14 @@ function ReportFoundContent() {
                 )}
 
                 {photos.length < MAX_PHOTOS && (
-                  <label className={`block border-2 border-dashed rounded-2xl p-6 text-center transition cursor-pointer ${
-                    photoError ? "border-red-400 bg-red-50" : "border-gray-200 hover:border-green-300 bg-gray-50"
-                  }`}>
+                  <label
+                    onDragOver={(e) => { e.preventDefault(); if (!anyUploading) setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    className={`block border-2 border-dashed rounded-2xl p-6 text-center transition cursor-pointer ${
+                      photoError ? "border-red-400 bg-red-50" : dragOver ? "border-green-400 bg-green-50" : "border-gray-200 hover:border-green-300 bg-gray-50"
+                    }`}
+                  >
                     <p className={`font-bold text-sm ${photoError ? "text-red-600" : "text-gray-600"}`}>
                       {photos.length === 0 ? "Click to upload photos" : `Add more (${MAX_PHOTOS - photos.length} left)`}
                     </p>
