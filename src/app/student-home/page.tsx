@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import api, { logoutUser } from "@/lib/api";
+import { useUnreadCount } from "@/lib/useUnreadCount";
 import AuthGate from "@/components/AuthGate";
 
 interface FoundReport {
@@ -325,7 +326,10 @@ function StudentHomeContent() {
     return () => clearInterval(notifInterval);
   }, []);
 
-  const unreadCount = allNotifications.filter((n) => !n.is_read).length || (matchNotification ? 1 : 0);
+  // [UX] The badge comes from the shared hook so it shows right away and keeps refreshing.
+  // Fallbacks keep the old behavior if the hook hasn't loaded yet.
+  const { count: sharedUnread } = useUnreadCount();
+  const unreadCount = sharedUnread || allNotifications.filter((n) => !n.is_read).length || (matchNotification ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-[#f8f9fc]">

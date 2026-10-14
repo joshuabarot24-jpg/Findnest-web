@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { useUnreadCount } from "@/lib/useUnreadCount";
 import AuthGate from "@/components/AuthGate";
 
 const categories = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Others"];
@@ -22,7 +23,7 @@ export default function ReportLostPage() {
 
 function ReportLostContent() {
   const [userInitial, setUserInitial] = useState("");
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { count: unreadCount } = useUnreadCount();
   const [manualOverrideGranted, setManualOverrideGranted] = useState(false);
   const [checkingOverride, setCheckingOverride] = useState(true);
 
@@ -74,16 +75,6 @@ function ReportLostContent() {
       }
     };
     fetchProfile();
-
-    const fetchUnread = async () => {
-      try {
-        const res = await api.get("/notifications/unread-count");
-        setUnreadCount(res.data.count || 0);
-      } catch (err) {
-        console.error("Error fetching unread count:", err);
-      }
-    };
-    fetchUnread();
   }, []);
 
   const anyUploading = photos.some((p) => p.uploading);
