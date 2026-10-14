@@ -20,7 +20,7 @@ export function useUnreadCount() {
     refresh();
     const timer = setInterval(() => {
       if (!document.hidden) refresh();
-    }, 15000);
+    }, 10000);
     const onFocus = () => refresh();
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
