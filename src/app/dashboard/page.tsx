@@ -65,6 +65,127 @@ function Pager({ page, pages, total, onChange }: { page: number; pages: number; 
   );
 }
 
+interface DayPoint { key: string; label: string; found: number; lost: number; pending: number; }
+
+const SERIES = [
+  { key: "found", label: "Found Items", color: "#3b82f6" },
+  { key: "lost", label: "Lost Items", color: "#ef4444" },
+  { key: "pending", label: "Pending Claims", color: "#facc15" },
+] as const;
+
+// Smooth curve through the points (Catmull-Rom converted to Bezier), kept inside the chart area
+function smoothPath(pts: { x: number; y: number }[], top: number, bottom: number) {
+  if (pts.length < 2) return "";
+  const clampY = (y: number) => Math.min(bottom, Math.max(top, y));
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = clampY(p1.y + (p2.y - p0.y) / 6);
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = clampY(p2.y - (p3.y - p1.y) / 6);
+    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+
+// Dual-line (three-series) area chart over the last 7 days
+function ActivityChart({ data }: { data: DayPoint[] }) {
+  if (data.length < 2) return <div className="h-40 flex items-center justify-center text-gray-400 text-sm">No data yet</div>;
+
+  const W = 700, H = 130, padX = 28, top = 10, bottom = H - 26;
+  const yMax = Math.max(4, ...data.flatMap((d) => [d.found, d.lost, d.pending]));
+  const stepX = (W - padX * 2) / (data.length - 1);
+  const xOf = (i: number) => padX + i * stepX;
+  const yOf = (v: number) => bottom - (v / yMax) * (bottom - top);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Activity over the last 7 days">
+      <defs>
+        {SERIES.map((s) => (
+          <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={s.color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={s.color} stopOpacity="0" />
+          </linearGradient>
+        ))}
+      </defs>
+
+      {[0, 0.25, 0.5, 0.75, 1].map((f) => {
+        const y = bottom - f * (bottom - top);
+        return (
+          <g key={f}>
+            <line x1={padX} x2={W - padX} y1={y} y2={y} stroke="#f3f4f6" strokeWidth="1" />
+            <text x={0} y={y + 3} fontSize="10" fill="#9ca3af">{Math.round(f * yMax)}</text>
+          </g>
+        );
+      })}
+
+      {SERIES.map((s) => {
+        const pts = data.map((d, i) => ({ x: xOf(i), y: yOf(d[s.key]) }));
+        const line = smoothPath(pts, top, bottom);
+        const area = `${line} L ${pts[pts.length - 1].x} ${bottom} L ${pts[0].x} ${bottom} Z`;
+        return (
+          <g key={s.key}>
+            <path d={area} fill={`url(#grad-${s.key})`} />
+            <path d={line} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinecap="round" />
+            {pts.map((p, i) => (
+              <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="white" stroke={s.color} strokeWidth="2">
+                <title>{`${data[i].label}: ${data[i][s.key]} ${s.label.toLowerCase()}`}</title>
+              </circle>
+            ))}
+          </g>
+        );
+      })}
+
+      {data.map((d, i) => (
+        <text key={d.key} x={xOf(i)} y={H - 8} fontSize="11" textAnchor="middle" fill="#9ca3af">{d.label}</text>
+      ))}
+    </svg>
+  );
+}
+
+// Minimalist donut: orange-to-pink ring showing pending claims as a share of all claims
+function PendingDonut({ pending, total }: { pending: number; total: number }) {
+  const size = 120, stroke = 12;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const frac = total > 0 ? Math.min(1, pending / total) : 0;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <defs>
+          <linearGradient id="pendingGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={size} y2={size}>
+            <stop offset="0%" stopColor="#fb923c" />
+            <stop offset="100%" stopColor="#ec4899" />
+          </linearGradient>
+        </defs>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f3f4f6" strokeWidth={stroke} />
+        {frac > 0 && (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="url(#pendingGrad)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${c * frac} ${c}`}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <p className="text-4xl font-black text-gray-700 leading-none">{pending}</p>
+        <p className="text-gray-400 text-sm font-medium mt-1">Pending</p>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   return (
     <AuthGate allowedRole="admin">
@@ -74,7 +195,8 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
-  const [stats, setStats] = useState({ found_today: 0, lost_today: 0, pending_claims: 0, total_reports: 0 });
+  const [stats, setStats] = useState({ found_today: 0, lost_today: 0, pending_claims: 0, total_reports: 0, unclaimed_items: 0, total_claims: 0 });
+  const [week, setWeek] = useState<DayPoint[]>([]);
   const [monitorAlert, setMonitorAlert] = useState({ unclaimed: 0, review: 0 });
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +233,36 @@ function DashboardContent() {
         const pendingClaims = claims.filter((c: any) => c.claim_status === "pending").length;
         const totalReports = foundItems.length + lostItems.length;
 
-        setStats({ found_today: foundToday, lost_today: lostToday, pending_claims: pendingClaims, total_reports: totalReports });
+        setStats({
+          found_today: foundToday,
+          lost_today: lostToday,
+          pending_claims: pendingClaims,
+          total_reports: totalReports,
+          unclaimed_items: foundItems.filter((i: any) => i.status === "unclaimed").length,
+          total_claims: claims.length,
+        });
+
+        // Last 7 days (Manila time) for the Activity Trends chart
+        const dayKey = (ts: number) => new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+        const days: DayPoint[] = [];
+        for (let i = 6; i >= 0; i--) {
+          const t = Date.now() - i * 24 * 60 * 60 * 1000;
+          days.push({
+            key: dayKey(t),
+            label: new Date(t).toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Manila" }),
+            found: 0,
+            lost: 0,
+            pending: 0,
+          });
+        }
+        const bump = (createdAt: string, field: "found" | "lost" | "pending") => {
+          const d = days.find((x) => x.key === dayKey(new Date(createdAt).getTime()));
+          if (d) d[field] += 1;
+        };
+        foundItems.forEach((i: any) => i.created_at && bump(i.created_at, "found"));
+        lostItems.forEach((i: any) => i.created_at && bump(i.created_at, "lost"));
+        claims.forEach((c: any) => c.claim_status === "pending" && c.created_at && bump(c.created_at, "pending"));
+        setWeek(days);
         setMonitorAlert({
           unclaimed: foundItems.filter((i: any) => i.status === "unclaimed" && i.unclaimed_flagged_at && !i.needs_disposal_review).length,
           review: foundItems.filter((i: any) => i.status === "unclaimed" && i.needs_disposal_review).length,
@@ -230,38 +381,44 @@ function DashboardContent() {
         )}
       </div>
 
-      {/* Stat cards: 2 columns on small screens, 4 on xl */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 mb-8">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">Today</span>
+      {/* Daily & Total Activity: trends chart (2/3) + pending claims ring (1/3); stacked below xl */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6 mb-8">
+        <div className="xl:col-span-2 min-w-0 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h2 className="font-black text-gray-700 text-lg mb-4">Activity Trends</h2>
+
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+            <div className="flex flex-wrap items-start gap-8">
+              <div>
+                <p className="text-gray-400 text-sm font-medium">Total Reports</p>
+                <p className="text-4xl font-black text-[#1a237e] leading-none mt-1">{stats.total_reports}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm font-medium">Pending Claims</p>
+                <p className="text-4xl font-black text-[#ffd700] leading-none mt-1">{stats.pending_claims}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {SERIES.map((s) => (
+                <div key={s.key} className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ background: s.color }} />
+                  <span className="text-xs font-semibold text-gray-500">{s.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-4xl font-black text-[#1a237e]">{stats.found_today}</p>
-          <p className="text-gray-400 text-sm mt-1">Items Found Today</p>
+
+          <ActivityChart data={week} />
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">Today</span>
+        <div className="min-w-0 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col">
+          <h2 className="font-black text-gray-700 text-lg">Pending Claims</h2>
+          <div className="flex-1 flex items-center justify-center py-3">
+            <PendingDonut pending={stats.pending_claims} total={stats.total_claims} />
           </div>
-          <p className="text-4xl font-black text-red-500">{stats.lost_today}</p>
-          <p className="text-gray-400 text-sm mt-1">Items Lost Today</p>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">Pending</span>
-          </div>
-          <p className="text-4xl font-black text-[#ffd700]">{stats.pending_claims}</p>
-          <p className="text-gray-400 text-sm mt-1">Pending Claims</p>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">All Time</span>
-          </div>
-          <p className="text-4xl font-black text-[#1a237e]">{stats.total_reports}</p>
-          <p className="text-gray-400 text-sm mt-1">Total Reports</p>
+          <Link href="/item-management" className="text-center text-sm font-bold text-[#1a237e] hover:underline">
+            {stats.unclaimed_items} unclaimed
+          </Link>
         </div>
       </div>
 
