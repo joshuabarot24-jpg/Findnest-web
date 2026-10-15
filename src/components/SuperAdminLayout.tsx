@@ -71,8 +71,8 @@ export default function SuperAdminLayout({ active, children }: { active: string;
   return (
     <div className="min-h-screen bg-[#F1F7F4]">
       <div className="lg:hidden sticky top-0 z-40 flex items-center justify-between bg-[#0D3B29] px-4 py-3">
-        <a href="/user-management" className="text-[#E2EFE9] font-black text-lg">
-          FIND<span className="text-[#ffd700]">NEST</span>
+        <a href="/user-management" className="text-white font-black text-xl uppercase tracking-wide">
+          FINDNEST
         </a>
         <button onClick={() => setOpen(true)} aria-label="Open menu" className="text-[#E2EFE9] text-2xl leading-none px-2">
           &#9776;
@@ -88,10 +88,10 @@ export default function SuperAdminLayout({ active, children }: { active: string;
       >
         <div className="flex items-start justify-between px-6 py-6">
           <div>
-            <a href="/user-management" className="text-[#E2EFE9] font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
+            <a href="/user-management" className="text-white font-black text-2xl uppercase tracking-wide block leading-tight">
+              FINDNEST
             </a>
-             <span className="text-[#E2EFE9]/70 text-xs">IT Coordinator Panel</span>
+            <span className="text-white/70 text-xs">IT Coordinator Panel</span>
           </div>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="lg:hidden text-[#E2EFE9] hover:text-white text-2xl leading-none">
             &times;
