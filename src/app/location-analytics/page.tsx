@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Admin > Location Analytics (/location-analytics). Where items are most often reported lost and found.
 // API: GET /locations/top-locations (refreshes automatically)
 import { useState, useEffect } from "react";
@@ -136,7 +136,7 @@ function LocationAnalyticsContent() {
       {/* Page header + Lost / Both / Found filter */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-[#1a237e]">Location Analytics</h1>
+          <h1 className="text-3xl font-black text-[#06321C]">Location Analytics</h1>
           <p className="text-gray-400 text-sm mt-1">Where items are most frequently reported lost and found</p>
         </div>
         <div className="flex items-center gap-2 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100">

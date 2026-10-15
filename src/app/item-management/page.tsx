@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Admin > Item Management (/item-management). Found items + lost reports, add item, receipt, disposal.
 // Lists show 5 rows per page (refreshes every 20s).
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -628,7 +628,7 @@ function ItemManagementContent() {
       {/* Page header */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-[#1a237e]">Item Management</h1>
+          <h1 className="text-3xl font-black text-[#06321C]">Item Management</h1>
           <p className="text-gray-400 text-sm mt-1">Review, approve and manage all lost and found item reports</p>
         </div>
         {mainTab === "found" && (

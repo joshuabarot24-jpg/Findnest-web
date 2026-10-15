@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Admin > Claim Verification (/claim-verification). Review student claims through the 5-layer check.
 // API: GET /claims, POST /claims/{id}/approve | reject | collected
 import { useState, useEffect, useMemo } from "react";
@@ -370,7 +370,7 @@ function ClaimVerificationContent() {
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-[#1a237e]">Claim Verification</h1>
+        <h1 className="text-3xl font-black text-[#06321C]">Claim Verification</h1>
         <p className="text-gray-400 text-sm mt-1">Review and process student item claims through the 5-layer verification system</p>
       </div>
 

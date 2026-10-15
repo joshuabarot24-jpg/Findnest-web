@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Admin Dashboard (/dashboard). Today's counts, unclaimed-item alerts, recent activity.
 // API: GET /lost-items, /found-items, /claims (refreshes every 20s)
 import { useState, useEffect } from "react";
@@ -357,7 +357,7 @@ function DashboardContent() {
   return (
     <AdminLayout active="/dashboard">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-[#1a237e]">Admin Dashboard</h1>
+        <h1 className="text-3xl font-black text-[#06321C]">Admin Dashboard</h1>
         <p className="text-gray-400 text-sm mt-1">Welcome back! Here is what is happening on campus today.</p>
         {(monitorAlert.review > 0 || monitorAlert.unclaimed > 0) && (
           <div className="mt-4 space-y-2">

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Admin > Digital Records (/digital-records). Item and claim audit trail, per-case trail, appeals.
 // API: GET /audit-logs, /case-trail, /case-trail/{id}, /claims/appeals, POST /claims/{id}/resolve-appeal
 import { useState, useEffect, useMemo } from "react";
@@ -411,7 +411,7 @@ function DigitalRecordsContent() {
       )}
 
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-[#1a237e]">Digital Records</h1>
+        <h1 className="text-3xl font-black text-[#06321C]">Digital Records</h1>
         <p className="text-gray-400 text-sm mt-1">Audit trail for found items and claim actions handled by this admin</p>
       </div>
 

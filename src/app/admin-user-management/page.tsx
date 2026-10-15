@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Admin > User Management (/admin-user-management). Read-only student list; accounts are managed by the Super Admin.
 // API: GET /users, /support (override requests), POST /users/{id}/toggle-manual-override, /support/{id}/resolve-override
 import { useState, useMemo, useEffect } from "react";
@@ -223,7 +223,7 @@ function AdminUserManagementContent() {
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-[#1a237e]">User Management</h1>
+        <h1 className="text-3xl font-black text-[#06321C]">User Management</h1>
         <p className="text-gray-400 text-sm mt-1">View student accounts. Accounts are managed by the Super Admin.</p>
       </div>
 

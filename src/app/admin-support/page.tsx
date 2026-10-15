@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Admin > Support Inbox (/admin-support). Gmail-style: list + conversation, search, filters.
 // API: GET /support, POST /support/{id}/read, GET /support/{id}/thread, POST /support/{id}/reply,
 import { useState, useEffect, useMemo } from "react";
@@ -230,7 +230,7 @@ function SupportInboxContent() {
 
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-black text-[#1a237e]">Support Inbox</h1>
+          <h1 className="text-3xl font-black text-[#06321C]">Support Inbox</h1>
           <p className="text-gray-400 text-sm mt-1">Messages sent by students through the Support page</p>
         </div>
         {counts.new > 0 && (
