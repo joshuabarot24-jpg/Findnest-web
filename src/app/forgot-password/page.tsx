@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
 
         <div className="flex flex-col items-center mb-8">
           <div className="w-24 h-24 rounded-2xl overflow-hidden mb-4 shadow-lg border-4 border-[#1a237e]">
-            <Image src="/images/findnest-logo.svg" alt="FindNest Logo" width={96} height={96} />
+            <Image src="/images/findnest-logo.png" alt="FindNest Logo" width={96} height={96} />
           </div>
           <h1 className="text-2xl font-black text-[#1a237e]">Forgot Password</h1>
           <p className="text-gray-400 text-sm mt-1 text-center">

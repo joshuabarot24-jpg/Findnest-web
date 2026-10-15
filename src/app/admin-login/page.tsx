@@ -78,7 +78,7 @@ export default function AdminLoginPage() {
         <div className="flex flex-col items-center mb-8">
           <div className="w-24 h-24 rounded-2xl overflow-hidden mb-4 shadow-lg border-4 border-[#ffd700]">
             <Image
-              src="/images/findnest-logo.svg"
+              src="/images/findnest-logo.png"
               alt="FindNest Logo"
               width={96}
               height={96}

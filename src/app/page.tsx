@@ -394,7 +394,7 @@ export default function Home() {
 
             <div className="relative w-full max-w-xs sm:w-80 bg-white rounded-[2rem] p-8 shadow-2xl shadow-[#1a237e]/10 border border-gray-100 flex flex-col items-center -rotate-2">
               <Image
-                src="/images/findnest-logo.svg"
+                src="/images/findnest-logo.png"
                 alt="FindNest Logo"
                 width={170}
                 height={160}
