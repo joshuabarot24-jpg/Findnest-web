@@ -10,6 +10,7 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 const PAGE_SIZE = 5;
 
 interface SupportMessage {
+  user?: { id: number; profile_photo_url: string | null } | null;
   id: number;
   name: string;
   email: string;
@@ -290,8 +291,12 @@ function SupportInboxContent() {
                         selectedId === msg.id ? "bg-blue-50" : "hover:bg-gray-50"
                       }`}
                     >
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0">
-                        {msg.name.charAt(0).toUpperCase()}
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-sm shrink-0">
+                        {msg.user?.profile_photo_url ? (
+                          <img src={msg.user.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          msg.name.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -366,8 +371,12 @@ function SupportInboxContent() {
                   >
                     &larr; Back
                   </button>
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0">
-                    {selected.name.charAt(0).toUpperCase()}
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-sm shrink-0">
+                    {selected.user?.profile_photo_url ? (
+                      <img src={selected.user.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      selected.name.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-700">{selected.name}</p>
