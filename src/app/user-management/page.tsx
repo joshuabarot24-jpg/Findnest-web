@@ -1156,6 +1156,9 @@ function UserManagementContent() {
               &times;
             </button>
 
+            <div className="w-20 h-20 mb-3 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-full overflow-hidden flex items-center justify-center text-white font-black text-3xl shadow-lg ring-4 ring-white">
+              <AvatarInner user={editingUser} />
+            </div>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Edit Student</h2>
             <p className="text-gray-400 text-sm mb-6">
               Update {editingUser.name}&apos;s account details
