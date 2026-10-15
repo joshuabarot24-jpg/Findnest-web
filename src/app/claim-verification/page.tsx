@@ -41,6 +41,7 @@ interface Claim {
     course: string | null;
     year_level: string | null;
     trust_score: number;
+    profile_photo_url?: string | null;
   } | null;
   match: {
     id: number;
@@ -458,8 +459,12 @@ function ClaimVerificationContent() {
                     <tr key={claim.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0">
-                            {(claim.student?.name || "?").charAt(0).toUpperCase()}
+                          <div className="w-9 h-9 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-sm shrink-0">
+                            {claim.student?.profile_photo_url ? (
+                              <img src={claim.student.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              (claim.student?.name || "?").charAt(0).toUpperCase()
+                            )}
                           </div>
                           <div>
                             <p className="font-bold text-gray-700 text-sm">{claim.student?.name || "Unknown"}</p>
@@ -544,6 +549,13 @@ function ClaimVerificationContent() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div className="bg-gray-50 rounded-2xl p-4">
                 <p className="text-xs font-bold text-gray-400 uppercase mb-3">Claimant</p>
+                <div className="w-16 h-16 mb-2 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-full overflow-hidden flex items-center justify-center text-white font-black text-2xl shadow ring-2 ring-white">
+                  {viewingClaim.student?.profile_photo_url ? (
+                    <img src={viewingClaim.student.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    (viewingClaim.student?.name || "?").charAt(0).toUpperCase()
+                  )}
+                </div>
                 <p className="font-black text-gray-700">{viewingClaim.student?.name || "Unknown"}</p>
                 <p className="text-gray-400 text-xs mt-1 break-all">{viewingClaim.student?.email}</p>
                 <p className="text-gray-400 text-xs">{viewingClaim.student?.school_id} &mdash; {viewingClaim.student?.course} {viewingClaim.student?.year_level}</p>
