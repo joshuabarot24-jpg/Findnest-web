@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import api, { logoutUser } from "@/lib/api";
 import { useUnreadCount } from "@/lib/useUnreadCount";
+import StudentAvatar from "@/components/StudentAvatar";
 import AuthGate from "@/components/AuthGate";
 
 interface FoundReport {
@@ -405,9 +406,9 @@ function StudentHomeContent() {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => (profilePanelOpen ? setProfilePanelOpen(false) : openProfilePanel())}
-              className="w-10 h-10 bg-[#1a237e] rounded-full flex items-center justify-center text-white font-bold"
+              className="w-10 h-10 bg-[#1a237e] rounded-full overflow-hidden flex items-center justify-center text-white font-bold"
             >
-              {userInitial}
+              <StudentAvatar name={userInitial} />
             </button>
 
             <div
@@ -416,8 +417,8 @@ function StudentHomeContent() {
               }`}
             >
               <div className="px-5 py-5 bg-gradient-to-br from-[#1a237e] to-[#1565c0]">
-                <div className="w-12 h-12 bg-white/15 rounded-full flex items-center justify-center text-white font-black text-lg mb-2">
-                  {userInitial}
+                <div className="w-12 h-12 bg-white/15 rounded-full overflow-hidden flex items-center justify-center text-white font-black text-lg mb-2">
+                  <StudentAvatar name={userInitial} />
                 </div>
                 <p className="text-white font-bold text-sm">{userInfo?.name || userName}</p>
                 <p className="text-blue-200 text-xs mt-0.5">{userInfo?.email}</p>

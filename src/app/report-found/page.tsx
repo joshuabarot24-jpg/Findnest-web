@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { useUnreadCount } from "@/lib/useUnreadCount";
+import StudentAvatar from "@/components/StudentAvatar";
 import AuthGate from "@/components/AuthGate";
 
 const categories = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Others"];
@@ -245,9 +246,9 @@ function ReportFoundContent() {
               </span>
             )}
           </a>
-          <a href="/profile" className="w-10 h-10 bg-[#1a237e] rounded-full flex items-center justify-center text-white font-bold">
-            {userInitial}
-          </a>
+            <a href="/profile" className="w-10 h-10 bg-[#1a237e] rounded-full overflow-hidden flex items-center justify-center text-white font-bold text-sm">
+              <StudentAvatar name={userInitial} />
+            </a>
         </div>
       </nav>
 
