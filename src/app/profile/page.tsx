@@ -19,6 +19,7 @@ interface User {
   password_change_approved: boolean;
   password_change_reason: string | null;
   password_is_temporary?: boolean;
+  profile_photo_url?: string | null;
   created_at: string;
 }
 
@@ -40,6 +41,45 @@ function ProfileContent() {
   const [requestSuccess, setRequestSuccess] = useState("");
 
   const { count: unreadCount } = useUnreadCount();
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [photoDrag, setPhotoDrag] = useState(false);
+
+  // Uploads to Cloudinary (moderated, no item analysis), then saves the URL on the account
+  const uploadPhoto = async (file: File | undefined) => {
+    if (!file || photoBusy) return;
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please choose an image file (JPG, PNG, WEBP).");
+      return;
+    }
+    setPhotoError("");
+    setPhotoBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      fd.append("folder", "profiles");
+      fd.append("analyze", "false");
+      const up = await api.post("/upload/image", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.post("/profile/photo", { photo_url: up.data.url });
+      await fetchProfile();
+    } catch (err: any) {
+      setPhotoError(err.response?.data?.message || "Could not upload the photo. Please try again.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const removeProfilePhoto = async () => {
+    setPhotoBusy(true);
+    try {
+      await api.delete("/profile/photo");
+      await fetchProfile();
+    } catch {
+      setPhotoError("Could not remove the photo.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [setPasswordLoading, setSetPasswordLoading] = useState(false);
@@ -208,8 +248,12 @@ function ProfileContent() {
               </span>
             )}
           </a>
-          <a href="/profile" className="w-10 h-10 bg-[#1a237e] rounded-full flex items-center justify-center text-white font-bold text-sm">
-            {user?.name?.charAt(0).toUpperCase() || "?"}
+          <a href="/profile" className="w-10 h-10 bg-[#1a237e] rounded-full overflow-hidden flex items-center justify-center text-white font-bold text-sm">
+            {user?.profile_photo_url ? (
+              <img src={user.profile_photo_url} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              user?.name?.charAt(0).toUpperCase() || "?"
+            )}
           </a>
         </div>
       </nav>
@@ -221,8 +265,33 @@ function ProfileContent() {
           <>
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-6">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-2xl flex items-center justify-center text-white font-black text-3xl shadow-lg flex-shrink-0">
-                  {user?.name?.charAt(0).toUpperCase() || "?"}
+                <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                  <label
+                    onDragOver={(e) => { e.preventDefault(); setPhotoDrag(true); }}
+                    onDragLeave={() => setPhotoDrag(false)}
+                    onDrop={(e) => { e.preventDefault(); setPhotoDrag(false); uploadPhoto(e.dataTransfer.files?.[0]); }}
+                    className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center text-white font-black text-4xl shadow-lg cursor-pointer bg-gradient-to-br from-[#1a237e] to-[#1565c0] ring-4 ${photoDrag ? "ring-[#ffd700]" : "ring-white"}`}
+                    title="Change photo"
+                  >
+                    {user?.profile_photo_url ? (
+                      <img src={user.profile_photo_url} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.name?.charAt(0).toUpperCase() || "?"
+                    )}
+                    {photoBusy && (
+                      <span className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="w-6 h-6 border-4 border-white/40 border-t-white rounded-full animate-spin" />
+                      </span>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" disabled={photoBusy} onChange={(e) => { uploadPhoto(e.target.files?.[0]); e.target.value = ""; }} />
+                  </label>
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    <span className="text-[#1a237e]">Change photo</span>
+                    {user?.profile_photo_url && (
+                      <button type="button" onClick={removeProfilePhoto} disabled={photoBusy} className="text-red-500 hover:underline">Remove</button>
+                    )}
+                  </div>
+                  {photoError && <p className="text-red-500 text-[11px] font-semibold max-w-[10rem] text-center">{photoError}</p>}
                 </div>
                 <div className="flex-1">
                   <h1 className="text-2xl font-black text-[#1a237e]">{user?.name}</h1>
