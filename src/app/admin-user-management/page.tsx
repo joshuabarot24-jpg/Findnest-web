@@ -23,6 +23,7 @@ interface SystemUser {
   flagged_for_review?: boolean;
   flag_reason?: string | null;
   manual_override_granted?: boolean;
+  profile_photo_url?: string | null;
 }
 
 const PAGE_SIZE = 5;
@@ -34,6 +35,15 @@ const EDUCATION_LEVELS = [
   { value: "senior_high_school", label: "Senior High School" },
   { value: "junior_high_school", label: "Junior High School" },
 ];
+
+// Shows the student's photo, or their initial when there is none
+function AvatarInner({ user }: { user: { name: string; profile_photo_url?: string | null } }) {
+  return user.profile_photo_url ? (
+    <img src={user.profile_photo_url} alt="" className="w-full h-full object-cover" />
+  ) : (
+    <>{getInitial(user.name)}</>
+  );
+}
 
 function getInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || "?";
@@ -340,8 +350,8 @@ function AdminUserManagementContent() {
                   <tr key={user.id} className="hover:bg-gray-50 transition group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
-                          {getInitial(user.name)}
+                        <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
+                          <AvatarInner user={user} />
                         </div>
                         <div>
                           <p className="font-bold text-gray-700">{user.name}</p>
@@ -446,6 +456,9 @@ function AdminUserManagementContent() {
               &times;
             </button>
 
+            <div className="w-20 h-20 mb-3 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-full overflow-hidden flex items-center justify-center text-white font-black text-3xl shadow-lg ring-4 ring-white">
+              <AvatarInner user={viewingUser} />
+            </div>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Student Details</h2>
             <p className="text-gray-400 text-sm mb-6">Managed by Super Admin — read-only.</p>
 
