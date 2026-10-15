@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Super Admin > Admin Management (/admin-management). Assign, edit, restrict, revoke admins.
 // API: /users, /users/{id}/toggle-restriction, /users/{id}/revoke
 import { useState, useMemo, useEffect } from "react";
@@ -386,7 +386,7 @@ function AdminManagementContent() {
         {/* Page header */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-black text-[#1a237e]">Admin Management</h1>
+            <h1 className="text-3xl font-black text-[#06321C]">Admin Management</h1>
             <p className="text-gray-400 text-sm mt-1">
               Assign or archive administrator accounts and control panel access
             </p>

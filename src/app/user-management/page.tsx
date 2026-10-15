@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Super Admin > User Management (/user-management). Manages student accounts.
 // API: /users, /users/{id}/revoke, /toggle-restriction, /adjust-trust-score, /system/trust-settings
 import { useState, useMemo, useEffect } from "react";
@@ -507,7 +507,7 @@ function UserManagementContent() {
         {/* Page header */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-black text-[#1a237e]">User Management</h1>
+            <h1 className="text-3xl font-black text-[#06321C]">User Management</h1>
             <p className="text-gray-400 text-sm mt-1">
               Manage student accounts for College, Senior High School, and Junior High School
             </p>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Super Admin > System Management (/system-management).
 // (AI match threshold is fixed at 75% in the backend; no slider here.)
 import { useState, useEffect } from "react";
@@ -273,7 +273,7 @@ function SystemManagementContent() {
       <div>
         {/* Page header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-black text-[#1a237e]">System Management</h1>
+          <h1 className="text-3xl font-black text-[#06321C]">System Management</h1>
           <p className="text-gray-400 text-sm mt-1">
             Manage software versions, updates, and maintenance
           </p>
@@ -314,7 +314,7 @@ function SystemManagementContent() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">System Version</p>
-            <p className="text-3xl font-black text-[#1a237e] mt-1">v{systemVersion}</p>
+            <p className="text-3xl font-black text-[#06321C] mt-1">v{systemVersion}</p>
             <button
               onClick={() => setShowVersionConfirm(true)}
               className="mt-3 text-xs font-bold text-[#1a237e] border border-[#1a237e]/30 hover:bg-[#1a237e] hover:text-white px-3 py-1.5 rounded-lg transition"

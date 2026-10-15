@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // Super Admin > Digital Records (/super-admin-records). Audit log, per-case trail, 30-day archive.
 // API: /audit-logs, /audit-logs/action-types, /case-trail, /case-trail/{id}, /claims/archive
 import { useState, useEffect } from "react";
@@ -334,7 +334,7 @@ function SuperAdminRecordsContent() {
       <div>
         {/* Page header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-black text-[#1a237e]">Digital Records</h1>
+          <h1 className="text-3xl font-black text-[#06321C]">Digital Records</h1>
           <p className="text-gray-400 text-sm mt-1">Complete system-wide, tamper-evident audit log</p>
         </div>
 
@@ -372,7 +372,7 @@ function SuperAdminRecordsContent() {
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 mb-8">
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <p className="text-gray-400 text-sm font-medium">Total Logs</p>
-                <p className="text-3xl font-black text-[#1a237e] mt-1">{total}</p>
+                <p className="text-3xl font-black text-[#06321C] mt-1">{total}</p>
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <p className="text-gray-400 text-sm font-medium">Claim Actions (this page)</p>
