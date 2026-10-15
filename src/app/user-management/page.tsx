@@ -26,6 +26,7 @@ interface SystemUser {
   password_change_reason: string | null;
   password_last_changed_at: string | null;
   restored_at?: string | null;
+  profile_photo_url?: string | null;
   created_at?: string;
 }
 
@@ -77,6 +78,15 @@ function filterLettersOnly(value: string) {
 // Keeps only digits
 function filterDigitsOnly(value: string) {
   return value.replace(/[^0-9]/g, "");
+}
+
+// Shows the student's photo, or their initial when there is none
+function AvatarInner({ user }: { user: { name: string; profile_photo_url?: string | null } }) {
+  return user.profile_photo_url ? (
+    <img src={user.profile_photo_url} alt="" className="w-full h-full object-cover" />
+  ) : (
+    <>{getInitial(user.name)}</>
+  );
 }
 
 function getInitial(name: string) {
@@ -621,8 +631,8 @@ function UserManagementContent() {
                 {paginated.map((user) => (
                   <div key={user.id} className="px-6 py-5 flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1 min-w-0">
-                      <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
-                        {getInitial(user.name)}
+                      <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
+                        <AvatarInner user={user} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-700">{user.name}</p>
@@ -675,8 +685,8 @@ function UserManagementContent() {
                     <tr key={user.id} className="hover:bg-gray-50 transition group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
-                            {getInitial(user.name)}
+                          <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
+                            <AvatarInner user={user} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
