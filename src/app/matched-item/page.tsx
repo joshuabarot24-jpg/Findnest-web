@@ -181,7 +181,7 @@ export default function MatchedItemPage() {
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-6">
               <div className="w-full h-64 bg-gray-100">
                 {match.found_item.photo_url ? (
-                  <img src={match.found_item.photo_url} alt={match.found_item.item_name} className="w-full h-full object-cover" />
+                  <img src={match.found_item.photo_url} alt={match.found_item.item_name} className="w-full h-full object-contain" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
                 )}
