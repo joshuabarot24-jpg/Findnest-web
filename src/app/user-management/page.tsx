@@ -1483,6 +1483,9 @@ function UserManagementContent() {
               &times;
             </button>
 
+             <div className="w-20 h-20 mb-3 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-full overflow-hidden flex items-center justify-center text-white font-black text-3xl shadow-lg ring-4 ring-white">
+              <AvatarInner user={viewingArchived} />
+            </div>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">{viewingArchived.name}</h2>
             <span className="inline-block text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 mb-4">ARCHIVED</span>
 
