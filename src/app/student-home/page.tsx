@@ -1,9 +1,11 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
-import api, { logoutUser } from "@/lib/api";
-import { useUnreadCount } from "@/lib/useUnreadCount";
-import StudentAvatar from "@/components/StudentAvatar";
+﻿"use client";
+// Student > Home (/student-home). Hero, reported lost items (all students) and the student's own found reports.
+// API: /lost-items, /lost-items/my-reports, /found-items, /notifications, /support
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import StudentLayout from "@/components/StudentLayout";
 import AuthGate from "@/components/AuthGate";
+import HeroCarousel from "@/components/HeroCarousel";
 
 interface FoundReport {
   id: number;
@@ -49,16 +51,10 @@ interface NotificationItem {
   match_id: number | null;
 }
 
-interface UserInfo {
-  name: string;
-  email: string;
-  trust_score?: number;
-}
-
 const FAQ_ITEMS = [
   {
     q: "How do I report a lost item?",
-    a: "Click \"Report Lost Items\" on the Home page, upload a clear photo, and fill in the details. Our AI will help auto-fill some fields for you.",
+    a: "Click \"Lost something\" on the Home page, upload a clear photo, and fill in the details. Our AI will help auto-fill some fields for you.",
   },
   {
     q: "How do I know if my item was found?",
@@ -82,22 +78,61 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-function formatNotifTime(dateStr: string) {
-  const date = new Date(dateStr);
-  const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
 function statusLabel(status: string) {
   switch (status) {
     case "matched": return "Match Found";
     case "returned": return "Returned";
     default: return "Searching for match...";
   }
+}
+
+function foundStatusLabel(r: FoundReport) {
+  return r.receipt_confirmed === false ? "Awaiting surrender" : r.status === "claimed" ? "Claimed" : "Unclaimed";
+}
+
+// Pagination bar: range text on the left, Previous / numbers / Next on the right
+function Pager({ page, total, size, onChange }: { page: number; total: number; size: number; onChange: (p: number) => void }) {
+  const pages = Math.max(1, Math.ceil(total / size));
+  if (total === 0) return null;
+  const from = (page - 1) * size + 1;
+  const to = Math.min(page * size, total);
+  const nums = Array.from({ length: pages }, (_, i) => i + 1).filter((p) => p === 1 || p === pages || Math.abs(p - page) <= 1);
+  return (
+    <div className="mt-auto pt-6 flex flex-wrap items-center justify-between gap-3">
+      <p className="text-gray-400 text-sm">Showing {from}&ndash;{to} of {total} items</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => onChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 text-sm hover:border-[#0E4D34] hover:text-[#0E4D34] transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        {nums.map((p, idx) => (
+          <span key={p} className="flex items-center gap-2">
+            {idx > 0 && p - nums[idx - 1] > 1 && <span className="text-gray-300">&hellip;</span>}
+            <button
+              onClick={() => onChange(p)}
+              className={
+                p === page
+                  ? "w-9 h-9 rounded-lg bg-[#0E4D34] text-white text-sm font-bold"
+                  : "w-9 h-9 rounded-lg border border-gray-200 bg-white text-gray-500 text-sm hover:border-[#0E4D34] hover:text-[#0E4D34] transition"
+              }
+            >
+              {p}
+            </button>
+          </span>
+        ))}
+        <button
+          onClick={() => onChange(Math.min(pages, page + 1))}
+          disabled={page === pages}
+          className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 text-sm hover:border-[#0E4D34] hover:text-[#0E4D34] transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function StudentHome() {
@@ -109,12 +144,11 @@ export default function StudentHome() {
 }
 
 function StudentHomeContent() {
-  const [userName, setUserName] = useState("");
-  const [userInitial, setUserInitial] = useState("?");
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [tab, setTab] = useState<"lost" | "found">("lost");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
 
   const [myReports, setMyReports] = useState<LostReport[]>([]);
-  const [reportsLoading, setReportsLoading] = useState(true);
   const [selectedMyReport, setSelectedMyReport] = useState<LostReport | null>(null);
   const [deletingReport, setDeletingReport] = useState<LostReport | null>(null);
   const [myFoundReports, setMyFoundReports] = useState<FoundReport[]>([]);
@@ -129,11 +163,6 @@ function StudentHomeContent() {
   const [matchNotification, setMatchNotification] = useState<NotificationItem | null>(null);
   const [showNotification, setShowNotification] = useState(true);
 
-  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
-  const [profilePanelOpen, setProfilePanelOpen] = useState(false);
-  const [allNotifications, setAllNotifications] = useState<NotificationItem[]>([]);
-  const [notifListLoading, setNotifListLoading] = useState(false);
-
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [chatbotInput, setChatbotInput] = useState("");
   const [chatbotThinking, setChatbotThinking] = useState(false);
@@ -147,9 +176,6 @@ function StudentHomeContent() {
   const [chatSent, setChatSent] = useState(false);
   const [chatError, setChatError] = useState("");
 
-  const notifRef = useRef<HTMLDivElement>(null);
-  const profileRef = useRef<HTMLDivElement>(null);
-
   const markNotificationRead = async (id: number) => {
     try {
       await api.post(`/notifications/${id}/read`);
@@ -157,42 +183,6 @@ function StudentHomeContent() {
       console.error("Error marking notification as read:", err);
     }
   };
-
-  const fetchAllNotifications = async () => {
-    setNotifListLoading(true);
-    try {
-      const response = await api.get("/notifications");
-      setAllNotifications(response.data.notifications || []);
-    } catch (err) {
-      console.error("Error fetching notifications:", err);
-    } finally {
-      setNotifListLoading(false);
-    }
-  };
-
-  function openNotifPanel() {
-    setProfilePanelOpen(false);
-    setNotifPanelOpen(true);
-    fetchAllNotifications();
-  }
-
-  function openProfilePanel() {
-    setNotifPanelOpen(false);
-    setProfilePanelOpen(true);
-  }
-
-  async function handleNotifItemClick(n: NotificationItem) {
-    if (!n.is_read) await markNotificationRead(n.id);
-    const t = n.type.toLowerCase();
-    if (t.includes("match") && n.match_id) {
-      window.location.href = `/matched-item?matchId=${n.match_id}`;
-    } else if (t.includes("status") || t.includes("claim")) {
-      window.location.href = "/claim-status";
-    } else {
-      setNotifPanelOpen(false);
-      fetchAllNotifications();
-    }
-  }
 
   async function handleSendMessage() {
     if (!chatMessage.trim()) {
@@ -231,37 +221,6 @@ function StudentHomeContent() {
   }
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifPanelOpen(false);
-      }
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setProfilePanelOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const handlePageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) {
-        fetchAllNotifications();
-      }
-    };
-    window.addEventListener("pageshow", handlePageShow);
-    return () => window.removeEventListener("pageshow", handlePageShow);
-  }, []);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("findnest_user");
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setUserName(user.name || "");
-      setUserInitial((user.name || "?").charAt(0).toUpperCase());
-      setUserInfo({ name: user.name, email: user.email, trust_score: user.trust_score });
-    }
-
     const fetchMyFoundReports = async () => {
       try {
         const response = await api.get("/found-items");
@@ -279,8 +238,6 @@ function StudentHomeContent() {
         setMyReports(response.data.reports || []);
       } catch (err) {
         console.error("Error fetching my reports:", err);
-      } finally {
-        setReportsLoading(false);
       }
     };
 
@@ -295,6 +252,7 @@ function StudentHomeContent() {
       }
     };
 
+    // Unread match notification shown as the green banner
     const fetchNotifications = async () => {
       try {
         const response = await api.get("/notifications");
@@ -313,139 +271,29 @@ function StudentHomeContent() {
     fetchPublicReports();
     fetchNotifications();
 
-    const notifInterval = setInterval(() => {
-      fetchNotifications();
-      if (notifPanelOpen) {
-        fetchAllNotifications();
-      } else {
-        api.get("/notifications").then((res) => {
-          setAllNotifications(res.data.notifications || []);
-        }).catch((err) => console.error("Error polling notifications:", err));
-      }
-    }, 20000);
-
-    return () => clearInterval(notifInterval);
+    const interval = setInterval(fetchNotifications, 20000);
+    return () => clearInterval(interval);
   }, []);
 
-  // [UX] The badge comes from the shared hook so it shows right away and keeps refreshing.
-  // Fallbacks keep the old behavior if the hook hasn't loaded yet.
-  const { count: sharedUnread } = useUnreadCount();
-  const unreadCount = sharedUnread || allNotifications.filter((n) => !n.is_read).length || (matchNotification ? 1 : 0);
+    // Skeleton card shown while a list loads
+  const SkeletonCard = (
+    <div className="bg-[#F3FAF6] rounded-2xl border border-[#2FD18B] p-1.5">
+      <div className="rounded-xl border border-gray-200 p-3">
+      <div className="w-full h-36 bg-gray-100 rounded-xl flex items-center justify-center text-gray-300">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" /></svg>
+      </div>
+      <div className="h-3 bg-[#0E4D34] rounded-full mt-3 w-3/4" />
+      <div className="h-2 bg-[#BFE3CF] rounded-full mt-2 w-1/2" />
+      <div className="h-2 bg-[#BFE3CF] rounded-full mt-2 w-2/5" />
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc]">
-      <nav className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <a href="/student-home" className="text-lg font-black text-[#1a237e] hover:opacity-80 transition">
-            FIND<span className="text-[#ffd700]">NEST</span>
-          </a>
-        </div>
-
-        <div className="flex items-center gap-8">
-          <a href="/student-home" className="text-[#1a237e] font-bold text-sm border-b-2 border-[#1a237e] pb-1">Home</a>
-          <a href="/claim-status" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Claim Status</a>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="relative" ref={notifRef}>
-            <button
-              onClick={() => (notifPanelOpen ? setNotifPanelOpen(false) : openNotifPanel())}
-              className="relative w-10 h-10 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center justify-center transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </button>
-
-            <div
-              className={`absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden origin-top-right transition-all duration-200 ${
-                notifPanelOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
-              }`}
-            >
-              <div className="px-5 py-4 border-b border-gray-100">
-                <p className="font-black text-gray-700 text-sm">Notifications</p>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                {notifListLoading ? (
-                  <div className="text-center py-10 text-gray-400 text-sm">Loading...</div>
-                ) : allNotifications.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400 text-sm">No notifications yet</div>
-                ) : (
-                  allNotifications.map((n) => (
-                    <button
-                      key={n.id}
-                      onClick={() => handleNotifItemClick(n)}
-                      className={`w-full text-left px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition ${!n.is_read ? "bg-blue-50/40" : ""}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-700 text-xs">{n.title}</p>
-                          <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{n.message}</p>
-                          <p className="text-gray-400 text-[10px] mt-1">{formatNotifTime(n.created_at)}</p>
-                        </div>
-                        {!n.is_read && <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 mt-1" />}
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-              <a
-                href="/notifications"
-                className="block text-center py-3 text-xs font-bold text-[#1a237e] hover:bg-gray-50 transition border-t border-gray-100"
-              >
-                View All Notifications
-              </a>
-            </div>
-          </div>
-
-          <div className="relative" ref={profileRef}>
-            <button
-              onClick={() => (profilePanelOpen ? setProfilePanelOpen(false) : openProfilePanel())}
-              className="w-10 h-10 bg-[#1a237e] rounded-full overflow-hidden flex items-center justify-center text-white font-bold"
-            >
-              <StudentAvatar name={userInitial} />
-            </button>
-
-            <div
-              className={`absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden origin-top-right transition-all duration-200 ${
-                profilePanelOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
-              }`}
-            >
-              <div className="px-5 py-5 bg-gradient-to-br from-[#1a237e] to-[#1565c0]">
-                <div className="w-12 h-12 bg-white/15 rounded-full overflow-hidden flex items-center justify-center text-white font-black text-lg mb-2">
-                  <StudentAvatar name={userInitial} />
-                </div>
-                <p className="text-white font-bold text-sm">{userInfo?.name || userName}</p>
-                <p className="text-blue-200 text-xs mt-0.5">{userInfo?.email}</p>
-              </div>
-              <div className="p-2">
-                <a href="/profile" className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
-                  View Full Profile
-                </a>
-                <a href="/claim-status" className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
-                  My Claims
-                </a>
-                <div className="h-px bg-gray-100 my-1" />
-                <button
-                  onClick={logoutUser}
-                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="px-8 py-8 max-w-6xl mx-auto">
+    <StudentLayout active="/student-home">
+      <div className="w-full flex-1 flex flex-col pb-20">
         {matchNotification && showNotification && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl px-6 py-4 mb-8 flex items-center justify-between">
+          <div className="bg-green-50 border border-green-200 rounded-2xl px-6 py-4 mb-8 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-bold text-green-700 text-sm">{matchNotification.title}</p>
               <p className="text-green-600 text-sm">{matchNotification.message}</p>
@@ -454,7 +302,7 @@ function StudentHomeContent() {
               <a
                 href={matchNotification.match_id ? `/matched-item?matchId=${matchNotification.match_id}` : "/claim-status"}
                 onClick={() => { markNotificationRead(matchNotification.id); setShowNotification(false); }}
-                className="text-sm font-bold text-[#1a237e] hover:underline"
+                className="text-sm font-bold text-[#0E4D34] hover:underline"
               >
                 View Match
               </a>
@@ -468,180 +316,168 @@ function StudentHomeContent() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <a
-            href="/report-lost"
-            className="bg-red-500 hover:bg-red-600 rounded-2xl p-6 text-white transition shadow-lg hover:-translate-y-1 transform flex items-center gap-4"
-          >
-            <div>
-              <p className="font-black text-lg">Report Lost Items</p>
-              <p className="text-red-100 text-xs">Submit a lost item report</p>
-            </div>
-          </a>
+        {/* Hero */}
+        <section className="grid grid-cols-1 md:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] gap-6 md:gap-10 items-start mb-6">
+          <HeroCarousel />
 
-          <a
-            href="/report-found"
-            className="bg-green-500 hover:bg-green-600 rounded-2xl p-6 text-white transition shadow-lg hover:-translate-y-1 transform flex items-center gap-4"
-          >
-            <div>
-              <p className="font-black text-lg">Report Found Item</p>
-              <p className="text-green-100 text-xs">Turn in an item you found</p>
-            </div>
-          </a>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="font-black text-gray-700 text-sm mb-3">Active Lost Item Reports</p>
-            {reportsLoading ? (
-              <p className="text-gray-400 text-xs">Loading...</p>
-            ) : myReports.filter((r) => r.status === "searching").length === 0 ? (
-              <p className="text-gray-400 text-xs">No active reports</p>
-            ) : (
-              <div className="space-y-2">
-                {myReports
-                  .filter((r) => r.status === "searching")
-                  .slice(0, 2)
-                  .map((report) => (
-                    <button
-                      key={report.id}
-                      onClick={() => setSelectedMyReport(report)}
-                      className="w-full flex items-center gap-3 text-left hover:bg-gray-50 rounded-xl p-1.5 -m-1.5 transition"
-                    >
-                      <div className="w-10 h-10 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                        {report.photo_url ? (
-                          <img src={report.photo_url} alt={report.item_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-[9px] font-bold">
-                            No Photo
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-700 text-sm">{report.item_name}</p>
-                        <p className="text-gray-400 text-xs">Searching</p>
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            )}
-
-            <div className="mt-6">
-              <p className="font-black text-gray-700 text-sm mb-3">Your Found Item Reports</p>
-            {foundReportsLoading ? (
-              <p className="text-gray-400 text-xs">Loading...</p>
-            ) : myFoundReports.length === 0 ? (
-              <p className="text-gray-400 text-xs">No found item reports yet</p>
-            ) : (
-              <div className="space-y-2">
-                {myFoundReports.slice(0, 2).map((report) => (
-                  <button
-                    key={report.id}
-                    onClick={() => setSelectedMyFoundReport(report)}
-                    className="w-full flex items-center gap-3 text-left hover:bg-gray-50 rounded-xl p-1.5 -m-1.5 transition"
-                  >
-                    <div className="w-10 h-10 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                      {report.photo_url ? (
-                        <img src={report.photo_url} alt={report.item_name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-[9px] font-bold">
-                          No Photo
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-700 text-sm">{report.item_name}</p>
-                      <p className="text-gray-400 text-xs">
-                        {report.receipt_confirmed === false ? "Awaiting surrender" : report.status === "claimed" ? "Claimed" : "Unclaimed"}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-1">
-              <p className="font-black text-gray-700 text-lg">Report Items</p>
-              <span className="text-gray-400 text-xs">{publicReports.length} active</span>
-            </div>
-            <p className="text-gray-400 text-xs mb-5">
-              Items reported lost by other students &mdash; photos are blurred to prevent false claims
+          <div>
+            <h1 className="font-black leading-[1.05] text-3xl sm:text-4xl xl:text-5xl tracking-tight">
+              <span className="block text-[#0E4D34]">NEVER LOST</span>
+              <span className="block"><span className="text-[#2FD18B]">WHAT</span> <span className="text-[#0E4D34]">MATTERS</span></span>
+              <span className="block text-[#2FD18B]">MOST.</span>
+            </h1>
+            <p className="text-gray-600 text-sm mt-3 max-w-md leading-relaxed">
+              FindNest uses advanced AI image recognition to match lost and found items on campus. Submit a report, get notified instantly.
             </p>
 
-            {publicLoading ? (
-              <p className="text-gray-400 text-sm text-center py-8">Loading reports...</p>
-            ) : publicReports.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-400 text-sm font-bold">No active lost reports</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-4">
-                {publicReports.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setPreviewPublicReport(item)}
-                    className="border border-gray-100 rounded-2xl overflow-hidden text-left hover:border-[#1a237e] hover:shadow-md transition cursor-pointer"
-                  >
-                    <div className="w-full h-28 bg-gray-100 overflow-hidden">
-                      {item.photo_url ? (
-                        <img
-                          src={item.photo_url}
-                          alt={item.item_name}
-                          className="w-full h-full object-cover"
-                          style={{ filter: "blur(10px)", transform: "scale(1.1)" }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs font-bold">
-                          No Photo
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <p className="font-bold text-gray-700 text-xs truncate">{item.item_name}</p>
-                      <p className="text-gray-400 text-[10px] mt-1">{item.category}</p>
-                      <p className="text-gray-400 text-[10px]">{formatDate(item.date_lost)}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2 mt-4">
+              <a href="/report-lost" className="flex items-center gap-2 bg-[#E11D48] hover:bg-[#BE123C] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v5" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
+                Lost something
+              </a>
+              <a href="/report-found" className="flex items-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /><path d="M11 8v6" /><path d="M8 11h6" /></svg>
+                Found Something
+              </a>
+              <a href="/claim-status" className="flex items-center gap-2 bg-[#D9E8DF] hover:bg-[#C9DCD2] text-[#1F2937] font-bold text-sm px-5 py-2.5 rounded-full transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" /><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" /><circle cx="12" cy="12" r="2" /><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" /><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" /></svg>
+                Claim Status
+              </a>
+            </div>
           </div>
-        </div>
-      </main>
+        </section>
+
+        {/* Tabs: all students' lost reports / this student's own found reports */}
+        <section className="flex-1 flex flex-col">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <span className="w-1.5 h-6 rounded-full bg-[#2FD18B]" />
+            <h2 className="text-xl font-black text-gray-800">{tab === "lost" ? "Reported Lost Items" : "Your Reported Found Items"}</h2>
+            <span className="text-gray-400 text-xs">
+              {tab === "lost" ? `${publicReports.length} active` : `${myFoundReports.length} reported`}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => { setTab("lost"); setPage(1); }}
+              className={`px-5 py-2 rounded-full text-sm font-bold transition ${tab === "lost" ? "bg-[#0E4D34] text-white" : "bg-white text-gray-600 hover:bg-[#D9E8DF]"}`}
+            >
+              Reported Lost Items
+            </button>
+            <button
+              onClick={() => { setTab("found"); setPage(1); }}
+              className={`px-5 py-2 rounded-full text-sm font-bold transition ${tab === "found" ? "bg-[#0E4D34] text-white" : "bg-white text-gray-600 hover:bg-[#D9E8DF]"}`}
+            >
+              Your Reported Found Items
+            </button>
+          </div>
+          <p className="text-gray-400 text-xs mb-6">
+            {tab === "lost"
+              ? "Items reported lost by students. Photos are blurred to prevent false claims."
+              : "Only the items you reported as found are shown here."}
+          </p>
+
+          {tab === "lost" ? (
+            publicLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">{[0, 1, 2, 3].map((i) => <div key={i}>{SkeletonCard}</div>)}</div>
+            ) : publicReports.length === 0 ? (
+              <div className="bg-white rounded-2xl text-center py-12 text-gray-400 text-sm font-bold">No active lost reports</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {publicReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((item) => {
+                  const mine = myReports.find((r) => r.id === item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => (mine ? setSelectedMyReport(mine) : setPreviewPublicReport(item))}
+                      className="bg-[#F3FAF6] rounded-2xl border border-[#2FD18B] p-1.5 text-left hover:shadow-md transition"
+                    >
+                      <div className="rounded-xl border border-gray-200 p-3">
+                      <div className="relative w-full h-36 bg-gray-100 rounded-xl overflow-hidden">
+                        {item.photo_url ? (
+                          <img src={item.photo_url} alt={item.item_name} className="w-full h-full object-contain p-2" style={{ filter: "blur(6px)" }} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs font-bold">No Photo</div>
+                        )}
+                        {mine && <span className="absolute top-2 left-2 bg-[#0E4D34] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Yours</span>}
+                      </div>
+                      <p className="font-black text-[#0E4D34] text-base truncate mt-3">{item.item_name}</p>
+                      <p className="text-gray-500 text-xs font-medium mt-1">{item.category}</p>
+                      <p className="text-gray-500 text-xs font-medium mt-0.5">{formatDate(item.date_lost)}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )
+          ) : foundReportsLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">{[0, 1, 2, 3].map((i) => <div key={i}>{SkeletonCard}</div>)}</div>
+          ) : myFoundReports.length === 0 ? (
+            <div className="bg-white rounded-2xl text-center py-12 text-gray-400 text-sm font-bold">You haven&apos;t reported any found items yet</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {myFoundReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((report) => (
+                <button
+                  key={report.id}
+                  onClick={() => setSelectedMyFoundReport(report)}
+                  className="bg-[#F3FAF6] rounded-2xl border border-[#2FD18B] p-1.5 text-left hover:shadow-md transition"
+                >
+                  <div className="rounded-xl border border-gray-200 p-3">
+                  <div className="w-full h-36 bg-gray-100 rounded-xl overflow-hidden">
+                    {report.photo_url ? (
+                      <img src={report.photo_url} alt={report.item_name} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs font-bold">No Photo</div>
+                    )}
+                  </div>
+                  <p className="font-black text-[#0E4D34] text-base truncate mt-3">{report.item_name}</p>
+                  <p className="text-gray-500 text-xs font-medium mt-1">{report.category}</p>
+                  <p className="text-gray-500 text-xs font-medium mt-0.5">{report.date_found ? formatDate(report.date_found) : foundStatusLabel(report)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          <Pager
+            page={page}
+            total={tab === "lost" ? publicReports.length : myFoundReports.length}
+            size={PAGE_SIZE}
+            onChange={setPage}
+          />
+        </section>
+      </div>
 
       {previewPublicReport && (
         <div
           onClick={() => setPreviewPublicReport(null)}
-          className="fixed inset-0 z-[140] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4 cursor-zoom-out"
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4 cursor-zoom-out"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 cursor-default"
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm cursor-default"
           >
             <button
               onClick={() => setPreviewPublicReport(null)}
-              className="absolute -top-3 -right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none shadow-md border border-gray-100 z-10"
+              className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition text-2xl font-bold leading-none shadow-lg border border-gray-200 z-20"
             >
               &times;
             </button>
+            <div className="p-6 max-h-[90vh] overflow-y-auto">
 
-            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-4">
+            <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-4 flex items-center justify-center">
               {previewPublicReport.photo_url ? (
                 <img
                   src={previewPublicReport.photo_url}
                   alt={previewPublicReport.item_name}
-                  className="w-full h-full object-cover"
-                  style={{ filter: "blur(10px)", transform: "scale(1.1)" }}
+                  className="w-full max-h-[60vh] object-contain"
+                  style={{ filter: "blur(10px)" }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
               )}
             </div>
 
-            <h3 className="font-black text-[#1a237e] text-lg">{previewPublicReport.item_name}</h3>
+            <h3 className="font-black text-[#0E4D34] text-lg">{previewPublicReport.item_name}</h3>
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-400">Category</span>
@@ -655,6 +491,7 @@ function StudentHomeContent() {
             <p className="text-gray-400 text-xs mt-4 text-center">
               Full details are only revealed to the student if this matches their own lost report.
             </p>
+            </div>
           </div>
         </div>
       )}
@@ -662,7 +499,7 @@ function StudentHomeContent() {
       {!chatbotOpen && (
         <button
           onClick={() => setChatbotOpen(true)}
-          className="fixed bottom-6 right-6 z-[150] flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white rounded-full shadow-2xl transition pl-3 pr-5 py-3 hover:-translate-y-0.5"
+          className="fixed bottom-4 right-4 z-[150] flex items-center gap-2 bg-[#0E4D34] hover:bg-[#0A3021] text-white rounded-full shadow-2xl transition pl-2 pr-4 py-2 hover:-translate-y-0.5"
         >
           <div className="w-8 h-8 bg-white/15 rounded-full flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -676,8 +513,8 @@ function StudentHomeContent() {
       )}
 
       {chatbotOpen && (
-        <div className="fixed bottom-6 right-6 z-[150] w-96 max-w-[calc(100vw-2rem)] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden" style={{ height: "560px" }}>
-          <div className="bg-[#1a237e] px-5 py-4 flex items-center justify-between flex-shrink-0">
+        <div className="fixed bottom-6 right-6 z-[150] w-96 max-w-[calc(100vw-2rem)] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden" style={{ height: "560px", maxHeight: "calc(100vh - 3rem)" }}>
+          <div className="bg-[#0E4D34] px-5 py-4 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -686,7 +523,7 @@ function StudentHomeContent() {
               </div>
               <div>
                 <p className="text-white font-bold text-sm">FindNest Assistant</p>
-                <p className="text-blue-200 text-[10px]">Ask me how FindNest works</p>
+                <p className="text-white/70 text-[10px]">Ask me how FindNest works</p>
               </div>
             </div>
             <button onClick={() => setChatbotOpen(false)} className="text-white/70 hover:text-white text-2xl leading-none">&times;</button>
@@ -728,7 +565,7 @@ function StudentHomeContent() {
             {chatHistory.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
-                  msg.role === "user" ? "bg-[#1a237e] text-white" : "bg-white text-gray-700 border border-gray-100"
+                  msg.role === "user" ? "bg-[#0E4D34] text-white" : "bg-white text-gray-700 border border-gray-100"
                 }`}>
                   {msg.text}
                 </div>
@@ -747,7 +584,7 @@ function StudentHomeContent() {
             )}
           </div>
 
-          <div className="border-t border-gray-100 p-3 flex-shrink-0">
+          <div className="border-t border-gray-100 p-3 flex-shrink-0 overflow-y-auto" style={{ maxHeight: "60%" }}>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -755,23 +592,23 @@ function StudentHomeContent() {
                 onChange={(e) => setChatbotInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAskChatbot(); }}
                 placeholder="Type your question..."
-                className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs"
+                className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#0E4D34] text-gray-700 text-xs"
               />
               <button
                 onClick={handleAskChatbot}
                 disabled={chatbotThinking || !chatbotInput.trim()}
-                className="bg-[#1a237e] hover:bg-[#283593] text-white px-4 rounded-xl transition disabled:opacity-50 text-xs font-bold"
+                className="bg-[#0E4D34] hover:bg-[#0A3021] text-white px-4 rounded-xl transition disabled:opacity-50 text-xs font-bold"
               >
                 Ask
               </button>
             </div>
             <button
               onClick={() => setShowMessageBox(!showMessageBox)}
-              className="text-[#1a237e] text-[10px] font-bold mt-2 hover:underline"
+              className="text-[#0E4D34] text-[10px] font-bold mt-2 hover:underline"
             >
               {showMessageBox ? "Hide" : "Still need help? Send a message to the office"}
             </button>
-           {showMessageBox && (
+            {showMessageBox && (
               <div className="mt-2">
                 <label className="flex items-start gap-2 mb-2 cursor-pointer">
                   <input
@@ -789,7 +626,7 @@ function StudentHomeContent() {
                   onChange={(e) => setChatMessage(e.target.value)}
                   placeholder={isOverrideRequest ? "Explain why your photo isn't clear (e.g. item is in a dark bag, photo is blurry)..." : "Type your message here..."}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs resize-none mb-2"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#0E4D34] text-gray-700 text-xs resize-none mb-2"
                 />
                 {chatError && <p className="text-red-500 text-[10px] font-semibold mb-1">{chatError}</p>}
                 {chatSent && <p className="text-green-600 text-[10px] font-semibold mb-1">Message sent!</p>}
@@ -809,29 +646,30 @@ function StudentHomeContent() {
       {selectedMyReport && (
         <div
           onClick={() => setSelectedMyReport(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4 cursor-zoom-out"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4 cursor-zoom-out"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 cursor-default"
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md cursor-default"
           >
             <button
               onClick={() => setSelectedMyReport(null)}
-              className="absolute -top-3 -right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition text-xl font-bold leading-none shadow-md border border-gray-100 z-10"
+              className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition text-2xl font-bold leading-none shadow-lg border border-gray-200 z-20"
             >
               &times;
             </button>
+            <div className="p-6 max-h-[90vh] overflow-y-auto">
 
-            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-4">
+            <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-4 flex items-center justify-center">
               {selectedMyReport.photo_url ? (
-                <img src={selectedMyReport.photo_url} alt={selectedMyReport.item_name} className="w-full h-full object-cover" />
+                <img src={selectedMyReport.photo_url} alt={selectedMyReport.item_name} className="w-full max-h-[60vh] object-contain" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
               )}
             </div>
 
-            <h3 className="font-black text-[#1a237e] text-lg">{selectedMyReport.item_name}</h3>
-            <span className="inline-block mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700">
+            <h3 className="font-black text-[#0E4D34] text-lg">{selectedMyReport.item_name}</h3>
+            <span className="inline-block mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700">
               {statusLabel(selectedMyReport.status)}
             </span>
 
@@ -850,7 +688,7 @@ function StudentHomeContent() {
               </div>
             </div>
 
-           {(selectedMyReport.ai_description || selectedMyReport.description) && (
+            {(selectedMyReport.ai_description || selectedMyReport.description) && (
               <div className="mt-4 bg-gray-50 rounded-xl p-3">
                 <p className="text-gray-400 text-xs font-bold uppercase mb-1">Description</p>
                 <p className="text-gray-700 text-sm">{selectedMyReport.ai_description || selectedMyReport.description}</p>
@@ -863,24 +701,26 @@ function StudentHomeContent() {
             >
               Delete Report
             </button>
+            </div>
           </div>
         </div>
       )}
 
       {selectedMyFoundReport && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
-            <button onClick={() => setSelectedMyFoundReport(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
-            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-4">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm">
+            <button onClick={() => setSelectedMyFoundReport(null)} className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition text-2xl font-bold leading-none shadow-lg border border-gray-200 z-20">&times;</button>
+            <div className="p-6 max-h-[90vh] overflow-y-auto">
+            <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-4 flex items-center justify-center">
               {selectedMyFoundReport.photo_url ? (
-                <img src={selectedMyFoundReport.photo_url} alt={selectedMyFoundReport.item_name} className="w-full h-full object-cover" />
+                <img src={selectedMyFoundReport.photo_url} alt={selectedMyFoundReport.item_name} className="w-full max-h-[60vh] object-contain" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
               )}
             </div>
-            <h3 className="font-black text-[#1a237e] text-lg">{selectedMyFoundReport.item_name}</h3>
-            <span className="inline-block mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700">
-              {selectedMyFoundReport.receipt_confirmed === false ? "Awaiting Surrender" : selectedMyFoundReport.status === "claimed" ? "Claimed" : "Unclaimed"}
+            <h3 className="font-black text-[#0E4D34] text-lg">{selectedMyFoundReport.item_name}</h3>
+            <span className="inline-block mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+              {foundStatusLabel(selectedMyFoundReport)}
             </span>
             <div className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between">
@@ -893,7 +733,7 @@ function StudentHomeContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Date Found</span>
-               <span className="font-bold text-gray-700">{selectedMyFoundReport.date_found ? formatDate(selectedMyFoundReport.date_found) : "—"}</span>
+                <span className="font-bold text-gray-700">{selectedMyFoundReport.date_found ? formatDate(selectedMyFoundReport.date_found) : "—"}</span>
               </div>
             </div>
             {(selectedMyFoundReport.ai_description || selectedMyFoundReport.description) && (
@@ -902,15 +742,16 @@ function StudentHomeContent() {
                 <p className="text-gray-700 text-sm">{selectedMyFoundReport.ai_description || selectedMyFoundReport.description}</p>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
 
       {deletingReport && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
-            <h2 className="text-lg font-black text-[#1a237e] mb-1">Delete This Report?</h2>
-            <p className="text-gray-400 text-sm mb-4">Let us know why you're deleting "{deletingReport.item_name}" — for example, if you found it yourself.</p>
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-black text-[#0E4D34] mb-1">Delete This Report?</h2>
+            <p className="text-gray-400 text-sm mb-4">Let us know why you&apos;re deleting &quot;{deletingReport.item_name}&quot; — for example, if you found it yourself.</p>
             <textarea
               value={deleteReason}
               onChange={(e) => setDeleteReason(e.target.value)}
@@ -932,6 +773,7 @@ function StudentHomeContent() {
                   try {
                     await api.delete(`/lost-items/${deletingReport.id}`, { data: { reason: deleteReason.trim() } });
                     setMyReports((prev) => prev.filter((r) => r.id !== deletingReport.id));
+                    setPublicReports((prev) => prev.filter((r) => r.id !== deletingReport.id));
                     setDeletingReport(null);
                   } catch (err) {
                     console.error("Failed to delete report:", err);
@@ -948,6 +790,6 @@ function StudentHomeContent() {
           </div>
         </div>
       )}
-    </div>
+    </StudentLayout>
   );
 }
