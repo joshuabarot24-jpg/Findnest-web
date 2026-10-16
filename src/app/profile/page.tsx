@@ -1,8 +1,10 @@
 "use client";
+// Student > Profile (/profile). Header card, details grid, password section.
+// API: /profile, /profile/photo, /upload/image, /profile/request-password-change, /profile/set-new-password
 import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
-import { useUnreadCount } from "@/lib/useUnreadCount";
 import AuthGate from "@/components/AuthGate";
+import StudentLayout from "@/components/StudentLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface User {
@@ -13,6 +15,7 @@ interface User {
   school_id: string | null;
   course: string | null;
   year_level: string | null;
+  education_level?: string | null;
   trust_score: number;
   is_active: boolean;
   password_change_requested: boolean;
@@ -21,6 +24,19 @@ interface User {
   password_is_temporary?: boolean;
   profile_photo_url?: string | null;
   created_at: string;
+}
+
+const EDUCATION_LABELS: Record<string, string> = {
+  college: "College",
+  senior_high_school: "Senior High School",
+  junior_high_school: "Junior High School",
+  high_school: "High School",
+};
+
+function courseLabel(level?: string | null) {
+  if (level === "senior_high_school") return "Strand";
+  if (level === "junior_high_school") return "Section";
+  return "Course";
 }
 
 export default function ProfilePage() {
@@ -40,10 +56,45 @@ function ProfileContent() {
   const [requestError, setRequestError] = useState("");
   const [requestSuccess, setRequestSuccess] = useState("");
 
-  const { count: unreadCount } = useUnreadCount();
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [photoDrag, setPhotoDrag] = useState(false);
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [setPasswordLoading, setSetPasswordLoading] = useState(false);
+  const [setPasswordError, setSetPasswordError] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailSaving, setEmailSaving] = useState(false);
+
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await api.get("/profile");
+      setUser(res.data.user);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+  useAutoRefresh(fetchProfile);
 
   // Uploads to Cloudinary (moderated, no item analysis), then saves the URL on the account
   const uploadPhoto = async (file: File | undefined) => {
@@ -80,41 +131,6 @@ function ProfileContent() {
       setPhotoBusy(false);
     }
   };
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [setPasswordLoading, setSetPasswordLoading] = useState(false);
-  const [setPasswordError, setSetPasswordError] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const [editingEmail, setEditingEmail] = useState(false);
-  const [emailInput, setEmailInput] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [emailSaving, setEmailSaving] = useState(false);
-
-  const [toast, setToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2500);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  const fetchProfile = async () => {
-    try {
-      const res = await api.get("/profile");
-      setUser(res.data.user);
-    } catch (err) {
-      console.error("Error fetching profile:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-  useAutoRefresh(fetchProfile);
 
   const handleRequestPasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,20 +215,10 @@ function ProfileContent() {
     }
   };
 
-  const handleLogout = () => {
-    logoutUser();
-  };
-
   function trustScoreColor(score: number) {
     if (score >= 70) return "text-green-600";
     if (score >= 40) return "text-yellow-600";
     return "text-red-500";
-  }
-
-  function trustScoreBg(score: number) {
-    if (score >= 70) return "bg-green-50 border-green-100";
-    if (score >= 40) return "bg-yellow-50 border-yellow-100";
-    return "bg-red-50 border-red-100";
   }
 
   function trustScoreLabel(score: number) {
@@ -221,56 +227,38 @@ function ProfileContent() {
     return "Restricted";
   }
 
+    const score = user?.trust_score ?? 100;
+
+  // One labeled row in the details grid
+  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="p-3 bg-[#F3FAF6] rounded-xl">
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{label}</p>
+      <div className="font-bold text-gray-800 text-sm mt-1 break-words">{children}</div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-[#f8f9fc]">
+    <StudentLayout active="/profile">
       {toast && (
-        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
+        <div className="fixed top-6 right-6 z-[200] bg-[#0E4D34] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
           {toast}
         </div>
       )}
 
-      <nav className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
-        <a href="/student-home" className="flex items-center gap-3">
-          <span className="text-lg font-black text-[#1a237e]">FIND<span className="text-[#ffd700]">NEST</span></span>
-        </a>
-        <div className="flex items-center gap-8">
-          <a href="/student-home" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Home</a>
-          <a href="/claim-status" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Claim Status</a>
-        </div>
-        <div className="flex items-center gap-4">
-          <a href="/notifications" className="relative w-10 h-10 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center justify-center transition">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </a>
-          <a href="/profile" className="w-10 h-10 bg-[#1a237e] rounded-full overflow-hidden flex items-center justify-center text-white font-bold text-sm">
-            {user?.profile_photo_url ? (
-              <img src={user.profile_photo_url} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              user?.name?.charAt(0).toUpperCase() || "?"
-            )}
-          </a>
-        </div>
-      </nav>
-
-      <main className="px-8 py-10 max-w-3xl mx-auto">
+      <div className="w-full">
         {loading ? (
           <div className="text-center py-20 text-gray-400 text-sm">Loading profile...</div>
         ) : (
-          <>
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-6">
-              <div className="flex items-center gap-6">
-                <div className="flex flex-col items-center gap-2 flex-shrink-0">
+          <div className="space-y-5">
+            {/* Header card */}
+            <div className="bg-white rounded-2xl border border-[#D9E8DF] shadow-sm p-6">
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex flex-col items-center gap-2 shrink-0">
                   <label
                     onDragOver={(e) => { e.preventDefault(); setPhotoDrag(true); }}
                     onDragLeave={() => setPhotoDrag(false)}
                     onDrop={(e) => { e.preventDefault(); setPhotoDrag(false); uploadPhoto(e.dataTransfer.files?.[0]); }}
-                    className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center text-white font-black text-4xl shadow-lg cursor-pointer bg-gradient-to-br from-[#1a237e] to-[#1565c0] ring-4 ${photoDrag ? "ring-[#ffd700]" : "ring-white"}`}
+                    className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center text-white font-black text-4xl shadow-lg cursor-pointer bg-[#0E4D34] ring-4 ${photoDrag ? "ring-[#2FD18B]" : "ring-white"}`}
                     title="Change photo"
                   >
                     {user?.profile_photo_url ? (
@@ -286,121 +274,145 @@ function ProfileContent() {
                     <input type="file" accept="image/*" className="hidden" disabled={photoBusy} onChange={(e) => { uploadPhoto(e.target.files?.[0]); e.target.value = ""; }} />
                   </label>
                   <div className="flex items-center gap-2 text-xs font-bold">
-                    <span className="text-[#1a237e]">Change photo</span>
+                    <span className="text-[#0E4D34]">Change photo</span>
                     {user?.profile_photo_url && (
                       <button type="button" onClick={removeProfilePhoto} disabled={photoBusy} className="text-red-500 hover:underline">Remove</button>
                     )}
                   </div>
                   {photoError && <p className="text-red-500 text-[11px] font-semibold max-w-[10rem] text-center">{photoError}</p>}
                 </div>
-                <div className="flex-1">
-                  <h1 className="text-2xl font-black text-[#1a237e]">{user?.name}</h1>
-                  <p className="text-gray-400 text-sm mt-1">{user?.email}</p>
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="bg-blue-50 text-[#1a237e] text-xs font-bold px-3 py-1 rounded-full capitalize">{user?.role}</span>
-                    {user?.course && <span className="text-gray-400 text-xs">{user.course} &middot; {user.year_level}</span>}
-                    {user?.school_id && <span className="text-gray-400 text-xs">ID: {user.school_id}</span>}
+
+                <div className="flex-1 min-w-[12rem]">
+                  <h1 className="font-bold text-xl text-slate-900">{user?.name}</h1>
+                  <p className="text-gray-500 text-sm mt-1">{user?.email}</p>
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
+                    <span className="bg-[#E3EEE7] text-[#0E4D34] text-xs font-bold px-3 py-1 rounded-full capitalize">{user?.role}</span>
+                    {user?.school_id && <span className="text-gray-500 text-xs">ID: {user.school_id}</span>}
                   </div>
-                </div>
-                <div className={`border rounded-2xl px-5 py-4 text-center ${trustScoreBg(user?.trust_score ?? 100)}`}>
-                  <p className="text-xs font-bold text-gray-400 uppercase mb-1">Trust Score</p>
-                  <p className={`text-3xl font-black ${trustScoreColor(user?.trust_score ?? 100)}`}>{user?.trust_score ?? 100}</p>
-                  <p className={`text-xs font-bold mt-1 ${trustScoreColor(user?.trust_score ?? 100)}`}>{trustScoreLabel(user?.trust_score ?? 100)}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-4">
-              <div className="px-8 pt-6">
-                <h2 className="text-lg font-black text-[#1a237e]">Personal Information</h2>
-                <p className="text-gray-400 text-sm mt-1">Managed by the school — contact the Guidance Office to request changes</p>
-              </div>
+            {/* Details card with watermark */}
+            <div className="relative overflow-hidden bg-white rounded-2xl border border-[#D9E8DF] shadow-sm">
+              <img
+                src="/images/findnest-logo.png"
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none select-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 object-contain opacity-10"
+              />
 
-              <div className="p-8 space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-400 font-medium text-sm">Full Name</span>
-                  <span className="font-bold text-gray-700 text-sm">{user?.name}</span>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-medium text-sm">Email Address</span>
-                    {!editingEmail && (
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-gray-700 text-sm">{user?.email}</span>
-                        <button
-                          onClick={() => { setEmailInput(user?.email || ""); setEmailError(""); setEditingEmail(true); }}
-                          className="text-[#1a237e] text-xs font-bold hover:underline"
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    )}
+              <div className="relative z-10 p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+                  <div>
+                    <h2 className="text-lg font-black text-[#0E4D34]">Profile Details</h2>
+                    <p className="text-gray-500 text-sm mt-1">Managed by the school. Contact the Guidance Office to request changes.</p>
                   </div>
-                  {editingEmail && (
-                    <div className="mt-3 space-y-2">
-                      <input
-                        type="email"
-                        value={emailInput}
-                        onChange={(e) => setEmailInput(e.target.value)}
-                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 text-sm"
-                      />
-                      {emailError && <p className="text-red-500 text-xs font-semibold">{emailError}</p>}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditingEmail(false)}
-                          className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2 rounded-xl hover:bg-gray-100 transition text-xs"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleSaveEmail}
-                          disabled={emailSaving}
-                          className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-2 rounded-xl transition text-xs disabled:opacity-50"
-                        >
-                          {emailSaving ? "Saving..." : "Save"}
-                        </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <p className="text-xs font-black text-[#0E4D34] uppercase tracking-wider">Personal Information</p>
+                    <Field label="Full Name">{user?.name}</Field>
+                    <div className="p-3 bg-[#F3FAF6] rounded-xl">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Email Address</p>
+                        {!editingEmail && (
+                          <button
+                            onClick={() => { setEmailInput(user?.email || ""); setEmailError(""); setEditingEmail(true); }}
+                            className="text-[#0E4D34] text-xs font-bold hover:underline"
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
+                      {!editingEmail ? (
+                        <p className="font-bold text-gray-800 text-sm mt-1 break-words">{user?.email}</p>
+                      ) : (
+                        <div className="mt-2 space-y-2">
+                          <input
+                            type="email"
+                            value={emailInput}
+                            onChange={(e) => setEmailInput(e.target.value)}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700 text-sm bg-white"
+                          />
+                          {emailError && <p className="text-red-500 text-xs font-semibold">{emailError}</p>}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEditingEmail(false)}
+                              className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2 rounded-xl hover:bg-gray-100 transition text-xs"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleSaveEmail}
+                              disabled={emailSaving}
+                              className="flex-1 bg-[#0E4D34] hover:bg-[#0A3021] text-white font-bold py-2 rounded-xl transition text-xs disabled:opacity-50"
+                            >
+                              {emailSaving ? "Saving..." : "Save"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-xs font-black text-[#0E4D34] uppercase tracking-wider">Academic Information</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Field label="Education Level">{(user?.education_level && EDUCATION_LABELS[user.education_level]) || "—"}</Field>
+                      <Field label="School ID">{user?.school_id || "—"}</Field>
+                      <Field label={courseLabel(user?.education_level)}>{user?.course || "—"}</Field>
+                      <Field label="Year Level">{user?.year_level || "—"}</Field>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-400 font-medium text-sm">School ID</span>
-                  <span className="font-bold text-gray-700 text-sm">{user?.school_id || "—"}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-400 font-medium text-sm">Course</span>
-                  <span className="font-bold text-gray-700 text-sm">{user?.course || "—"}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-400 font-medium text-sm">Year Level</span>
-                  <span className="font-bold text-gray-700 text-sm">{user?.year_level || "—"}</span>
+
+                <div className="mt-6">
+                  <p className="text-xs font-black text-[#0E4D34] uppercase tracking-wider mb-3">System Stats</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field label="Trust Score">
+                      <span className={`text-xl font-black ${trustScoreColor(score)}`}>{score}</span>
+                      <span className={`ml-2 text-xs font-bold ${trustScoreColor(score)}`}>{trustScoreLabel(score)}</span>
+                    </Field>
+                    <Field label="Account Status">
+                      <span
+                        className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${
+                          user?.is_active ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {user?.is_active ? "ACTIVE" : "ARCHIVED"}
+                      </span>
+                    </Field>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-4">
-              <div className="px-8 pt-6">
-                <h2 className="text-lg font-black text-[#1a237e]">Password</h2>
-                <p className="text-gray-400 text-sm mt-1">
-                    {user?.password_is_temporary
-                    ? "You are using a temporary password — set your own now"
+            {/* Password card */}
+            <div className="bg-white rounded-2xl border border-[#D9E8DF] shadow-sm overflow-hidden">
+              <div className="px-6 pt-6">
+                <h2 className="text-lg font-black text-[#0E4D34]">Change Password</h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  {user?.password_is_temporary
+                    ? "You are using a temporary password. Set your own now."
                     : user?.password_change_approved
-                    ? "Your request was approved — set your new password below"
-                    : "You can request a password change, which the Super Admin will review"}
+                    ? "Your request was approved. Set your new password below."
+                    : "You can request a password change, which the Super Admin will review."}
                 </p>
               </div>
 
-              <div className="p-8">
-                  {user?.password_is_temporary || user?.password_change_approved ? (
-                  <form onSubmit={handleSetNewPassword} className="space-y-4">
-                    <div className="bg-green-50 border border-green-100 rounded-2xl p-4 mb-2">
-                      <p className="text-green-700 text-xs font-semibold">
+              <div className="p-6">
+                {user?.password_is_temporary || user?.password_change_approved ? (
+                  <form onSubmit={handleSetNewPassword} className="space-y-4 max-w-xl">
+                    <div className="bg-[#E3EEE7] border border-[#B9CBBF] rounded-2xl p-4">
+                      <p className="text-[#1E3F2E] text-xs font-semibold">
                         {user?.password_is_temporary
                           ? "Your account was created with a temporary password. Set one only you will know. After this, further changes need Super Admin approval."
                           : "Your Super Admin approved your request. Set a new password only you will know."}
                       </p>
                     </div>
-                                        <div>
+                    <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">New Password</label>
                       <div className="relative">
                         <input
@@ -409,12 +421,12 @@ function ProfileContent() {
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="8+ chars, A-Z, a-z, 0-9, symbol"
                           maxLength={50}
-                          className="w-full pl-4 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
+                          className="w-full pl-4 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700"
                         />
                         <button
                           type="button"
                           onClick={() => setShowNewPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#1a237e] hover:underline"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0E4D34] hover:underline"
                         >
                           {showNewPassword ? "Hide" : "Show"}
                         </button>
@@ -429,12 +441,12 @@ function ProfileContent() {
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           placeholder="Re-enter new password"
                           maxLength={50}
-                          className="w-full pl-4 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
+                          className="w-full pl-4 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700"
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#1a237e] hover:underline"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0E4D34] hover:underline"
                         >
                           {showConfirmPassword ? "Hide" : "Show"}
                         </button>
@@ -444,23 +456,23 @@ function ProfileContent() {
                     <button
                       type="submit"
                       disabled={setPasswordLoading}
-                      className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-4 rounded-xl transition shadow-lg disabled:opacity-50"
+                      className="w-full bg-[#0E4D34] hover:bg-[#0A3021] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50"
                     >
                       {setPasswordLoading ? "Saving..." : "Set New Password"}
                     </button>
                   </form>
                 ) : user?.password_change_requested ? (
-                  <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-5 text-center">
+                  <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-5 text-center max-w-xl">
                     <p className="text-yellow-700 font-bold text-sm">Request Pending</p>
                     <p className="text-yellow-600 text-xs mt-1">
                       Your password change request is awaiting Super Admin approval.
                       {user.password_change_reason && (
-                        <span className="block mt-2 italic">"{user.password_change_reason}"</span>
+                        <span className="block mt-2 italic">&quot;{user.password_change_reason}&quot;</span>
                       )}
                     </p>
                   </div>
                 ) : (
-                  <form onSubmit={handleRequestPasswordChange} className="space-y-4">
+                  <form onSubmit={handleRequestPasswordChange} className="space-y-4 max-w-xl">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
                         Why do you need a password change?
@@ -470,7 +482,7 @@ function ProfileContent() {
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="e.g. I forgot my password, or I want to update it for security"
                         rows={3}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 resize-none"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700 resize-none"
                       />
                     </div>
                     {requestError && <p className="text-red-500 text-xs font-semibold">{requestError}</p>}
@@ -478,7 +490,7 @@ function ProfileContent() {
                     <button
                       type="submit"
                       disabled={requestLoading}
-                      className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-4 rounded-xl transition shadow-lg disabled:opacity-50"
+                      className="w-full bg-[#0E4D34] hover:bg-[#0A3021] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50"
                     >
                       {requestLoading ? "Sending..." : "Request Password Change"}
                     </button>
@@ -487,17 +499,15 @@ function ProfileContent() {
               </div>
             </div>
 
-            <div className="mt-4">
-              <button
-                onClick={handleLogout}
-                className="w-full bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-bold py-4 rounded-xl transition border-2 border-red-100 hover:border-red-500"
-              >
-                Logout
-              </button>
-            </div>
-          </>
+            <button
+              onClick={() => logoutUser()}
+              className="w-full bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-bold py-3.5 rounded-xl transition border-2 border-red-100 hover:border-red-500"
+            >
+              Logout
+            </button>
+          </div>
         )}
-      </main>
-    </div>
+      </div>
+    </StudentLayout>
   );
 }
