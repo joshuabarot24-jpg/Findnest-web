@@ -754,7 +754,7 @@ function DigitalRecordsContent() {
       {previewCase && (
         <div
           onClick={() => setPreviewCase(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm cursor-zoom-out px-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-zoom-out px-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -790,7 +790,7 @@ function DigitalRecordsContent() {
       )}
 
       {resolvingAppeal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setResolvingAppeal(null)}

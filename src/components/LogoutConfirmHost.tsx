@@ -31,7 +31,7 @@ export default function LogoutConfirmHost() {
   return (
     <div
       onClick={() => { if (!busy) setOpen(false); }}
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4"
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="logout-title"

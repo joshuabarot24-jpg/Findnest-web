@@ -607,7 +607,7 @@ function AdminManagementContent() {
 
       
       {showAssignModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowAssignModal(false)}
@@ -714,7 +714,7 @@ function AdminManagementContent() {
       )}
 
       {showAssignPasswordCheck && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
             <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>
@@ -746,7 +746,7 @@ function AdminManagementContent() {
       )}
 
       {showAssignConfirm && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Confirm New Admin</h2>
             <p className="text-gray-400 text-sm mb-6">Please review the details before assigning this role</p>
@@ -792,7 +792,7 @@ function AdminManagementContent() {
       )}
 
       {editingAdmin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setEditingAdmin(null)}
@@ -1011,7 +1011,7 @@ function AdminManagementContent() {
       )}
 
       {showEditPasswordCheck && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
             <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>
@@ -1043,7 +1043,7 @@ function AdminManagementContent() {
       )}
 
       {restrictingAdmin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">
               {restrictingAdmin.is_restricted ? "Lift Restriction?" : "Restrict This Account?"}
@@ -1076,7 +1076,7 @@ function AdminManagementContent() {
       )}
 
             {viewingArchived && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setViewingArchived(null)}
@@ -1122,7 +1122,7 @@ function AdminManagementContent() {
       )}
 
             {restoringAdmin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Restore This Account?</h2>
             <p className="text-gray-400 text-sm mb-6">
@@ -1149,7 +1149,7 @@ function AdminManagementContent() {
       )}
 
       {revokingAdmin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Archive This Account?</h2>
             <p className="text-gray-400 text-sm mb-3">

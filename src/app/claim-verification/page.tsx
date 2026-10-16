@@ -539,7 +539,7 @@ function ClaimVerificationContent() {
       
       {/* Claim review */}
       {viewingClaim && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setViewingClaim(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
@@ -777,7 +777,7 @@ function ClaimVerificationContent() {
 
       {/* Claimant's evidence */}
       {viewingEvidence && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setViewingEvidence(null)}
@@ -842,7 +842,7 @@ function ClaimVerificationContent() {
 
       {/* Side-by-side comparison */}
       {comparingClaim && (
-        <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+        <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4 py-8 overflow-y-auto">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl p-6 sm:p-8 my-auto">
             <button
               onClick={() => setComparingClaim(null)}
@@ -988,7 +988,7 @@ function ClaimVerificationContent() {
 
       {/* Reject claim (above the review popup) */}
       {rejectingClaim && (
-        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Reject This Claim?</h2>
             <p className="text-gray-400 text-sm mb-4">

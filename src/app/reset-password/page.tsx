@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -167,7 +167,7 @@ function ResetPasswordForm() {
       </div>
 
       {showPasswordCheck && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
             <h2 className="text-lg font-black text-[#1a237e] mb-2">Confirm Password</h2>
             <p className="text-gray-400 text-sm mb-4">Please confirm this is the password you intended to set</p>

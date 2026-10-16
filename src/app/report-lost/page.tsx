@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { useUnreadCount } from "@/lib/useUnreadCount";
@@ -529,7 +529,7 @@ function ReportLostContent() {
       </main>
 
       {choosingItemUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Multiple Items Detected</h2>
             <p className="text-gray-400 text-sm mb-6">We found several items in your photo. Which one did you lose?</p>
@@ -563,7 +563,7 @@ function ReportLostContent() {
       )}
 
       {showConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Confirm Your Report</h2>
             <p className="text-gray-400 text-sm mb-6">Please review before submitting — this will be visible to other students</p>

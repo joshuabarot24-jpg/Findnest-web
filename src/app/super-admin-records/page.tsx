@@ -772,7 +772,7 @@ function SuperAdminRecordsContent() {
       {previewCase && (
         <div
           onClick={() => setPreviewCase(null)}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm cursor-zoom-out px-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-zoom-out px-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}

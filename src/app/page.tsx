@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -6,6 +6,33 @@ import api from "@/lib/api";
 import { setAuth } from "@/lib/auth";
 
 type ModalStep = "closed" | "login" | "otp";
+
+// Lucide shapes drawn inline (home, info, settings)
+function NavIcon({ name }: { name: "home" | "info" | "settings" }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {name === "home" && (
+        <>
+          <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+          <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        </>
+      )}
+      {name === "info" && (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4" />
+          <path d="M12 8h.01" />
+        </>
+      )}
+      {name === "settings" && (
+        <>
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 export default function Home() {
   const [step, setStep] = useState<ModalStep>("closed");
@@ -197,7 +224,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#fafbff] font-sans overflow-x-hidden scroll-smooth">
 
       {step === "login" && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           {/* [UI] max-h + scroll so the card is never cut off on short screens */}
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
@@ -209,7 +236,7 @@ export default function Home() {
 
             <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
               <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Email or Student ID</label>
+                <label className="block text-sm font-semibold text-[#383838] mb-2 font-[family-name:var(--font-kanit)]">Email or Student ID</label>
                 <input
                   type="text"
                   value={identifier}
@@ -223,7 +250,7 @@ export default function Home() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Password</label>
+                <label className="block text-sm font-semibold text-[#383838] mb-2 font-[family-name:var(--font-kanit)]">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -233,7 +260,7 @@ export default function Home() {
                     autoComplete="new-password"
                     name="fnd-pass-field"
                     maxLength={50}
-                    className="w-full pl-4 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
+                    className="w-full pl-4 pr-12 py-3 font-[family-name:var(--font-inter)] border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
                     required
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold">
@@ -251,7 +278,7 @@ export default function Home() {
                 <span className="text-sm text-gray-600 font-medium">Remember Me</span>
               </label>
               {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
-              <button type="submit" disabled={loading} className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="font-[family-name:var(--font-inter)] w-full bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
                 {loading ? "Signing in..." : "Sign In"}
               </button>
               <div className="text-center">
@@ -263,7 +290,7 @@ export default function Home() {
       )}
 
       {step === "otp" && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
@@ -314,12 +341,12 @@ export default function Home() {
           </a>
         </div>
         <div className="flex items-center gap-3 sm:gap-6">
-          <a href="#top" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOME</a>
-          <a href="#about" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">ABOUT FINDNEST</a>
-          <a href="#how-it-works" className="hidden md:inline text-blue-200 hover:text-[#ffd700] transition font-medium text-sm tracking-wide">HOW IT WORKS</a>
+          <a href="#top" className="hidden md:inline-flex items-center gap-2 text-[#DCEFEA] hover:text-[#FFD300] transition font-medium text-sm tracking-wide"><NavIcon name="home" />HOME</a>
+          <a href="#about" className="hidden md:inline-flex items-center gap-2 text-[#DCEFEA] hover:text-[#FFD300] transition font-medium text-sm tracking-wide"><NavIcon name="info" />ABOUT FINDNEST</a>
+          <a href="#how-it-works" className="hidden md:inline-flex items-center gap-2 text-[#DCEFEA] hover:text-[#FFD300] transition font-medium text-sm tracking-wide"><NavIcon name="settings" />HOW IT WORKS</a>
           <button
             onClick={openLogin}
-            className="bg-[#ffd700] text-[#1a237e] font-bold px-4 sm:px-6 py-2 rounded-full hover:bg-yellow-300 transition shadow-md text-sm sm:ml-4 cursor-pointer"
+            className="font-[family-name:var(--font-inter)] bg-[#FFD300] text-[#0F4C3A] font-bold tracking-wide px-4 sm:px-6 py-2 rounded-full hover:brightness-95 transition shadow-md text-sm sm:ml-4 cursor-pointer"
           >
             LOG IN
           </button>

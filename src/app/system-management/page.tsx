@@ -473,7 +473,7 @@ function SystemManagementContent() {
       </div>
 
       {showMaintenanceConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">
               {maintenanceMode ? "Disable Maintenance Mode?" : "Enable Maintenance Mode?"}
@@ -505,7 +505,7 @@ function SystemManagementContent() {
       )}
 
       {showVersionConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Mark System as Updated?</h2>
             <p className="text-gray-400 text-sm mb-2">
@@ -535,7 +535,7 @@ function SystemManagementContent() {
       )}
 
       {showBackupsList && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 p-8 max-h-[80vh] flex flex-col">
             <button
               onClick={() => setShowBackupsList(false)}
@@ -571,7 +571,7 @@ function SystemManagementContent() {
       )}
 
       {importPreview && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setImportPreview(null)}
@@ -597,7 +597,7 @@ function SystemManagementContent() {
       )}
 
       {showAllLogs && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4 p-8 max-h-[80vh] flex flex-col">
             <button
               onClick={() => setShowAllLogs(false)}

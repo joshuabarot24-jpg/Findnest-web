@@ -447,7 +447,7 @@ function AdminUserManagementContent() {
 
       {/* Student details (read-only) with the Manual AI Override toggle */}
       {viewingUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setViewingUser(null)}

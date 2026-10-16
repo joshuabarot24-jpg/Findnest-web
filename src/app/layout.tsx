@@ -3,6 +3,21 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthGuard from "@/components/AuthGuard";
 import LogoutConfirmHost from "@/components/LogoutConfirmHost";
+import { Inter, Kanit } from "next/font/google";
+
+const kanit = Kanit({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+  variable: "--font-kanit",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +46,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className={`${inter.variable} ${kanit.variable} antialiased`}>
         <AuthGuard />
         <LogoutConfirmHost />
         {children}

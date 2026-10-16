@@ -830,7 +830,7 @@ function ItemManagementContent() {
       
       {/* Add Item */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Add Item</h2>
@@ -955,7 +955,7 @@ function ItemManagementContent() {
 
       {/* View found item */}
       {viewingFoundItem && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setViewingFoundItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
@@ -1043,7 +1043,7 @@ function ItemManagementContent() {
 
       {/* Multi-item chooser */}
       {choosingItemUrl && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Multiple Items Detected</h2>
             <p className="text-gray-400 text-sm mb-6">We found several items in this photo. Which one is this?</p>
@@ -1078,7 +1078,7 @@ function ItemManagementContent() {
 
       {/* Document disposal */}
       {documentingDisposal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/80 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-1">Document Disposal Method</h2>
             <p className="text-gray-400 text-sm mb-6">
@@ -1113,7 +1113,7 @@ function ItemManagementContent() {
 
       {/* View lost report */}
       {viewingLostItem && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setViewingLostItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
@@ -1150,7 +1150,7 @@ function ItemManagementContent() {
 
       {/* Delete found item */}
       {deletingItem && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0d1757]/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-[#1a237e] mb-2">Delete This Item?</h2>
             <p className="text-gray-400 text-sm mb-8">
