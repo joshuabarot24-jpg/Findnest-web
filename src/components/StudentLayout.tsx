@@ -42,7 +42,15 @@ function Icon({ name }: { name: string }) {
   );
 }
 
-export default function StudentLayout({ active, children }: { active: string; children: ReactNode }) {
+export default function StudentLayout({
+  active,
+  children,
+  hideHeader = false,
+}: {
+  active: string;
+  children: ReactNode;
+  hideHeader?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const [bell, setBell] = useState(false);
@@ -181,7 +189,7 @@ export default function StudentLayout({ active, children }: { active: string; ch
       </aside>
 
       <div className="relative lg:ml-60 min-w-0 min-h-screen flex flex-col">
-        <header className="flex items-center justify-between lg:justify-end gap-4 px-4 sm:px-6 pt-5 pb-2 lg:absolute lg:top-0 lg:right-0 lg:z-40">
+          <header className={`${hideHeader ? "lg:hidden" : ""} flex items-center justify-between lg:justify-end gap-4 px-4 sm:px-6 pt-5 pb-2 lg:absolute lg:top-0 lg:right-0 lg:z-40`}>
           <button onClick={() => setOpen(true)} aria-label="Open menu" className="lg:hidden text-[#0E4D34] text-2xl leading-none">&#9776;</button>
           <div className="flex items-center gap-1 h-10">
             <div className="relative h-10 flex items-center" ref={bellRef}>
