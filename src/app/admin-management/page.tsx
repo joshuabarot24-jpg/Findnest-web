@@ -393,9 +393,9 @@ function AdminManagementContent() {
           </div>
           <button
             onClick={openAssignModal}
-            className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
+            className="flex items-center gap-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
           >
-            <span>+</span> Assign New Admin
+            <span>+</span>Assign New Admin
           </button>
         </div>
 

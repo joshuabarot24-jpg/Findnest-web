@@ -521,9 +521,9 @@ function UserManagementContent() {
             </button>
             <button
               onClick={openCreateModal}
-              className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
+              className="flex items-center gap- bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
             >
-              <span>+</span> Create New Student
+              <span>+</span>Create New Student
             </button>
           </div>
         </div>
@@ -818,20 +818,21 @@ function UserManagementContent() {
       
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
             <button
               onClick={() => setShowCreateModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
+              className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
             >
               &times;
             </button>
+            <div className="modal-scroll max-h-[85vh] p-6">
 
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Create New Student</h2>
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="text-gray-400 text-sm mb-4">
               Add a new student account to the system
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Full Name
@@ -1034,7 +1035,7 @@ function UserManagementContent() {
               )}
             </div>
 
-            <div className="flex gap-3 mt-8">
+            <div className="flex gap-3 mt-5">
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
@@ -1050,6 +1051,7 @@ function UserManagementContent() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {showCreatePasswordConfirm && (
@@ -1160,7 +1162,7 @@ function UserManagementContent() {
               <AvatarInner user={editingUser} />
             </div>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Edit Student</h2>
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="text-gray-400 text-sm mb-4">
               Update {editingUser.name}&apos;s account details
             </p>
 
