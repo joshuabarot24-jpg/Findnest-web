@@ -1,9 +1,11 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import api, { logoutUser } from "@/lib/api";
+// Student > Notifications (/notifications). "Notification Box" card with sage-green badges.
+// API: /notifications, /notifications/{id}/read, /notifications/read-all
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
+import StudentLayout from "@/components/StudentLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
-import StudentAvatar from "@/components/StudentAvatar";
 
 interface NotificationItem {
   id: number;
@@ -15,28 +17,21 @@ interface NotificationItem {
   match_id: number | null;
 }
 
+// "Just now", "6 Hrs ago", "2 Days ago"
 function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
+  const diffMins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
   if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
-  return date.toLocaleDateString();
+  if (diffMins < 60) return `${diffMins} Min${diffMins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(diffMins / 60);
+  if (hrs < 24) return `${hrs} Hr${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days} Day${days === 1 ? "" : "s"} ago`;
+  return new Date(dateStr).toLocaleDateString();
 }
 
-function typeColor(type: string) {
-  const t = type.toLowerCase();
-  if (t.includes("match")) return "bg-green-50 border-green-100";
-  if (t.includes("claim")) return "bg-blue-50 border-blue-100";
-  if (t.includes("reject")) return "bg-red-50 border-red-100";
-  if (t.includes("support")) return "bg-purple-50 border-purple-100";
-  return "bg-gray-50 border-gray-100";
+// Tells the bell in the layout to refresh its count right away
+function pingBell() {
+  window.dispatchEvent(new Event("findnest:notifs-changed"));
 }
 
 export default function NotificationsPage() {
@@ -48,31 +43,9 @@ export default function NotificationsPage() {
 }
 
 function NotificationsContent() {
-    const [userInitial, setUserInitial] = useState("");
-  const [userEmail, setUserEmail] = useState("");
-  const [profilePanelOpen, setProfilePanelOpen] = useState(false);
-  const profileRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setProfilePanelOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("findnest_user");
-    if (stored) {
-      const currentUser = JSON.parse(stored);
-      setUserInitial(currentUser?.name?.charAt(0).toUpperCase() || "");
-      setUserEmail(currentUser?.email || "");
-    }
-  }, []);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const fetchNotifications = async () => {
     try {
@@ -84,28 +57,16 @@ function NotificationsContent() {
       setLoading(false);
     }
   };
-
-  const markAllReadSilently = async () => {
-    try {
-      await api.post("/notifications/read-all");
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    } catch (err) {
-      console.error("Error marking all as read:", err);
-    }
-  };
-
+  
   useEffect(() => {
-    fetchNotifications().then(() => {
-      markAllReadSilently();
-    });
+    fetchNotifications();
   }, []);
 
   const handleMarkAsRead = async (id: number) => {
     try {
       await api.post(`/notifications/${id}/read`);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+      pingBell();
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }
@@ -115,6 +76,7 @@ function NotificationsContent() {
     try {
       await api.post("/notifications/read-all");
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      pingBell();
     } catch (err) {
       console.error("Error marking all as read:", err);
     }
@@ -137,116 +99,80 @@ function NotificationsContent() {
   useAutoRefresh(fetchNotifications);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const shownNotifications = filter === "unread" ? notifications.filter((n) => !n.is_read) : notifications;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc]">
-      <nav className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
-        <a href="/student-home" className="flex items-center gap-3">
-          <span className="text-lg font-black text-[#1a237e]">FIND<span className="text-[#ffd700]">NEST</span></span>
-        </a>
-
-        <div className="flex items-center gap-8">
-          <a href="/student-home" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Home</a>
-          <a href="/claim-status" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Claim Status</a>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <a href="/notifications" className="relative w-10 h-10 bg-[#1a237e]/10 rounded-xl flex items-center justify-center transition">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#1a237e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </a>
-                    <div className="relative" ref={profileRef}>
-            <button
-              onClick={() => setProfilePanelOpen((open) => !open)}
-              className="w-10 h-10 bg-[#1a237e] rounded-full overflow-hidden flex items-center justify-center text-white font-bold text-sm"
-            >
-              <StudentAvatar name={userInitial} />
-            </button>
-
-            <div
-              className={`absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden origin-top-right transition-all duration-200 ${
-                profilePanelOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
-              }`}
-            >
-              <div className="px-5 py-5 bg-gradient-to-br from-[#1a237e] to-[#1565c0]">
-                <div className="w-12 h-12 bg-white/15 rounded-full overflow-hidden flex items-center justify-center text-white font-black text-lg mb-2">
-                  <StudentAvatar name={userInitial} />
-                </div>
-                <p className="text-white font-bold text-sm">{userEmail}</p>
-              </div>
-              <div className="p-2">
-                <a href="/profile" className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
-                  View Full Profile
-                </a>
-                <a href="/claim-status" className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
-                  My Claims
-                </a>
-                <div className="h-px bg-gray-100 my-1" />
-                <button
-                  onClick={logoutUser}
-                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="px-8 py-10 max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <StudentLayout active="/notifications">
+      <div className="w-full">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-2xl font-black text-[#1a237e]">Notifications</h1>
-            <p className="text-gray-400 text-sm mt-1">
+            <h1 className="text-2xl font-black text-[#0E4D34]">Notifications</h1>
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={() => setFilter("all")}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${
+                  filter === "all" ? "bg-[#0E4D34] text-white" : "text-gray-700 hover:bg-white"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter("unread")}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${
+                  filter === "unread" ? "bg-[#0E4D34] text-white" : "text-gray-700 hover:bg-white"
+                }`}
+              >
+                Unread
+              </button>
+            </div>
+            <p className="text-gray-500 text-sm mt-3">
               {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}` : "You are all caught up"}
             </p>
           </div>
           {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllAsRead}
-              className="text-sm font-bold text-[#1a237e] hover:underline"
-            >
+            <button onClick={handleMarkAllAsRead} className="text-sm font-bold text-[#0E4D34] hover:underline">
               Mark all as read
             </button>
           )}
         </div>
 
-        {loading ? (
-          <div className="text-center py-20 text-gray-400 text-sm">Loading notifications...</div>
-        ) : notifications.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
-            <p className="font-bold text-lg">No notifications yet</p>
-            <p className="text-sm mt-1">You will be notified when there is an update on your reports</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {notifications.map((n) => (
-              <button
-                key={n.id}
-                onClick={() => handleNotifPress(n)}
-                className={`w-full text-left rounded-2xl border p-5 transition ${typeColor(n.type)} ${
-                  !n.is_read ? "shadow-sm" : "opacity-70"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-gray-700 text-sm">{n.title}</p>
-                      {!n.is_read && (
-                        <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
-                      )}
+        {/* Notification Box */}
+        <div className="bg-white rounded-3xl shadow-xl p-5 sm:p-6">
+          {loading ? (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-xl bg-[#B9CBBF]/60 h-20 animate-pulse" />
+              ))}
+            </div>
+          ) : shownNotifications.length === 0 ? (
+            <div className="text-center py-14 text-gray-400">
+              <p className="font-bold text-lg">{filter === "unread" ? "No unread notifications" : "No notifications yet"}</p>
+              <p className="text-sm mt-1">You will be notified when there is an update on your reports</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {shownNotifications.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => handleNotifPress(n)}
+                  className={`block w-full text-left rounded-xl bg-[#B9CBBF] px-5 py-4 hover:brightness-95 transition ${
+                    !n.is_read ? "ring-1 ring-[#1B3B2B]/30" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[#0A2618]">{n.title}</p>
+                      <p className="font-medium text-[#1E3F2E] text-sm mt-0.5">{n.message}</p>
+                      <p className="text-[#1E3F2E]/80 text-xs mt-1.5">{formatTime(n.created_at)}</p>
                     </div>
-                    <p className="text-gray-500 text-sm mt-1">{n.message}</p>
-                    <p className="text-gray-400 text-xs mt-2">{formatTime(n.created_at)}</p>
+                    {!n.is_read && <span className="w-2.5 h-2.5 bg-red-500 rounded-full shrink-0 mt-1.5" />}
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </main>
-    </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </StudentLayout>
   );
 }

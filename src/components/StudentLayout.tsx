@@ -46,6 +46,7 @@ export default function StudentLayout({ active, children }: { active: string; ch
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const [bell, setBell] = useState(false);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
   const [name, setName] = useState("Student");
   const [email, setEmail] = useState("");
   const [notifs, setNotifs] = useState<Notif[]>([]);
@@ -102,7 +103,31 @@ export default function StudentLayout({ active, children }: { active: string; ch
     }
   };
 
-  const openNotif = (n: Notif) => {
+  // While the dropdown is open, reload its list whenever the unread count changes
+  useEffect(() => {
+    if (!bell) return;
+    api.get("/notifications").then((res) => setNotifs(res.data.notifications || [])).catch(() => {});
+  }, [count, bell]);
+
+  const unreadInList = notifs.filter((n) => !n.is_read).length;
+  const shownNotifs = filter === "unread" ? notifs.filter((n) => !n.is_read) : notifs;
+
+  const markAllRead = async () => {
+    try {
+      await api.post("/notifications/read-all");
+      setNotifs((prev) => prev.map((x) => ({ ...x, is_read: true })));
+      window.dispatchEvent(new Event("findnest:notifs-changed"));
+    } catch {}
+  };
+
+  const openNotif = async (n: Notif) => {
+    if (!n.is_read) {
+      try {
+        await api.post(`/notifications/${n.id}/read`);
+        setNotifs((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
+        window.dispatchEvent(new Event("findnest:notifs-changed"));
+      } catch {}
+    }
     const t = (n.type || "").toLowerCase();
     if (t.includes("match") && n.match_id) window.location.href = `/matched-item?matchId=${n.match_id}`;
     else if (t.includes("status") || t.includes("claim")) window.location.href = "/claim-status";
@@ -181,15 +206,42 @@ export default function StudentLayout({ active, children }: { active: string; ch
               >
                 <div className="px-3 pb-2 shrink-0">
                   <p className="font-black text-gray-700 text-sm">Notifications</p>
+                  <div className="flex items-center justify-between gap-2 mt-2">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setFilter("all")}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                          filter === "all" ? "bg-[#0E4D34] text-white" : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={() => setFilter("unread")}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                          filter === "unread" ? "bg-[#0E4D34] text-white" : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                      >
+                        Unread{unreadInList > 0 ? ` (${unreadInList})` : ""}
+                      </button>
+                    </div>
+                    {unreadInList > 0 && (
+                      <button onClick={markAllRead} className="text-xs font-bold text-[#0E4D34] hover:underline whitespace-nowrap">
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain thin-scroll space-y-1">
                   {notifLoading ? (
                     <div className="text-center py-6 text-gray-400 text-sm">Loading...</div>
-                  ) : notifs.length === 0 ? (
-                    <div className="text-center py-6 text-gray-400 text-sm">No notifications yet</div>
+                  ) : shownNotifs.length === 0 ? (
+                    <div className="text-center py-6 text-gray-400 text-sm">
+                      {filter === "unread" ? "No unread notifications" : "No notifications yet"}
+                    </div>
                   ) : (
-                    notifs.map((n) => (
+                    shownNotifs.map((n) => (
                       <button
                         key={n.id}
                         onClick={() => openNotif(n)}

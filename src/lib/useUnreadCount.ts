@@ -23,10 +23,12 @@ export function useUnreadCount() {
     }, 10000);
     const onFocus = () => refresh();
     window.addEventListener("focus", onFocus);
+    window.addEventListener("findnest:notifs-changed", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => {
       clearInterval(timer);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("findnest:notifs-changed", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };
   }, [refresh]);
