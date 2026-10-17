@@ -235,6 +235,7 @@ export default function Home() {
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
+              <fieldset disabled={loading} className="space-y-4 min-w-0 border-0 p-0 m-0">
               <div>
                 <label className="block text-sm font-semibold text-[#383838] mb-2 font-[family-name:var(--font-kanit)]">Email or Student ID</label>
                 <input
@@ -284,6 +285,7 @@ export default function Home() {
               <div className="text-center">
                 <a href="/forgot-password" className="text-gray-400 hover:text-[#1a237e] text-sm transition font-medium">Forgot Password?</a>
               </div>
+              </fieldset>
             </form>
           </div>
         </div>
