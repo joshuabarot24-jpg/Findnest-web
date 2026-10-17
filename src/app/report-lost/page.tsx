@@ -582,9 +582,6 @@ function ReportLostContent() {
               </p>
             </div>
             <div className="flex gap-3">
-              <a href="/claim-status" className="flex-1 text-center bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition">
-                View Report Status
-              </a>
               <a href="/student-home" className="flex-1 text-center bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition">
                 Back to Home
               </a>

@@ -1,12 +1,16 @@
 ﻿"use client";
-import { useState, useEffect } from "react";
+// Student > Report Found (/report-found). Form, review, confirmation and success steps.
+// API: /upload/image, /upload/analyze-existing, /found-items
+import { useState } from "react";
 import api from "@/lib/api";
-import { useUnreadCount } from "@/lib/useUnreadCount";
-import StudentAvatar from "@/components/StudentAvatar";
 import AuthGate from "@/components/AuthGate";
+import StudentLayout from "@/components/StudentLayout";
 
 const categories = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Others"];
 const MAX_PHOTOS = 1;
+
+const FIELD =
+  "w-full px-4 py-3 bg-gray-100/80 rounded-xl border-2 border-transparent focus:border-[#0E4D34] focus:bg-white focus:outline-none transition text-gray-700 text-sm";
 
 interface PhotoItem {
   preview: string;
@@ -23,8 +27,7 @@ export default function ReportFoundPage() {
 }
 
 function ReportFoundContent() {
-  const [userInitial, setUserInitial] = useState("");
-  const { count: unreadCount } = useUnreadCount();
+  const [step, setStep] = useState<"form" | "review">("form");
 
   const [itemName, setItemName] = useState("");
   const [itemNameAiFilled, setItemNameAiFilled] = useState(false);
@@ -35,6 +38,7 @@ function ReportFoundContent() {
   const [description, setDescription] = useState("");
   const [aiFilled, setAiFilled] = useState(false);
   const [location, setLocation] = useState("");
+
   function getManilaDate(daysAgo: number) {
     const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
     d.setDate(d.getDate() - daysAgo);
@@ -56,18 +60,19 @@ function ReportFoundContent() {
   const [choosingItemUrl, setChoosingItemUrl] = useState<string | null>(null);
   const [resolvingChoice, setResolvingChoice] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("findnest_user");
-    if (stored) {
-      const currentUser = JSON.parse(stored);
-      setUserInitial(currentUser?.name?.charAt(0).toUpperCase() || "");
-    }
-  }, []);
+  // What the AI detected, shown next to the student's own entries in the review step
+  const [aiData, setAiData] = useState({ name: "", category: "", color: "", brand: "" });
 
   const anyUploading = photos.some((p) => p.uploading);
   const uploadedUrls = photos.filter((p) => p.url).map((p) => p.url as string);
 
   const applyAiFields = (data: any) => {
+    setAiData({
+      name: data.ai_item_name || "",
+      category: data.ai_category || "",
+      color: data.ai_details?.primary_color || "",
+      brand: data.ai_details?.brand_or_markings || "",
+    });
     if (data.ai_item_name) {
       setItemName(data.ai_item_name);
       setItemNameAiFilled(true);
@@ -87,7 +92,7 @@ function ReportFoundContent() {
     }
   };
 
-    // [UX] Drag and drop: hands the dropped image to the same upload function as the file picker
+  // Drag and drop: hands the dropped image to the same upload function as the file picker
   const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -185,6 +190,7 @@ function ReportFoundContent() {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Form -> review step
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (uploadedUrls.length === 0) {
@@ -196,7 +202,8 @@ function ReportFoundContent() {
       return;
     }
     setSubmitError("");
-    setShowConfirm(true);
+    setStep("review");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleFinalSubmit = async () => {
@@ -225,304 +232,266 @@ function ReportFoundContent() {
     }
   };
 
+  const finalCategory = category === "Others" ? othersSpecify : category;
+    const Label = ({ children }: { children: React.ReactNode }) => (
+    <label className="block text-xs font-bold text-slate-900 mb-1.5">{children}</label>
+  );
+
+  const CloseX = (
+    <button
+      type="button"
+      onClick={() => (window.location.href = "/student-home")}
+      className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition text-2xl leading-none"
+      aria-label="Close"
+    >
+      &times;
+    </button>
+  );
+
+  const ReviewRow = ({ label, value }: { label: string; value: string }) => (
+    <p className="text-sm">
+      <span className="font-bold text-slate-900">{label}:</span>{" "}
+      <span className="text-gray-500">{value || "—"}</span>
+    </p>
+  );
+
   return (
-    <div className="min-h-screen bg-[#f8f9fc]">
-      <nav className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
-        <a href="/student-home" className="flex items-center gap-3">
-          <span className="text-lg font-black text-[#1a237e]">FIND<span className="text-[#ffd700]">NEST</span></span>
-        </a>
-        <div className="flex items-center gap-8">
-          <a href="/student-home" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Home</a>
-          <a href="/claim-status" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Claim Status</a>
-        </div>
-        <div className="flex items-center gap-4">
-          <a href="/notifications" className="relative w-10 h-10 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center justify-center transition">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
-          </a>
-            <a href="/profile" className="w-10 h-10 bg-[#1a237e] rounded-full overflow-hidden flex items-center justify-center text-white font-bold text-sm">
-              <StudentAvatar name={userInitial} />
-            </a>
-        </div>
-      </nav>
-
-      <main className="px-8 py-10 max-w-2xl mx-auto">
-        {submitted ? (
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 text-center">
-            <div className="w-20 h-20 bg-green-50 rounded-3xl flex items-center justify-center mx-auto mb-5">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-black text-[#1a237e]">Thank You!</h1>
-            <p className="text-gray-400 text-sm mt-2">
-              Your found item report has been submitted. Please surrender the item to the school office to complete the process.
-            </p>
-            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mt-6 text-left">
-              <p className="font-bold text-orange-700 text-sm mb-2">Important Reminder!</p>
-              <p className="text-orange-600 text-xs leading-relaxed">
-                Surrender this item to <strong>Ms. Shelly S. Durban</strong> at the Guidance Office within <strong>2 school days</strong>. If not surrendered within this window, the post will be automatically rejected and your account may be flagged.
-              </p>
-            </div>
-            <div className="bg-blue-50 rounded-2xl p-4 mt-4 text-left">
-              <p className="text-[#1a237e] font-bold text-sm">{itemName || "Your Reported Item"}</p>
-              <p className="text-gray-500 text-xs mt-1">Category: {category === "Others" ? othersSpecify : category}</p>
-              <p className="text-gray-500 text-xs">Found at: {location || "Not specified"} {time && `at ${time}`}</p>
-              <p className="text-gray-500 text-xs">Date found: {date || "Not specified"}</p>
-              <p className="text-gray-500 text-xs mt-1">Status: <span className="font-bold text-yellow-600">Pending Physical Receipt</span></p>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <a href="/student-home" className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-xl transition text-center text-sm">
-                Back to Home
-              </a>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="relative bg-gradient-to-r from-green-500 to-green-600 px-8 py-6">
-              <button
-                onClick={() => (window.location.href = "/student-home")}
-                className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white transition text-2xl font-bold leading-none"
-                aria-label="Close"
-              >
-                &times;
-              </button>
-              <h1 className="text-white font-black text-xl">Report Found Item</h1>
-              <p className="text-green-100 text-sm">Help reunite this item with its owner</p>
-            </div>
-
-            <form onSubmit={handleReview} className="p-8 space-y-5">
-              {/* [UX] While a photo is being analyzed, everything in the form is locked */}
-              <fieldset disabled={anyUploading} className="space-y-5 min-w-0 border-0 p-0 m-0">
-              {anyUploading && (
-                <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-                  <div className="w-5 h-5 border-4 border-blue-300 border-t-blue-500 rounded-full animate-spin shrink-0" />
-                  <p className="text-blue-700 text-sm font-semibold">Analyzing your photo... please wait. The form is locked until it finishes.</p>
-                </div>
-              )}
-
-              <div className="block">
-                <p className="text-sm font-bold text-gray-600 mb-2">
-                  Upload Photos <span className="text-red-500">*</span>
-                </p>
-
-                {photos.length > 0 && (
-                  <div className="grid grid-cols-4 gap-3 mb-3">
-                    {photos.map((p, idx) => (
-                      <div key={idx} className="relative">
-                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-gray-100 border-2 border-gray-200">
-                          <img src={p.preview} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
-                          {p.uploading && (
-                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1.5">
-                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              <span className="text-white text-[9px] font-bold text-center px-1">Analyzing photo...</span>
-                            </div>
-                          )}
-                        </div>
-                        {!p.uploading && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); e.preventDefault(); removePhoto(idx); }}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow"
-                          >
-                            &times;
-                          </button>
-                        )}
-                        {idx === 0 && (
-                          <span className="absolute bottom-1 left-1 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">MAIN</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {photos.length < MAX_PHOTOS && (
-                  <label
-                    onDragOver={(e) => { e.preventDefault(); if (!anyUploading) setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={handleDrop}
-                    className={`block border-2 border-dashed rounded-2xl p-6 text-center transition cursor-pointer ${
-                      photoError ? "border-red-400 bg-red-50" : dragOver ? "border-green-400 bg-green-50" : "border-gray-200 hover:border-green-300 bg-gray-50"
-                    }`}
-                  >
-                    <p className={`font-bold text-sm ${photoError ? "text-red-600" : "text-gray-600"}`}>
-                      {photos.length === 0 ? "Click to upload photos" : `Add more (${MAX_PHOTOS - photos.length} left)`}
-                    </p>
-                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} disabled={anyUploading} className="hidden" />
-                  </label>
-                )}
-                {photoError && (
-                  <p className="text-red-500 text-xs font-bold mt-2">
-                    {photoErrorMessage || "At least one photo is required before you can submit this report."}
-                  </p>
-                )}
+    <StudentLayout active="/report-found" hideHeader>
+      <div className="w-full flex-1 flex flex-col justify-center pb-6">
+        {step === "form" ? (
+          <div className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm overflow-hidden">
+            <div className="px-6 sm:px-8 pt-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-400">Report Found Item</p>
+                {CloseX}
               </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#0E4D34] mt-1">I Found Something</h1>
+            </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">
-                  Item Name {itemNameAiFilled && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}
-                </label>
-                <input
-                  type="text"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  placeholder="e.g. Scientific Calculator"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">
-                  Category {uploadedUrls.length > 0 && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              {category === "Others" && (
-                <div>
-                  <label className="block text-sm font-bold text-gray-600 mb-2">Please Specify</label>
-                  <input
-                    type="text"
-                    value={othersSpecify}
-                    onChange={(e) => setOthersSpecify(e.target.value)}
-                    placeholder="Tell us what kind of item this is"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700"
-                    required
-                  />
-                  </div>
+            <form onSubmit={handleReview}>
+              {/* While a photo is being analyzed, everything in the form is locked */}
+              <fieldset disabled={anyUploading} className="min-w-0 border-0 p-0 m-0">
+                <div className="px-6 sm:px-8 pt-5 pb-6">
+                  {anyUploading && (
+                    <div className="flex items-center gap-3 bg-[#E3EEE7] border border-[#B9CBBF] rounded-xl px-4 py-3 mb-4">
+                      <div className="w-5 h-5 border-4 border-[#B9CBBF] border-t-[#0E4D34] rounded-full animate-spin shrink-0" />
+                      <p className="text-[#1E3F2E] text-sm font-semibold">Analyzing your photo... please wait. The form is locked until it finishes.</p>
+                    </div>
                   )}
 
-                  <div>
-                    <label className="block text-sm font-bold text-gray-600 mb-2">
-                      Primary Color(s) {primaryColor ? <span className="text-green-600 font-normal">(auto-detected, editable)</span> : <span className="text-red-500">*</span>}
-                    </label>
-                    <input
-                      type="text"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      placeholder="If AI couldn't detect this, please fill in manually (e.g. Black, Silver)"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700"
-                    />
+                  <div className="grid grid-cols-1 lg:grid-cols-[18rem_minmax(0,1fr)] gap-6">
+                    {/* Photo upload box */}
+                    <div>
+                      <div className="rounded-2xl bg-[#D8E6DF] p-5 flex flex-col items-center justify-center text-center min-h-[20rem] h-full">
+                        {photos.length > 0 ? (
+                          <div className="relative w-full">
+                            <div className="w-full rounded-xl overflow-hidden bg-white/60 flex items-center justify-center">
+                              <img src={photos[0].preview} alt="Found item" className="w-full max-h-72 object-contain" />
+                              {photos[0].uploading && (
+                                <div className="absolute inset-0 bg-black/60 rounded-xl flex flex-col items-center justify-center gap-2">
+                                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  <span className="text-white text-xs font-bold">Analyzing photo...</span>
+                                </div>
+                              )}
+                            </div>
+                            {!photos[0].uploading && (
+                              <button
+                                type="button"
+                                onClick={() => removePhoto(0)}
+                                className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-base font-bold shadow"
+                                aria-label="Remove photo"
+                              >
+                                &times;
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <label
+                            onDragOver={(e) => { e.preventDefault(); if (!anyUploading) setDragOver(true); }}
+                            onDragLeave={() => setDragOver(false)}
+                            onDrop={handleDrop}
+                            className={`w-full h-full cursor-pointer rounded-xl border-2 border-dashed p-4 flex flex-col items-center justify-center transition ${
+                              photoError ? "border-red-400 bg-red-50/60" : dragOver ? "border-[#0E4D34] bg-white/50" : "border-transparent"
+                            }`}
+                          >
+                            <div className="w-16 h-16 rounded-2xl bg-gray-300/70 flex items-center justify-center text-gray-500 mb-3">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" /></svg>
+                            </div>
+                            <p className="font-bold text-slate-900 text-sm">{dragOver ? "Drop the photo here" : "Click/tap to upload photo"}</p>
+                            <p className="text-gray-600 text-xs mt-2 leading-relaxed">
+                              FindNest uses advanced AI image recognition to match lost and found items on campus. Submit a report, get notified instantly.
+                            </p>
+                            <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} disabled={anyUploading} className="hidden" />
+                          </label>
+                        )}
+                      </div>
+                      {photoError && (
+                        <p className="text-red-500 text-xs font-bold mt-2">
+                          {photoErrorMessage || "At least one photo is required before you can submit this report."}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 content-between">
+                      <div>
+                        <Label>Item Name {itemNameAiFilled && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}</Label>
+                        <input type="text" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g. Scientific Calculator" className={FIELD} required />
+                      </div>
+                      <div>
+                        <Label>Category {uploadedUrls.length > 0 && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}</Label>
+                        <select value={category} onChange={(e) => setCategory(e.target.value)} className={FIELD}>
+                          {categories.map((cat) => (
+                            <option key={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {category === "Others" && (
+                        <div className="sm:col-span-2">
+                          <Label>Please Specify</Label>
+                          <input type="text" value={othersSpecify} onChange={(e) => setOthersSpecify(e.target.value)} placeholder="Tell us what kind of item this is" className={FIELD} required />
+                        </div>
+                      )}
+
+                      <div>
+                        <Label>Primary Colors {primaryColor ? <span className="text-green-600 font-normal">(auto-detected, editable)</span> : <span className="text-red-500">*</span>}</Label>
+                        <input type="text" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} placeholder="e.g. Black, Silver" className={FIELD} />
+                      </div>
+                      <div>
+                        <Label>Model and Brand {brandModel ? <span className="text-green-600 font-normal">(auto-detected, editable)</span> : <span className="text-red-500">*</span>}</Label>
+                        <input type="text" value={brandModel} onChange={(e) => setBrandModel(e.target.value)} placeholder="e.g. Apple iPhone 15" className={FIELD} />
+                      </div>
+
+                      <div>
+                        <Label>Date Found</Label>
+                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={getManilaDate(2)} max={getManilaDate(0)} className={FIELD} required />
+                        <p className="text-gray-400 text-[11px] mt-1">Today or up to 2 days ago.</p>
+                      </div>
+                      <div>
+                        <Label>Approx. Time Found</Label>
+                        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD} />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <Label>Location Found</Label>
+                        <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Library, Canteen, Room 402" className={FIELD} required />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <Label>Item Description {aiFilled ? <span className="text-green-600 font-normal">(auto-filled by AI, editable)</span> : <span className="text-red-500">*</span>}</Label>
+                        <textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder={aiFilled ? "" : "If our AI could not auto-fill this, please describe the item manually. Any details that might help identify the owner."}
+                          rows={6}
+                          className={`${FIELD} resize-none ${!aiFilled && !description.trim() ? "!bg-green-50" : ""}`}
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-bold text-gray-600 mb-2">
-                      Brand & Model {brandModel ? <span className="text-green-600 font-normal">(auto-detected, editable)</span> : <span className="text-red-500">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    value={brandModel}
-                    onChange={(e) => setBrandModel(e.target.value)}
-                    placeholder="If AI couldn't detect this, please fill in manually (e.g. Apple iPhone 15)"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700"
-                  />
+                  <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mt-5">
+                    <p className="font-bold text-orange-700 text-sm mb-1">Surrender Reminder!</p>
+                    <p className="text-orange-600 text-xs leading-relaxed">
+                      You must surrender this item to <strong>Ms. Shelly S. Durban</strong> at the Guidance Office within <strong>2 school days</strong>. Failure to do so will result in automatic post rejection and account flagging.
+                    </p>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-3">This report is private and visible only to you and administrators.</p>
+
+                  {submitError && <p className="text-red-500 text-xs font-bold mt-3">{submitError}</p>}
                 </div>
 
-                <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">
-                  Description {aiFilled ? <span className="text-green-600 font-normal">(auto-filled by AI, editable)</span> : <span className="text-red-500">*</span>}
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={aiFilled ? "" : "If our AI could not auto-fill this. Please describe the item manually — any details that might help identify the owner."}
-                  rows={4}
-                  className={`w-full px-4 py-3 border-2 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700 resize-none ${
-                    !aiFilled && !description.trim() ? "border-red-200 bg-red-50" : "border-gray-200"
-                  }`}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Location Found</label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Library, Canteen, Room 402"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-600 mb-2">Date Found</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    min={getManilaDate(2)}
-                    max={getManilaDate(0)}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700 bg-gray-50"
-                    required
-                  />
-                  <p className="text-gray-400 text-xs mt-1">Pick when the item was found — today or up to 2 days ago.</p>
+                {/* Footer with soft green gradient */}
+                <div className="bg-gradient-to-t from-green-300 via-green-100 to-transparent px-6 pt-4 pb-16 flex justify-center">
+                  <button
+                    type="submit"
+                    disabled={anyUploading || uploadedUrls.length === 0}
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-full shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {anyUploading ? "Waiting for photo analysis..." : "Click to submit report"}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-600 mb-2">Approx. Time Found</label>
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-400 focus:outline-none transition text-gray-700"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
-                <p className="font-bold text-orange-700 text-sm mb-1">Surrender Reminder!</p>
-                <p className="text-orange-600 text-xs leading-relaxed">
-                  You must surrender this item to <strong>Ms. Shelly S. Durban</strong> at the Guidance Office within <strong>2 school days</strong>. Failure to do so will result in automatic post rejection and account flagging.
-                </p>
-              </div>
-
-              <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
-                <p className="text-purple-700 text-xs">This report is private and visible only to you and administrators</p>
-              </div>
-
-              {submitError && (
-                <p className="text-red-500 text-xs font-bold">{submitError}</p>
-              )}
-
-              <button
-                type="submit"
-                disabled={anyUploading || uploadedUrls.length === 0}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl transition shadow-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {anyUploading ? "Waiting for photo analysis..." : "Review Report"}
-              </button>
               </fieldset>
             </form>
           </div>
-        )}
-      </main>
+        ) : (
+          /* Review step */
+          <div className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm overflow-hidden">
+            <div className="px-6 sm:px-8 pt-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-400">Report review</p>
+                {CloseX}
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900 mt-1">Review Your Report</h1>
+            </div>
 
+            <div className="px-6 sm:px-8 pt-5 pb-6">
+              <div className="bg-[#EBF3EF] rounded-2xl p-6 mb-6 flex flex-wrap items-center gap-6">
+                <div className="w-32 h-32 bg-gray-300 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                  {photos[0]?.preview ? (
+                    <img src={photos[0].preview} alt="Found item" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-gray-500 text-xs">No photo</span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-3xl font-bold text-slate-900 break-words">{itemName}</p>
+                  <p className="text-slate-700 mt-1">{primaryColor || "Color not specified"}</p>
+                  <p className="text-slate-500 text-sm mt-0.5">{brandModel || "Brand not specified"}</p>
+                </div>
+              </div>
+
+              <div className="bg-[#F3FAF6] rounded-2xl p-6 mb-4 grid grid-cols-1 md:grid-cols-2">
+                <div className="space-y-2 pb-5 md:pb-0 md:pr-6 border-b md:border-b-0 md:border-r border-slate-300">
+                  <p className="text-xs font-black text-[#0E4D34] uppercase tracking-wider mb-2">You submitted</p>
+                  <ReviewRow label="Item Name" value={itemName} />
+                  <ReviewRow label="Category" value={finalCategory} />
+                  <ReviewRow label="Primary color" value={primaryColor} />
+                  <ReviewRow label="Brand and Models" value={brandModel} />
+                </div>
+                <div className="space-y-2 pt-5 md:pt-0 md:pl-6">
+                  <p className="text-xs font-black text-[#0E4D34] uppercase tracking-wider mb-2">AI analyzed</p>
+                  <ReviewRow label="Item Name" value={aiData.name} />
+                  <ReviewRow label="Category" value={aiData.category} />
+                  <ReviewRow label="Primary color" value={aiData.color} />
+                  <ReviewRow label="Brand and Models" value={aiData.brand} />
+                </div>
+              </div>
+
+              <div className="bg-[#F3FAF6] rounded-2xl p-6 space-y-2">
+                <ReviewRow label="Description" value={description} />
+                <ReviewRow label="Found at" value={location} />
+                <ReviewRow label="Date found" value={`${date}${time ? ` at ${time}` : ""}`} />
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-t from-green-300 via-green-100 to-transparent px-6 pt-4 pb-16 flex flex-col items-center gap-3">
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-full shadow-md transition"
+              >
+                Click to submit report
+              </button>
+              <button onClick={() => setStep("form")} className="text-sm font-semibold text-gray-600 hover:underline">
+                &larr; Edit report
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Multiple items chooser */}
       {choosingItemUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
-            <h2 className="text-xl font-black text-[#1a237e] mb-1">Multiple Items Detected</h2>
-            <p className="text-gray-400 text-sm mb-6">We found several items in your photo. Which one did you find?</p>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-black text-[#0E4D34] mb-1">Multiple Items Detected</h2>
+            <p className="text-gray-500 text-sm mb-6">We found several items in your photo. Which one did you find?</p>
 
             {resolvingChoice ? (
               <div className="py-8 text-center">
-                <div className="w-8 h-8 border-4 border-green-300 border-t-green-500 rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-8 h-8 border-4 border-[#B9CBBF] border-t-[#0E4D34] rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-sm text-gray-500 font-medium">Analyzing your selection...</p>
               </div>
             ) : (
@@ -531,16 +500,16 @@ function ReportFoundContent() {
                   <button
                     key={idx}
                     onClick={() => handleChooseItem(choice)}
-                    className="w-full text-left px-4 py-3 border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 rounded-xl transition text-gray-700 font-semibold text-sm"
+                    className="w-full text-left px-4 py-3 border-2 border-gray-200 hover:border-[#0E4D34] hover:bg-[#F3FAF6] rounded-xl transition text-gray-700 font-semibold text-sm"
                   >
                     {choice}
                   </button>
                 ))}
                 <button
                   onClick={() => { setChoosingItemUrl(null); setItemChoices([]); }}
-                  className="w-full text-center px-4 py-3 text-gray-400 hover:text-gray-600 text-sm font-semibold mt-2"
+                  className="w-full text-center px-4 py-3 text-gray-500 hover:text-gray-700 text-sm font-semibold mt-2"
                 >
-                  None of these — I&apos;ll fill in details manually
+                  None of these, I&apos;ll fill in details manually
                 </button>
               </div>
             )}
@@ -548,42 +517,68 @@ function ReportFoundContent() {
         </div>
       )}
 
-      {showConfirm && (
+      {/* Confirmation */}
+      {showConfirm && !submitted && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
-            <h2 className="text-xl font-black text-[#1a237e] mb-1">Confirm Your Report</h2>
-            <p className="text-gray-400 text-sm mb-6">Please review before submitting — this report stays private, visible only to you and admin</p>
-
-            <div className="bg-gray-50 rounded-2xl p-4 space-y-2 text-sm mb-6">
-              <p><span className="font-bold text-gray-700">Item:</span> <span className="text-gray-600">{itemName}</span></p>
-              <p><span className="font-bold text-gray-700">Category:</span> <span className="text-gray-600">{category === "Others" ? othersSpecify : category}</span></p>
-              <p><span className="font-bold text-gray-700">Primary Color(s):</span> <span className="text-gray-600">{primaryColor || "Not specified"}</span></p>
-              <p><span className="font-bold text-gray-700">Brand & Model:</span> <span className="text-gray-600">{brandModel || "Not specified"}</span></p>
-              <p><span className="font-bold text-gray-700">Description:</span> <span className="text-gray-600">{description}</span></p>
-              <p><span className="font-bold text-gray-700">Location:</span> <span className="text-gray-600">{location}</span></p>
-              <p><span className="font-bold text-gray-700">Date:</span> <span className="text-gray-600">{date}</span> {time && <span className="text-gray-600">at {time}</span>}</p>
-              <p><span className="font-bold text-gray-700">Photos:</span> <span className="text-gray-600">{uploadedUrls.length} attached</span></p>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Submit Found-item Report?</h2>
+              <p className="text-sm text-slate-600">
+                Send report to the campus lost and found located in<br />Guidance office
+              </p>
             </div>
-
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
                 disabled={submitLoading}
-                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-6 rounded-xl shadow-sm transition disabled:opacity-50"
               >
-                Go Back
+                Cancel
               </button>
               <button
                 onClick={handleFinalSubmit}
                 disabled={submitLoading}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+                className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-sm transition disabled:opacity-50"
               >
-                {submitLoading ? "Submitting..." : "Confirm & Submit"}
+                {submitLoading ? "Submitting..." : "Confirm Report"}
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      {/* Success */}
+      {submitted && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Report Submitted Successfully</h2>
+              <p className="text-sm text-slate-600">
+                Send report to the campus lost and found located in<br />Guidance office
+              </p>
+            </div>
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+              <p className="font-bold text-orange-700 text-sm mb-1">Important Reminder!</p>
+              <p className="text-orange-600 text-xs leading-relaxed">
+                Surrender this item to <strong>Ms. Shelly S. Durban</strong> at the Guidance Office within <strong>2 school days</strong>. If not surrendered in that window, the post will be automatically rejected and your account may be flagged.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <a href="/claim-status" className="flex-1 text-center bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition">
+                View Claim Status
+              </a>
+              <a href="/student-home" className="flex-1 text-center bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition">
+                Back to Home
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </StudentLayout>
   );
 }
