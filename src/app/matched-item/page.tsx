@@ -1,18 +1,16 @@
 "use client";
+// Student > Matched Item (/matched-item?matchId=). Reveals a possible match and lets the student claim it.
+// API: /ai-matches/{id}/reveal, /upload/image, /claims
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
+import StudentLayout from "@/components/StudentLayout";
 
 interface MatchDetail {
   id: number;
   confidence_score: number;
   matched_at: string;
-  lost_item: {
-    item_name: string;
-    category: string;
-    location_lost: string;
-    date_lost: string;
-  };
+  lost_item: { item_name: string; category: string; location_lost: string; date_lost: string };
   found_item: {
     item_name: string;
     category: string;
@@ -25,11 +23,7 @@ interface MatchDetail {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return new Date(dateStr).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 export default function MatchedItemPage() {
@@ -54,7 +48,6 @@ export default function MatchedItemPage() {
       setLoading(false);
       return;
     }
-
     const fetchMatch = async () => {
       try {
         const res = await api.get(`/ai-matches/${matchId}/reveal`);
@@ -74,8 +67,7 @@ export default function MatchedItemPage() {
   const handleClaimPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const remainingSlots = CLAIM_MAX_PHOTOS - claimPhotos.length;
-    const filesToAdd = files.slice(0, remainingSlots);
+    const filesToAdd = files.slice(0, CLAIM_MAX_PHOTOS - claimPhotos.length);
     if (filesToAdd.length === 0) return;
 
     const startIndex = claimPhotos.length;
@@ -87,16 +79,13 @@ export default function MatchedItemPage() {
     setClaimPhotos((prev) => [...prev, ...newEntries]);
 
     for (let i = 0; i < filesToAdd.length; i++) {
-      const file = filesToAdd[i];
       const idx = startIndex + i;
       try {
         const formData = new FormData();
-        formData.append("image", file);
+        formData.append("image", filesToAdd[i]);
         formData.append("folder", "appeal-evidence");
         formData.append("analyze", "false");
-        const res = await api.post("/upload/image", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const res = await api.post("/upload/image", formData, { headers: { "Content-Type": "multipart/form-data" } });
         setClaimPhotos((prev) => {
           const next = [...prev];
           next[idx] = { ...next[idx], url: res.data.url, uploading: false };
@@ -111,9 +100,7 @@ export default function MatchedItemPage() {
     e.target.value = "";
   };
 
-  const removeClaimPhoto = (index: number) => {
-    setClaimPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeClaimPhoto = (index: number) => setClaimPhotos((prev) => prev.filter((_, i) => i !== index));
 
   const handleSubmitClaim = async () => {
     if (!matchId) return;
@@ -121,7 +108,6 @@ export default function MatchedItemPage() {
       setClaimError("Please describe why you believe this item is yours.");
       return;
     }
-
     setClaimError("");
     setClaimSubmitting(true);
     try {
@@ -143,112 +129,90 @@ export default function MatchedItemPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#f8f9fc]">
-      <nav className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
-        <a href="/student-home" className="flex items-center gap-3">
-          <span className="text-lg font-black text-[#1a237e]">FIND<span className="text-[#ffd700]">NEST</span></span>
-        </a>
-        <div className="flex items-center gap-8">
-          <a href="/student-home" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Home</a>
-          <a href="/claim-status" className="text-gray-500 hover:text-[#1a237e] transition text-sm font-medium">Claim Status</a>
-        </div>
-      </nav>
+  const Row = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-[#F3FAF6] rounded-xl">
+      <span className="text-gray-500 font-medium text-sm">{label}</span>
+      <span className="font-bold text-gray-800 text-sm">{value}</span>
+    </div>
+  );
 
-      <main className="px-8 py-10 max-w-2xl mx-auto">
+  return (
+    <StudentLayout active="/claim-status" hideHeader>
+      <div className="w-full max-w-3xl">
         {loading ? (
           <div className="text-center py-20 text-gray-400 text-sm">Loading your match...</div>
         ) : error ? (
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10 text-center">
-            <p className="font-bold text-gray-700 text-lg mb-2">Can't View This Match</p>
-            <p className="text-gray-400 text-sm mb-6">{error}</p>
-            <a href="/claim-status" className="inline-block bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-xl transition">
+          <div className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm p-10 text-center">
+            <p className="font-bold text-gray-800 text-lg mb-2">Can&apos;t View This Match</p>
+            <p className="text-gray-500 text-sm mb-6">{error}</p>
+            <a href="/claim-status" className="inline-block bg-[#0E4D34] hover:bg-[#0A3021] text-white font-bold px-6 py-3 rounded-full transition">
               Go to Claim Status
             </a>
           </div>
         ) : match ? (
           <>
             <div className="mb-6">
-              <span className="inline-block bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full mb-3">
+              <span className="inline-block bg-[#B9CBBF] text-[#0A2618] text-xs font-bold px-3 py-1.5 rounded-full mb-3">
                 {match.confidence_score}% AI Confidence Match
               </span>
-              <h1 className="text-2xl font-black text-[#1a237e]">Possible Match Found</h1>
-              <p className="text-gray-400 text-sm mt-1">
-                Our AI found this item that may match your lost report — take a look before claiming
+              <h1 className="text-2xl font-black text-[#0E4D34]">Possible Match Found</h1>
+              <p className="text-gray-500 text-sm mt-1">
+                Our AI found this item that may match your lost report. Take a look before claiming.
               </p>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-              <div className="w-full h-64 bg-gray-100">
+            <div className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm overflow-hidden mb-6">
+              <div className="w-full bg-gray-100 flex items-center justify-center">
                 {match.found_item.photo_url ? (
-                  <img src={match.found_item.photo_url} alt={match.found_item.item_name} className="w-full h-full object-contain" />
+                  <img src={match.found_item.photo_url} alt={match.found_item.item_name} className="w-full max-h-[60vh] object-contain" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
+                  <div className="py-24 text-gray-400 text-sm">No Photo Available</div>
                 )}
               </div>
               <div className="p-6">
-                <h2 className="text-xl font-black text-gray-700">{match.found_item.item_name}</h2>
-                <p className="text-gray-400 text-sm mt-1">{match.found_item.category}</p>
-
+                <h2 className="text-xl font-black text-gray-800">{match.found_item.item_name}</h2>
+                <p className="text-gray-500 text-sm mt-1">{match.found_item.category}</p>
                 {match.found_item.ai_description && (
                   <p className="text-gray-600 text-sm mt-4 leading-relaxed">{match.found_item.ai_description}</p>
                 )}
-
-                <div className="mt-5 space-y-2 text-sm">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <span className="text-gray-400 font-medium">Found At</span>
-                    <span className="font-bold text-gray-700">{match.found_item.location_found}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <span className="text-gray-400 font-medium">Date Found</span>
-                    <span className="font-bold text-gray-700">{formatDate(match.found_item.date_found)}</span>
-                  </div>
-                  {match.found_item.storage_location && (
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                      <span className="text-gray-400 font-medium">Currently Stored At</span>
-                      <span className="font-bold text-gray-700">{match.found_item.storage_location}</span>
-                    </div>
-                  )}
+                <div className="mt-5 space-y-2">
+                  <Row label="Found At" value={match.found_item.location_found} />
+                  <Row label="Date Found" value={formatDate(match.found_item.date_found)} />
+                  {match.found_item.storage_location && <Row label="Currently Stored At" value={match.found_item.storage_location} />}
                 </div>
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6">
-              <p className="text-blue-700 text-xs leading-relaxed">
+            <div className="bg-[#E3EEE7] border border-[#B9CBBF] rounded-2xl p-4 mb-6">
+              <p className="text-[#1E3F2E] text-xs leading-relaxed">
                 Your lost report was: <strong>{match.lost_item.item_name}</strong>, last seen at {match.lost_item.location_lost} on {formatDate(match.lost_item.date_lost)}.
               </p>
             </div>
 
             {!showClaimForm ? (
               <div className="flex gap-3">
-                <a
-                  href="/claim-status"
-                  className="flex-1 border-2 border-gray-200 text-gray-500 hover:bg-gray-50 font-bold py-3.5 rounded-xl transition text-center"
-                >
+                <a href="/claim-status" className="flex-1 border-2 border-gray-300 text-gray-600 hover:bg-white font-bold py-3.5 rounded-full transition text-center">
                   Not Mine
                 </a>
-                <button
-                  onClick={() => setShowClaimForm(true)}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black py-3.5 rounded-xl transition"
-                >
-                  This Is Mine — Claim It
+                <button onClick={() => setShowClaimForm(true)} className="flex-1 bg-[#0E4D34] hover:bg-[#0A3021] text-white font-black py-3.5 rounded-full transition">
+                  This Is Mine: Claim It
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                <label className="block text-sm font-bold text-gray-600 mb-2">Your Description</label>
-                <p className="text-gray-400 text-xs mb-3">
-                  Describe specific details only the true owner would know. You'll also answer a few verification questions after submitting.
+              <div className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm p-6">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Your Description</label>
+                <p className="text-gray-500 text-xs mb-3">
+                  Describe specific details only the true owner would know. You&apos;ll also answer a few verification questions after submitting.
                 </p>
                 <textarea
                   value={proofDescription}
                   onChange={(e) => setProofDescription(e.target.value)}
                   placeholder="Describe why you believe this item belongs to you..."
                   rows={4}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700 resize-none mb-4"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700 resize-none mb-4"
                 />
 
-                <label className="block text-sm font-bold text-gray-600 mb-2">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
                   Evidence Photos (Optional)
                   <span className="text-gray-400 font-normal text-xs ml-1">(up to {CLAIM_MAX_PHOTOS})</span>
                 </label>
@@ -281,30 +245,23 @@ export default function MatchedItemPage() {
 
                 {claimPhotos.length < CLAIM_MAX_PHOTOS && (
                   <label className="block cursor-pointer mb-4">
-                    <div className="border-2 border-dashed border-gray-200 hover:border-[#1a237e] rounded-xl p-4 text-center transition">
-                      <p className="text-gray-400 text-xs">
-                        {claimPhotos.length === 0 ? "Click to add evidence photos" : `Add more (${CLAIM_MAX_PHOTOS - claimPhotos.length} left)`}
-                      </p>
+                    <div className="border-2 border-dashed border-gray-200 hover:border-[#0E4D34] rounded-xl p-4 text-center transition">
+                      <p className="text-gray-400 text-xs">Click to add evidence photos</p>
                     </div>
                     <input type="file" accept="image/*" multiple onChange={handleClaimPhotoUpload} disabled={claimAnyUploading} className="hidden" />
                   </label>
                 )}
 
-                {claimError && (
-                  <p className="text-red-500 text-xs font-semibold mb-4">{claimError}</p>
-                )}
+                {claimError && <p className="text-red-500 text-xs font-semibold mb-4">{claimError}</p>}
 
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowClaimForm(false)}
-                    className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-xl transition hover:bg-gray-50"
-                  >
+                  <button onClick={() => setShowClaimForm(false)} className="flex-1 border-2 border-gray-300 text-gray-600 font-bold py-3 rounded-full transition hover:bg-gray-50">
                     Back
                   </button>
                   <button
                     onClick={handleSubmitClaim}
                     disabled={claimSubmitting || claimAnyUploading}
-                    className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-black py-3 rounded-xl transition disabled:opacity-50"
+                    className="flex-1 bg-[#0E4D34] hover:bg-[#0A3021] text-white font-black py-3 rounded-full transition disabled:opacity-50"
                   >
                     {claimSubmitting ? "Submitting..." : claimAnyUploading ? "Uploading..." : "Submit Claim"}
                   </button>
@@ -313,7 +270,7 @@ export default function MatchedItemPage() {
             )}
           </>
         ) : null}
-      </main>
-    </div>
+      </div>
+    </StudentLayout>
   );
 }
