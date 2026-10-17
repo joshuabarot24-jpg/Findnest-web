@@ -857,11 +857,11 @@ function ClaimVerificationContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <p className="text-xs font-bold text-red-500 uppercase mb-2">Report Lost</p>
-                <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">
+                <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-3 flex items-center justify-center">
                   {comparingClaim.match?.lost_report?.photo_url ? (
-                    <img src={comparingClaim.match.lost_report.photo_url} alt="Lost report" className="w-full h-full object-contain" />
+                  <img src={comparingClaim.match.lost_report.photo_url} alt="Lost report" className="w-full max-h-[50vh] object-contain" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Photo</div>
+                  <div className="w-full h-40 flex items-center justify-center text-gray-400 text-xs">No Photo</div>
                   )}
                 </div>
                 <div className="space-y-2 text-sm">
@@ -891,11 +891,11 @@ function ClaimVerificationContent() {
 
               <div>
                 <p className="text-xs font-bold text-green-600 uppercase mb-2">Report Found</p>
-                <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">
+                <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-3 flex items-center justify-center">
                   {comparingClaim.match?.found_record?.photo_url ? (
-                    <img src={comparingClaim.match.found_record.photo_url} alt="Found item" className="w-full h-full object-contain" />
+                    <img src={comparingClaim.match.found_record.photo_url} alt="Found item" className="w-full max-h-[50vh] object-contain" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Photo</div>
+                  <div className="w-full h-40 flex items-center justify-center text-gray-400 text-xs">No Photo</div>
                   )}
                 </div>
                 <div className="space-y-2 text-sm">

@@ -958,9 +958,9 @@ function ItemManagementContent() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setViewingFoundItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
-            <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
+            <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
               {viewingFoundItem.photo_url ? (
-                <img src={viewingFoundItem.photo_url} alt={viewingFoundItem.item_name} className="w-full h-full object-contain" />
+                <img src={viewingFoundItem.photo_url} alt={viewingFoundItem.item_name} className="w-full max-h-[50vh] object-contain" />
               ) : (
                 <div className="text-gray-400 text-sm">No Photo Available</div>
               )}
@@ -1116,9 +1116,9 @@ function ItemManagementContent() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setViewingLostItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
-            <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
+            <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
               {viewingLostItem.photo_url ? (
-                <img src={viewingLostItem.photo_url} alt={viewingLostItem.item_name} className="w-full h-full object-contain" />
+              <img src={viewingLostItem.photo_url} alt={viewingLostItem.item_name} className="w-full max-h-[50vh] object-contain" />
               ) : (
                 <div className="text-gray-400 text-sm">No Photo Available</div>
               )}
