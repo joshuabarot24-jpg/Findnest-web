@@ -91,7 +91,7 @@ function Thumb({ src, alt }: { src: string | null; alt: string }) {
   return (
     <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
       {src ? (
-        <img src={src} alt={alt} className="w-full h-full object-cover" />
+        <img src={src} alt={alt} className="w-full h-full object-contain" />
       ) : (
         <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">N/A</div>
       )}
@@ -960,7 +960,7 @@ function ItemManagementContent() {
             <button onClick={() => setViewingFoundItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
               {viewingFoundItem.photo_url ? (
-                <img src={viewingFoundItem.photo_url} alt={viewingFoundItem.item_name} className="w-full h-full object-cover" />
+                <img src={viewingFoundItem.photo_url} alt={viewingFoundItem.item_name} className="w-full h-full object-contain" />
               ) : (
                 <div className="text-gray-400 text-sm">No Photo Available</div>
               )}
@@ -1118,7 +1118,7 @@ function ItemManagementContent() {
             <button onClick={() => setViewingLostItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
               {viewingLostItem.photo_url ? (
-                <img src={viewingLostItem.photo_url} alt={viewingLostItem.item_name} className="w-full h-full object-cover" />
+                <img src={viewingLostItem.photo_url} alt={viewingLostItem.item_name} className="w-full h-full object-contain" />
               ) : (
                 <div className="text-gray-400 text-sm">No Photo Available</div>
               )}

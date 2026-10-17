@@ -592,7 +592,7 @@ function DigitalRecordsContent() {
                         >
                           <div className="w-10 h-10 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
                             {c.photo_url ? (
-                              <img src={c.photo_url} alt={c.item_name} className="w-full h-full object-cover" />
+                              <img src={c.photo_url} alt={c.item_name} className="w-full h-full object-contain" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs font-bold">No Photo</div>
                             )}
@@ -632,7 +632,7 @@ function DigitalRecordsContent() {
                       className="w-14 h-14 bg-white/15 rounded-2xl overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-white/50 transition cursor-zoom-in"
                     >
                       {selectedCase.photo_url ? (
-                        <img src={selectedCase.photo_url} alt={selectedCase.item_name} className="w-full h-full object-cover" />
+                        <img src={selectedCase.photo_url} alt={selectedCase.item_name} className="w-full h-full object-contain" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white/60 text-[10px] font-bold text-center px-1">No Photo</div>
                       )}
@@ -731,7 +731,7 @@ function DigitalRecordsContent() {
                         <p className="text-orange-400 text-[10px] font-bold uppercase mb-1">Student&apos;s Appeal</p>
                         <p className="text-orange-700 text-sm">{claim.appeal_message}</p>
                         {claim.appeal_photo_url && (
-                          <img src={claim.appeal_photo_url} alt="Appeal evidence" className="w-24 h-24 object-cover rounded-xl mt-3" />
+                          <img src={claim.appeal_photo_url} alt="Appeal evidence" className="w-24 h-24 object-contain rounded-xl mt-3" />
                         )}
                       </div>
 
@@ -769,7 +769,7 @@ function DigitalRecordsContent() {
 
             <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-4">
               {previewCase.photo_url ? (
-                <img src={previewCase.photo_url} alt={previewCase.item_name} className="w-full h-full object-cover" />
+                <img src={previewCase.photo_url} alt={previewCase.item_name} className="w-full h-full object-contain" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
               )}
@@ -813,7 +813,7 @@ function DigitalRecordsContent() {
               <p className="text-orange-400 text-[10px] font-bold uppercase mb-1">Student&apos;s Appeal</p>
               <p className="text-orange-700 text-sm">{resolvingAppeal.appeal_message}</p>
               {resolvingAppeal.appeal_photo_url && (
-                <img src={resolvingAppeal.appeal_photo_url} alt="Appeal evidence" className="w-full max-h-48 object-cover rounded-xl mt-3" />
+                <img src={resolvingAppeal.appeal_photo_url} alt="Appeal evidence" className="w-full max-h-48 object-contain rounded-xl mt-3" />
               )}
             </div>
 

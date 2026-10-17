@@ -576,7 +576,7 @@ function ClaimVerificationContent() {
               <div className="bg-gray-50 rounded-2xl p-4">
                 <p className="text-xs font-bold text-gray-400 uppercase mb-3">Item Being Claimed</p>
                 {viewingClaim.match?.found_record?.photo_url && (
-                  <img src={viewingClaim.match.found_record.photo_url} alt="Found item" className="w-full h-24 object-cover rounded-xl mb-2" />
+                  <img src={viewingClaim.match.found_record.photo_url} alt="Found item" className="w-full h-24 object-contain rounded-xl mb-2" />
                 )}
                 <p className="font-black text-gray-700">{viewingClaim.match?.found_record?.item_name || "—"}</p>
                 <p className="text-gray-400 text-xs mt-1">{viewingClaim.match?.found_record?.category}</p>
@@ -596,7 +596,7 @@ function ClaimVerificationContent() {
               <p className="text-xs font-bold text-gray-400 uppercase mb-3">Original Lost Report</p>
               <div className="flex items-center gap-4">
                 {viewingClaim.match?.lost_report?.photo_url && (
-                  <img src={viewingClaim.match.lost_report.photo_url} alt="Lost item" className="w-20 h-20 object-cover rounded-xl flex-shrink-0" />
+                  <img src={viewingClaim.match.lost_report.photo_url} alt="Lost item" className="w-20 h-20 object-contain rounded-xl flex-shrink-0" />
                 )}
                 <div className="min-w-0">
                   <p className="font-black text-gray-700">{viewingClaim.match?.lost_report?.item_name || "—"}</p>
@@ -719,7 +719,7 @@ function ClaimVerificationContent() {
             {viewingClaim.proof_photo_url && (
               <div className="bg-gray-50 rounded-2xl p-4 mb-4">
                 <p className="text-xs font-bold text-gray-400 uppercase mb-2">Claimant&apos;s Evidence Photo</p>
-                <img src={viewingClaim.proof_photo_url} alt="Proof" className="w-full max-h-48 object-cover rounded-xl" />
+                <img src={viewingClaim.proof_photo_url} alt="Proof" className="w-full max-h-48 object-contain rounded-xl" />
               </div>
             )}
 
@@ -793,7 +793,7 @@ function ClaimVerificationContent() {
               <p className="text-xs font-bold text-gray-400 uppercase mb-2">Original Lost Report</p>
               <div className="flex items-center gap-4">
                 {viewingEvidence.match?.lost_report?.photo_url && (
-                  <img src={viewingEvidence.match.lost_report.photo_url} alt="Lost item" className="w-16 h-16 object-cover rounded-xl flex-shrink-0" />
+                  <img src={viewingEvidence.match.lost_report.photo_url} alt="Lost item" className="w-16 h-16 object-contain rounded-xl flex-shrink-0" />
                 )}
                 <div className="min-w-0">
                   <p className="font-black text-gray-700 text-sm">{viewingEvidence.match?.lost_report?.item_name || "—"}</p>
@@ -815,12 +815,12 @@ function ClaimVerificationContent() {
                     key={idx}
                     src={url}
                     alt={`Claim evidence ${idx + 1}`}
-                    className="w-full aspect-square object-cover rounded-2xl border border-gray-100"
+                    className="w-full max-h-[60vh] object-contain rounded-2xl border border-gray-100"
                   />
                 ))}
               </div>
             ) : viewingEvidence.proof_photo_url ? (
-              <img src={viewingEvidence.proof_photo_url} alt="Claim evidence" className="w-full max-h-64 object-cover rounded-2xl mb-4" />
+              <img src={viewingEvidence.proof_photo_url} alt="Claim evidence" className="w-full max-h-64 object-contain rounded-2xl mb-4" />
             ) : (
               <div className="w-full h-32 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 text-sm mb-4">No evidence photo submitted</div>
             )}
@@ -859,7 +859,7 @@ function ClaimVerificationContent() {
                 <p className="text-xs font-bold text-red-500 uppercase mb-2">Report Lost</p>
                 <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">
                   {comparingClaim.match?.lost_report?.photo_url ? (
-                    <img src={comparingClaim.match.lost_report.photo_url} alt="Lost report" className="w-full h-full object-cover" />
+                    <img src={comparingClaim.match.lost_report.photo_url} alt="Lost report" className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Photo</div>
                   )}
@@ -893,7 +893,7 @@ function ClaimVerificationContent() {
                 <p className="text-xs font-bold text-green-600 uppercase mb-2">Report Found</p>
                 <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">
                   {comparingClaim.match?.found_record?.photo_url ? (
-                    <img src={comparingClaim.match.found_record.photo_url} alt="Found item" className="w-full h-full object-cover" />
+                    <img src={comparingClaim.match.found_record.photo_url} alt="Found item" className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Photo</div>
                   )}
