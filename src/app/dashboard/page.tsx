@@ -494,7 +494,7 @@ function DashboardContent() {
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
                             {activity.photo_url ? (
-                              <img src={activity.photo_url} alt={activity.item} className="w-full h-full object-cover" />
+                              <img src={activity.photo_url} alt={activity.item} className="w-full h-full object-contain" />
                             ) : (
                               <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">N/A</div>
                             )}
@@ -543,9 +543,9 @@ function DashboardContent() {
               &times;
             </button>
 
-            <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-4">
+            <div className="w-full rounded-2xl overflow-hidden bg-gray-100 flex items-center justify-center mb-4">
               {previewItem.photo_url ? (
-                <img src={previewItem.photo_url} alt={previewItem.item} className="w-full h-full object-cover" />
+                <img src={previewItem.photo_url} alt={previewItem.item} className="w-full h-full object-contain" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No Photo Available</div>
               )}
