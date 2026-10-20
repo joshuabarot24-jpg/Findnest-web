@@ -4,6 +4,9 @@ import { useEffect, useRef, useState, ReactNode } from "react";
 import Link from "next/link";
 import api, { logoutUser } from "@/lib/api";
 import { useUnreadCount } from "@/lib/useUnreadCount";
+
+// Last loaded notification list, kept across page changes so the dropdown never opens empty
+let cachedNotifs: Notif[] = [];
 import StudentAvatar from "@/components/StudentAvatar";
 
 const NAV = [
@@ -57,7 +60,7 @@ export default function StudentLayout({
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [name, setName] = useState("Student");
   const [email, setEmail] = useState("");
-  const [notifs, setNotifs] = useState<Notif[]>([]);
+  const [notifs, setNotifs] = useState<Notif[]>(cachedNotifs);
   const [notifLoading, setNotifLoading] = useState(false);
   const { count } = useUnreadCount();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -102,10 +105,12 @@ export default function StudentLayout({
     setBell(next);
     setMenu(false);
     if (next) {
-      setNotifLoading(true);
+      // Only show the loading state when there is nothing cached to display
+      if (cachedNotifs.length === 0) setNotifLoading(true);
       try {
         const res = await api.get("/notifications");
-        setNotifs(res.data.notifications || []);
+        cachedNotifs = res.data.notifications || [];
+        setNotifs(cachedNotifs);
       } catch {}
       setNotifLoading(false);
     }
@@ -114,7 +119,10 @@ export default function StudentLayout({
   // While the dropdown is open, reload its list whenever the unread count changes
   useEffect(() => {
     if (!bell) return;
-    api.get("/notifications").then((res) => setNotifs(res.data.notifications || [])).catch(() => {});
+    api.get("/notifications").then((res) => {
+      cachedNotifs = res.data.notifications || [];
+      setNotifs(cachedNotifs);
+    }).catch(() => {});
   }, [count, bell]);
 
   const unreadInList = notifs.filter((n) => !n.is_read).length;
@@ -123,7 +131,11 @@ export default function StudentLayout({
   const markAllRead = async () => {
     try {
       await api.post("/notifications/read-all");
-      setNotifs((prev) => prev.map((x) => ({ ...x, is_read: true })));
+      setNotifs((prev) => {
+        const next = prev.map((x) => ({ ...x, is_read: true }));
+        cachedNotifs = next;
+        return next;
+      });
       window.dispatchEvent(new Event("findnest:notifs-changed"));
     } catch {}
   };
@@ -132,7 +144,11 @@ export default function StudentLayout({
     if (!n.is_read) {
       try {
         await api.post(`/notifications/${n.id}/read`);
-        setNotifs((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
+      setNotifs((prev) => {
+        const next = prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x));
+        cachedNotifs = next;
+        return next;
+      });
         window.dispatchEvent(new Event("findnest:notifs-changed"));
       } catch {}
     }
