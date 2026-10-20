@@ -87,7 +87,11 @@ function NotificationsContent() {
       await handleMarkAsRead(n.id);
     }
     const t = n.type.toLowerCase();
-    if (t.includes("support")) {
+    if (t === "override") {
+    // stays on the Notifications tab
+    } else if (t === "unclaimed") {
+      window.location.href = "/student-home";
+    } else if (t.includes("support")) {
       window.location.href = "/support";
     } else if (t.includes("match") && n.match_id) {
       window.location.href = `/matched-item?matchId=${n.match_id}`;
