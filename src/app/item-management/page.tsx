@@ -394,7 +394,7 @@ function ItemManagementContent() {
   const sortedFound = [...filteredFound].sort(byTime);
   const sortedLost = [...filteredLost].sort(byTime);
   // Aged tab: disposal-review items first, then the rest, newest first inside each group
-  const sortedAged = [...filteredAged].sort(byTime).sort((a, b) => flagRank(a) - flagRank(b));
+  const sortedAged = [...filteredAged].sort(byTime);
   const paginatedFound = (mainTab === "aged" ? sortedAged : sortedFound).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const paginatedLost = sortedLost.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 

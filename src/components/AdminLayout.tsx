@@ -97,9 +97,13 @@ const NAV = [
   { href: "/admin-support", label: "Support Inbox", icon: "inbox" },
 ];
 
+// Shared across page navigations: the sidebar remounts on every page, but this stays
+let cachedPendingCount = 0;
+let cachedAt = 0;
+
 export default function AdminLayout({ active, children }: { active: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(cachedPendingCount);
 
   // Found reports not yet confirmed received (the "Awaiting Physical Surrender" ones)
   useEffect(() => {
@@ -109,12 +113,16 @@ export default function AdminLayout({ active, children }: { active: string; chil
       try {
         const res = await api.get("/found-items");
         const records: { receipt_confirmed?: boolean }[] = res.data.records || [];
-        if (alive) setPendingCount(records.filter((r) => r.receipt_confirmed === false).length);
+        const count = records.filter((r) => r.receipt_confirmed === false).length;
+        cachedPendingCount = count;
+        cachedAt = Date.now();
+        if (alive) setPendingCount(count);
       } catch {
         // keep the last known count
       }
     };
-    load();
+    // Show the cached count at once; only fetch on mount if it is older than 5 seconds
+    if (Date.now() - cachedAt > 5000) load();
     const timer = setInterval(load, 10000);
     window.addEventListener("focus", load);
     return () => {
