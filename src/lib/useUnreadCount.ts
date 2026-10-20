@@ -1,23 +1,36 @@
 "use client";
 // [UX] One shared source for the notification bell count on every student page.
-// Loads right away, then refreshes every 15 seconds and when the tab regains focus.
+// The last known count is kept in memory, so the bell never flashes empty when a page changes.
 import { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 
+let cachedCount = 0;
+let cachedAt = 0;
+
+// Call on logout so another student never sees the previous account's count
+export function resetUnreadCache() {
+  cachedCount = 0;
+  cachedAt = 0;
+}
+
 export function useUnreadCount() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(cachedCount);
 
   const refresh = useCallback(async () => {
     try {
       const res = await api.get("/notifications/unread-count");
-      setCount(res.data.unread_count ?? res.data.count ?? 0);
+      const next = res.data.unread_count ?? res.data.count ?? 0;
+      cachedCount = next;
+      cachedAt = Date.now();
+      setCount(next);
     } catch {
       // ignore: a failed refresh keeps the last known count
     }
   }, []);
 
   useEffect(() => {
-    refresh();
+    // Show the cached count at once; only fetch on mount if it is older than 5 seconds
+    if (Date.now() - cachedAt > 5000) refresh();
     const timer = setInterval(() => {
       if (!document.hidden) refresh();
     }, 10000);
