@@ -99,7 +99,7 @@ export default function HeroCarousel() {
           <div className="absolute inset-x-4 bottom-10 bg-white/85 backdrop-blur-sm rounded-2xl p-6">
             <p className="text-xs font-bold uppercase tracking-wider text-[#2FA36B]">{s.tag}</p>
             <p className="text-[#0E4D34] font-black text-lg leading-tight mt-1">{s.title}</p>
-            <p className="text-[#1E3F2E] text-sm leading-snug mt-1.5">{s.text}</p>
+            <p className="text-[#1E3F2E] text-sm font-bold leading-snug mt-1.5">{s.text}</p>
           </div>
         </div>
       ))}

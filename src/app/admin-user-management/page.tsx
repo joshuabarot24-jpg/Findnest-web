@@ -502,9 +502,9 @@ function AdminUserManagementContent() {
               <button
                 onClick={() => handleToggleOverride(viewingUser)}
                 disabled={togglingOverride}
-                className={`relative w-12 h-6 shrink-0 rounded-full transition-colors ${viewingUser.manual_override_granted ? "bg-amber-500" : "bg-gray-300"} disabled:opacity-50`}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-50 ${viewingUser.manual_override_granted ? "bg-[#22C55E]" : "bg-[#D1D5DB]"}`}
               >
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${viewingUser.manual_override_granted ? "translate-x-6" : "translate-x-0.5"}`} />
+                <span className="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200" style={{ transform: `translateX(${viewingUser.manual_override_granted ? 22 : 2}px)` }} />
               </button>
             </div>
 

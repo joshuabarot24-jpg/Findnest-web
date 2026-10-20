@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // [UI] Shared Admin shell: sidebar on lg+, slide-in menu below lg.
 // Palette: canvas #F1F7F4, sidebar #0D3B29, active pill #D8E8DF, nav text #E2EFE9, profile card #C9DCD2.
 // Icons: Lucide shapes drawn inline (no extra package).
@@ -122,7 +122,7 @@ export default function AdminLayout({ active, children }: { active: string; chil
             <a href="/dashboard" className="text-[#E2EFE9] font-black text-lg block">
               FIND<span className="text-[#ffd700]">NEST</span>
             </a>
-            <span className="text-[#E2EFE9]/70 text-xs">Admin Panel</span>
+            <span className="text-[#E2EFE9]/70 text-xs">Guidance Counselor</span>
           </div>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="lg:hidden text-[#E2EFE9] hover:text-white text-2xl leading-none">
             &times;

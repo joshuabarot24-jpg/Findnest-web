@@ -34,6 +34,116 @@ function NavIcon({ name }: { name: "home" | "info" | "settings" }) {
   );
 }
 
+// Friendly line icons for the landing sections (Lucide shapes drawn inline)
+type IconName = "phone" | "radar" | "box" | "scanner" | "bell" | "key" | "checklist";
+
+function SectionIcon({ name, size = 32 }: { name: IconName; size?: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {name === "phone" && (
+        <>
+          <rect x="5" y="2" width="14" height="20" rx="2" />
+          <path d="M12 18h.01" />
+        </>
+      )}
+      {name === "radar" && (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
+          <path d="M12 12 19 5" />
+        </>
+      )}
+      {name === "box" && (
+        <>
+          <path d="M21 8 12 3 3 8v8l9 5 9-5z" />
+          <path d="m3 8 9 5 9-5" />
+          <path d="M12 13v8" />
+        </>
+      )}
+      {name === "scanner" && (
+        <>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+          <path d="M8 13h8" />
+          <path d="M8 17h5" />
+        </>
+      )}
+      {name === "bell" && (
+        <>
+          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+        </>
+      )}
+      {name === "key" && (
+        <>
+          <circle cx="7.5" cy="15.5" r="5.5" />
+          <path d="m21 2-9.6 9.6" />
+          <path d="m15.5 7.5 3 3L22 7l-3-3" />
+        </>
+      )}
+      {name === "checklist" && (
+        <>
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+          <rect x="8" y="2" width="8" height="4" rx="1" />
+          <path d="m9 14 2 2 4-4" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+// The five steps of "How It Works": pointer color, number circle, icon tint
+const STEPS: {
+  title: string;
+  text: string;
+  icon: IconName;
+  bar: string;
+  circle: string;
+  iconBox: string;
+}[] = [
+  {
+    title: "Report with a Photo",
+    text: "A student submits a lost or found item report with a required photo. The system checks image quality and content, then the AI pre-fills details like category, color, and fine features such as scratches or stickers.",
+    icon: "scanner",
+    bar: "bg-blue-500",
+    circle: "bg-blue-600 text-white",
+    iconBox: "bg-blue-50 text-blue-600",
+  },
+  {
+    title: "AI-Powered Matching",
+    text: "As soon as a report is saved, the AI automatically compares it against existing records in both directions: new lost reports against approved found items, and newly approved found items against active lost reports, flagging matches above the confidence threshold.",
+    icon: "radar",
+    bar: "bg-yellow-400",
+    circle: "bg-yellow-400 text-[#09301B]",
+    iconBox: "bg-yellow-50 text-yellow-600",
+  },
+  {
+    title: "Instant Notification",
+    text: "The student is notified the moment a likely match is found, so there's no need to keep checking the office in person or wait for an announcement.",
+    icon: "bell",
+    bar: "bg-red-500",
+    circle: "bg-red-500 text-white",
+    iconBox: "bg-red-50 text-red-600",
+  },
+  {
+    title: "Five-Layer Claim Verification",
+    text: "Before releasing any item, an administrator reviews verified student identity, submitted evidence, the AI similarity score, and secret question results. No single factor decides ownership on its own.",
+    icon: "key",
+    bar: "bg-indigo-500",
+    circle: "bg-indigo-600 text-white",
+    iconBox: "bg-indigo-50 text-indigo-600",
+  },
+  {
+    title: "Item Returned & Logged",
+    text: "Once ownership is confirmed, the item is marked as returned and the full transaction, including evidence, scores, and the approving admin, is permanently stored in a tamper-evident audit trail.",
+    icon: "checklist",
+    bar: "bg-yellow-400",
+    circle: "bg-yellow-400 text-[#09301B]",
+    iconBox: "bg-yellow-50 text-yellow-600",
+  },
+];
+
 export default function Home() {
   const [step, setStep] = useState<ModalStep>("closed");
 
@@ -221,7 +331,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#fafbff] font-sans overflow-x-hidden scroll-smooth">
+    <main className="relative min-h-screen bg-[#F8FAF7] font-sans overflow-x-hidden scroll-smooth">
 
       {step === "login" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
@@ -230,8 +340,8 @@ export default function Home() {
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
             <div className="text-center mb-6">
-              <h2 className="text-xl font-black text-[#1a237e]">Welcome Back</h2>
-              <p className="text-gray-400 text-sm mt-1">Sign in with your email or Student ID</p>
+              <h2 className="text-xl font-black text-[#0D5C3A]">Welcome Back</h2>
+              <p className="text-[#64748B] text-sm mt-1">Sign in with your email or Student ID</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
@@ -246,7 +356,7 @@ export default function Home() {
                   autoComplete="off"
                   name="fnd-user-field"
                   maxLength={50}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none transition text-gray-700"
                   required
                 />
               </div>
@@ -261,10 +371,10 @@ export default function Home() {
                     autoComplete="new-password"
                     name="fnd-pass-field"
                     maxLength={50}
-                    className="w-full pl-4 pr-12 py-3 font-[family-name:var(--font-inter)] border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
+                    className="w-full pl-4 pr-12 py-3 font-[family-name:var(--font-inter)] border-2 border-gray-200 rounded-xl focus:border-[#4ADE80]focus:outline-none transition text-gray-700"
                     required
                   />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1a237e] transition text-xs font-bold">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0D5C3A] transition text-xs font-bold">
                     {showPassword ? "HIDE" : "SHOW"}
                   </button>
                 </div>
@@ -274,16 +384,16 @@ export default function Home() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 accent-[#1a237e] cursor-pointer"
+                  className="w-4 h-4 accent-[#0D5C3A] cursor-pointer"
                 />
                 <span className="text-sm text-gray-600 font-medium">Remember Me</span>
               </label>
               {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
-              <button type="submit" disabled={loading} className="font-[family-name:var(--font-inter)] w-full bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="font-[family-name:var(--font-inter)] w-full bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
                 {loading ? "Signing in..." : "Sign In"}
               </button>
               <div className="text-center">
-                <a href="/forgot-password" className="text-gray-400 hover:text-[#1a237e] text-sm transition font-medium">Forgot Password?</a>
+                <a href="/forgot-password" className="text-[#0D5C3A] hover:text-[#16A34A] text-sm transition font-medium">Forgot Password?</a>
               </div>
               </fieldset>
             </form>
@@ -297,9 +407,9 @@ export default function Home() {
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
             <div className="text-center mb-6">
-              <h2 className="text-xl font-black text-[#1a237e]">Check Your Email</h2>
-              <p className="text-gray-400 text-sm mt-1">We sent a 6-digit code to</p>
-              <p className="text-[#1a237e] font-bold text-sm mt-1">{maskedEmail}</p>
+              <h2 className="text-xl font-black text-[#0D5C3A]">Check Your Email</h2>
+              <p className="text-[#64748B] text-sm mt-1">We sent a 6-digit code to</p>
+              <p className="text-[#0D5C3A] font-bold text-sm mt-1">{maskedEmail}</p>
             </div>
 
             <div className="space-y-5">
@@ -314,87 +424,86 @@ export default function Home() {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    className="w-11 h-13 text-center text-xl font-black border-2 border-gray-200 rounded-xl focus:border-[#1a237e] focus:outline-none transition text-gray-700"
+                    className="w-11 h-13 text-center text-xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none transition text-gray-700"
                   />
                 ))}
               </div>
               {otpError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{otpError}</div>}
-              <button onClick={handleVerifyOtp} disabled={otpLoading} className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+              <button onClick={handleVerifyOtp} disabled={otpLoading} className="w-full bg-[#DC2626] hover:bg-[#B91C1C] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
                 {otpLoading ? "Verifying..." : "Verify OTP"}
               </button>
               <div className="text-center">
-                <button onClick={handleResendOtp} disabled={resendTimer > 0} className="text-sm font-bold text-[#1a237e] disabled:text-gray-400 hover:underline transition">
+                <button onClick={handleResendOtp} disabled={resendTimer > 0} className="text-sm font-bold text-[#0D5C3A] disabled:text-gray-400 hover:underline transition">
                   {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend Code"}
                 </button>
               </div>
               <div className="text-center">
-                <button onClick={() => setStep("login")} className="text-gray-400 hover:text-[#1a237e] text-sm transition font-medium">&larr; Back to Login</button>
+                <button onClick={() => setStep("login")} className="text-[#0D5C3A] hover:text-[#16A34A] text-sm transition font-medium">&larr; Back to Login</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* [UI] Nav: text links hide below md, padding scales with width */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 xl:px-12 py-4 bg-[#1a237e]/90 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <a href="#top" className="text-xl font-black text-white tracking-wide hover:opacity-80 transition">
-            FIND<span className="text-[#ffd700]">NEST</span>
-          </a>
-        </div>
-        <div className="flex items-center gap-3 sm:gap-6">
-          <a href="#top" className="hidden md:inline-flex items-center gap-2 text-[#DCEFEA] hover:text-[#FFD300] transition font-medium text-sm tracking-wide"><NavIcon name="home" />HOME</a>
-          <a href="#about" className="hidden md:inline-flex items-center gap-2 text-[#DCEFEA] hover:text-[#FFD300] transition font-medium text-sm tracking-wide"><NavIcon name="info" />ABOUT FINDNEST</a>
-          <a href="#how-it-works" className="hidden md:inline-flex items-center gap-2 text-[#DCEFEA] hover:text-[#FFD300] transition font-medium text-sm tracking-wide"><NavIcon name="settings" />HOW IT WORKS</a>
+      {/* Floating glass navbar */}
+            <nav className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-screen-2xl flex items-center justify-between px-4 sm:px-6 py-3 rounded-full backdrop-blur-md bg-white/70 shadow-sm border border-white/50">
+        <a href="#top" className="flex items-center gap-2 hover:opacity-80 transition">
+          <Image src="/images/findnest-logo.png" alt="FindNest logo" width={36} height={36} className="rounded-lg" />
+          <span className="text-xl font-black text-[#0D5C3A] tracking-wide">FINDNEST</span>
+        </a>
+        <div className="flex items-center gap-3 sm:gap-8">
+          <a href="#top" className="hidden md:inline-flex items-center gap-2 text-[#0D5C3A]/80 hover:text-[#0D5C3A] transition-all duration-300 font-semibold text-sm tracking-wide"><NavIcon name="home" />HOME</a>
+          <a href="#about" className="hidden md:inline-flex items-center gap-2 text-[#0D5C3A]/80 hover:text-[#0D5C3A] transition-all duration-300 font-semibold text-sm tracking-wide"><NavIcon name="info" />ABOUT FINDNEST</a>
+          <a href="#how-it-works" className="hidden md:inline-flex items-center gap-2 text-[#0D5C3A]/80 hover:text-[#0D5C3A] transition-all duration-300 font-semibold text-sm tracking-wide"><NavIcon name="settings" />HOW IT WORKS</a>
           <button
             onClick={openLogin}
-            className="font-[family-name:var(--font-inter)] bg-[#FFD300] text-[#0F4C3A] font-bold tracking-wide px-4 sm:px-6 py-2 rounded-full hover:brightness-95 transition shadow-md text-sm sm:ml-4 cursor-pointer"
+            className="font-[family-name:var(--font-inter)] bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold tracking-wide px-5 sm:px-7 py-2.5 rounded-full shadow-md text-sm transition-all duration-300 cursor-pointer"
           >
             LOG IN
           </button>
         </div>
       </nav>
 
-      <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
+      {/* Hero */}
+      <section className="relative min-h-screen flex items-center overflow-hidden pt-28 pb-16 bg-gradient-to-b from-[#F8FAF7] to-[#EEF5EC]">
+        {/* Glowing orbs and the forest green semi-circle */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <div className="absolute top-24 left-10 w-72 h-72 rounded-full bg-[#86EFAC]/30 blur-3xl" />
+          <div className="absolute bottom-10 left-1/3 w-80 h-80 rounded-full bg-[#4ADE80]/20 blur-3xl" />
+          <div className="absolute top-1/3 right-1/3 w-5 h-5 rounded-full bg-[#4ADE80]/60" />
+          <div className="absolute bottom-1/4 left-12 w-3 h-3 rounded-full bg-[#0D5C3A]/30" />
+          <div className="hidden lg:block absolute -top-40 -right-40 w-[520px] h-[520px] xl:w-[640px] xl:h-[640px] rounded-full bg-gradient-to-br from-[#0D5C3A] to-[#09301B]" />
+        </div>
 
-        <div className="absolute inset-0 bg-[#fafbff]" />
-        {/* [UI] Decorations: big circle only when 2 columns; small shapes hidden where they'd cover text */}
-        <div className="hidden lg:block absolute -top-32 -right-32 lg:w-[450px] lg:h-[450px] xl:w-[600px] xl:h-[600px] bg-gradient-to-br from-[#1a237e] to-[#3949ab] rounded-full opacity-90" />
-        <div className="absolute top-1/3 -right-10 w-80 h-80 bg-[#ffd700]/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-[#1a237e]/5 to-transparent" />
-        <div className="hidden md:block absolute bottom-20 left-10 w-40 h-40 border-4 border-[#ffd700]/20 rounded-3xl rotate-12" />
-        <div className="hidden lg:block absolute top-40 left-1/3 w-6 h-6 bg-red-400 rounded-full" />
-        <div className="hidden lg:block absolute bottom-1/3 right-1/4 w-4 h-4 bg-[#ffd700] rounded-full" />
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-14 px-6 md:px-12 xl:px-20 w-full max-w-screen-2xl mx-auto items-center">
 
-        {/* [UI] Hero: 1 column below lg, 2 above; max width keeps TVs from stretching it */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 md:px-12 xl:px-20 w-full max-w-screen-2xl mx-auto items-center">
-
+          {/* Left content */}
           <div>
-            <div className="inline-flex items-center gap-2 bg-white border border-[#1a237e]/10 shadow-sm rounded-full px-4 py-2 mb-6">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-[#1a237e] text-sm font-semibold">AI-Powered Lost &amp; Found System</span>
+            <div className="inline-flex items-center gap-2 bg-[#DCFCE7] text-[#15803D] rounded-full px-4 py-2 mb-6">
+              <span className="w-2 h-2 bg-[#22C55E] rounded-full animate-pulse" />
+              <span className="text-sm font-semibold">AI-Powered Lost &amp; Found System</span>
             </div>
 
-            <h1 className="text-4xl md:text-5xl xl:text-6xl font-black text-[#1a237e] leading-[1.05] mb-6">
+            <h1 className="text-4xl md:text-5xl xl:text-6xl font-black uppercase leading-[1.05] mb-6 text-[#0D5C3A]">
               Never Lose
-              <span className="block bg-gradient-to-r from-[#ffd700] to-[#f59e0b] bg-clip-text text-transparent">What Matters</span>
+              <span className="block text-[#4ADE80]">What Matters</span>
               Most.
             </h1>
 
-            <p className="text-gray-500 text-lg mb-10 leading-relaxed max-w-md">
+            <p className="text-gray-600 text-lg mb-10 leading-relaxed max-w-md">
               FindNest uses advanced AI image recognition to match lost and found items on campus. Submit a report, get notified instantly.
             </p>
 
             <div className="flex flex-wrap gap-4 mb-12">
               <button
                 onClick={openLogin}
-                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-4 rounded-2xl transition shadow-xl shadow-red-500/20 hover:-translate-y-1 cursor-pointer"
+                className="bg-[#C82333] hover:bg-[#A71D2A] text-white font-bold px-8 py-4 rounded-full shadow-xl shadow-red-500/30 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
               >
                 Report Lost Item
               </button>
               <button
                 onClick={openLogin}
-                className="flex items-center gap-2 bg-white hover:bg-gray-50 border-2 border-[#1a237e]/10 text-[#1a237e] font-bold px-8 py-4 rounded-2xl transition hover:-translate-y-1 cursor-pointer"
+                className="bg-white hover:bg-[#F3FAF6] border border-[#0D5C3A] text-[#0D5C3A] font-bold px-8 py-4 rounded-full hover:-translate-y-1 transition-all duration-300 cursor-pointer"
               >
                 Found Something?
               </button>
@@ -402,104 +511,123 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-6 md:gap-10">
               <div>
-                <p className="text-3xl font-black text-[#1a237e]">675+</p>
-                <p className="text-gray-400 text-sm">Students</p>
+                <p className="text-3xl font-black text-[#0D5C3A]">675+</p>
+                <p className="text-gray-500 text-sm">Students</p>
               </div>
-              <div className="w-px bg-gray-200" />
+              <div className="w-px bg-[#0D5C3A]/15" />
               <div>
-                <p className="text-3xl font-black text-[#1a237e]">AI</p>
-                <p className="text-gray-400 text-sm">Powered Matching</p>
+                <p className="text-3xl font-black text-[#0D5C3A]">AI</p>
+                <p className="text-gray-500 text-sm">Powered Matching</p>
               </div>
-              <div className="w-px bg-gray-200" />
+              <div className="w-px bg-[#0D5C3A]/15" />
               <div>
-                <p className="text-3xl font-black text-[#1a237e]">24/7</p>
-                <p className="text-gray-400 text-sm">Real-Time Alerts</p>
+                <p className="text-3xl font-black text-[#0D5C3A]">24/7</p>
+                <p className="text-gray-500 text-sm">Real-Time Alerts</p>
               </div>
             </div>
           </div>
 
-          <div className="relative flex justify-center">
-            <div className="absolute -inset-6 bg-gradient-to-br from-[#ffd700]/30 to-transparent rounded-[2.5rem] rotate-3" />
+          {/* Right visual stack */}
+          <div className="relative flex justify-center py-6">
+            <div className="absolute inset-x-6 inset-y-0 sm:inset-x-14 rotate-6 rounded-3xl bg-white/40 backdrop-blur-xl border border-white/60 shadow-lg" />
 
-            <div className="relative w-full max-w-xs sm:w-80 bg-white rounded-[2rem] p-8 shadow-2xl shadow-[#1a237e]/10 border border-gray-100 flex flex-col items-center -rotate-2">
-              <Image
-                src="/images/findnest-logo.png"
-                alt="FindNest Logo"
-                width={170}
-                height={160}
-                className="rounded-2xl mb-4"
-                priority
-              />
-              <h3 className="text-[#1a237e] font-black text-lg text-center">SJDM Cornerstone</h3>
-              <p className="text-gray-600 text-sm text-center mb-6">College Inc.</p>
+            <div className="relative w-full max-w-[19rem] bg-white rounded-[2.5rem] border-[6px] border-[#0B2A1B] shadow-2xl shadow-[#0D5C3A]/25 px-5 pt-5 pb-6 -rotate-2">
+              <div className="mx-auto mb-4 w-20 h-1.5 rounded-full bg-[#0B2A1B]/80" />
+              <div className="flex flex-col items-center">
+                <Image
+                  src="/images/findnest-logo.png"
+                  alt="FindNest Logo"
+                  width={110}
+                  height={104}
+                  className="rounded-2xl mb-2"
+                  priority
+                />
+                <h3 className="text-[#0D5C3A] font-black text-sm text-center">SJDM Cornerstone College Inc.</h3>
+              </div>
 
-              <div className="space-y-3 w-full">
-                <div className="flex items-center gap-3 bg-[#f5f7ff] rounded-xl p-3">
-                  <div>
-                    <p className="text-[#1a237e] text-sm font-semibold">AI Image Matching</p>
-                    <p className="text-blue-600 text-xs">Smart item recognition to instantly identify lost items and accelerate the recovery process!</p>
-                  </div>
+              <div className="space-y-2.5 mt-4">
+                <div className="bg-[#E8F5E9] rounded-2xl p-3">
+                  <p className="text-[#0D5C3A] text-sm font-bold">AI Image Matching</p>
+                  <p className="text-[#2E7D32] text-xs leading-snug">Smart item recognition to speed up recovery.</p>
                 </div>
-                <div className="flex items-center gap-3 bg-[#f5f7ff] rounded-xl p-3">
-                  <div>
-                    <p className="text-[#1a237e] text-sm font-semibold">Instant Notifications</p>
-                    <p className="text-blue-600 text-xs">Real-time push alerts to keep users immediately informed whenever a matching item is found!</p>
-                  </div>
+                <div className="bg-[#E8F5E9] rounded-2xl p-3">
+                  <p className="text-[#0D5C3A] text-sm font-bold">Instant Notifications</p>
+                  <p className="text-[#2E7D32] text-xs leading-snug">Real-time alerts when a match is found.</p>
                 </div>
-                <div className="flex items-center gap-3 bg-[#f5f7ff] rounded-xl p-3">
-                  <div>
-                    <p className="text-[#1a237e] text-sm font-semibold">Claim Verification</p>
-                    <p className="text-blue-600 text-xs">5-layer security check to ensure authenticity and prevent fraudulent claims!</p>
-                  </div>
+                <div className="bg-[#E8F5E9] rounded-2xl p-3">
+                  <p className="text-[#0D5C3A] text-sm font-bold">Claim Verification</p>
+                  <p className="text-[#2E7D32] text-xs leading-snug">5-layer check against fraudulent claims.</p>
                 </div>
               </div>
             </div>
 
-            {/* [UI] Badges stay inside the card edge on small screens, overhang from sm up */}
-            <div className="absolute -top-3 right-0 sm:-top-5 sm:-right-5 bg-green-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg rotate-6">
-              Match Found!
-            </div>
-            <div className="absolute -bottom-3 left-0 sm:-bottom-5 sm:-left-5 bg-[#1a237e] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg -rotate-6">
-              Owner Notified!
+            {/* Floating glass badge */}
+            <div className="absolute right-0 sm:-right-4 top-1/2 flex items-center gap-3 bg-white/80 backdrop-blur-md shadow-lg rounded-2xl px-4 py-3 border border-white/70">
+              <div className="w-9 h-9 rounded-full bg-[#22C55E] text-white flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+              </div>
+              <div>
+                <p className="text-[#0D5C3A] text-sm font-black leading-tight">Match Found!</p>
+                <p className="text-gray-500 text-xs">Owner Notified!</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* [UI] Sections: padding scales with screen; cards stack below md; content capped on TVs */}
-      <section className="px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-white relative">
+      {/* The Process: three soft cards with friendly icons */}
+      <section className="px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-[#F9FBF7] relative">
         <div className="text-center mb-16">
-          <span className="text-[#ffd700] font-bold text-sm uppercase tracking-widest">The Process</span>
-          <h2 className="text-3xl md:text-4xl font-black text-[#1a237e] mt-2 mb-4">How FindNest Works</h2>
-          <p className="text-gray-500 text-lg max-w-xl mx-auto">A smarter way to manage lost and found items on campus</p>
+          <span className="text-[#2E7D32] font-bold text-sm uppercase tracking-widest">The Process</span>
+          <h2 className="text-3xl md:text-4xl font-black text-[#0D5C3A] mt-2 mb-4">How FindNest Works</h2>
+          <p className="text-gray-600 text-lg max-w-xl mx-auto">A smarter way to manage lost and found items on campus</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-screen-2xl mx-auto">
-          <div className="group relative text-center p-8 xl:p-16 rounded-3xl bg-[#f5f7ff] hover:bg-[#1a237e] transition-all duration-300">
-            <span className="absolute top-6 right-6 text-5xl font-black text-[#1a237e]/10 group-hover:text-white/10">01</span>
-            <h3 className="font-black text-[#1a237e] group-hover:text-white text-xl mb-3 transition">Submit a Report</h3>
-            <p className="text-gray-500 group-hover:text-blue-200 leading-relaxed transition">Upload a photo of your lost or found item. Our AI automatically detects item details.</p>
+          <div className="relative text-center p-8 xl:p-12 rounded-2xl bg-[#E8F5E9]/80 backdrop-blur border border-[#0D5C3A]/10 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+            <span className="absolute top-5 right-6 text-5xl font-black text-[#0D5C3A]/10">01</span>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/80 text-[#0D5C3A] flex items-center justify-center shadow-sm">
+              <SectionIcon name="phone" />
+            </div>
+            <h3 className="font-black text-[#0D5C3A] text-xl mb-3">Submit a Report</h3>
+            <p className="text-gray-600 leading-relaxed">Upload a photo of a lost or found item. Our AI automatically detects item details.</p>
           </div>
 
-          <div className="group relative text-center p-8 xl:p-16 rounded-3xl bg-[#fff9e6] hover:bg-[#ffd700] transition-all duration-300">
-            <span className="absolute top-6 right-6 text-5xl font-black text-[#1a237e]/10 group-hover:text-[#1a237e]/20">02</span>
-            <h3 className="font-black text-[#1a237e] text-xl mb-3">AI Finds a Match</h3>
-            <p className="text-gray-500 leading-relaxed">Our AI engine compares your report against all found items and finds potential matches instantly.</p>
+          <div className="relative text-center p-8 xl:p-12 rounded-2xl bg-[#FEF9C3]/80 backdrop-blur border border-yellow-500/20 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+            <span className="absolute top-5 right-6 text-5xl font-black text-[#0D5C3A]/10">02</span>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/80 text-amber-600 flex items-center justify-center shadow-sm">
+              <SectionIcon name="radar" />
+            </div>
+            <h3 className="font-black text-[#0D5C3A] text-xl mb-3">AI Finds a Match</h3>
+            <p className="text-gray-600 leading-relaxed">Our AI engine compares your report against all found items and finds potential matches instantly.</p>
           </div>
 
-          <div className="group relative text-center p-8 xl:p-16 rounded-3xl bg-red-50 hover:bg-red-500 transition-all duration-300">
-            <span className="absolute top-6 right-6 text-5xl font-black text-red-500/10 group-hover:text-white/10">03</span>
-            <h3 className="font-black text-[#1a237e] group-hover:text-white text-xl mb-3 transition">Claim Your Item</h3>
-            <p className="text-gray-500 group-hover:text-red-100 leading-relaxed transition">Go through our secure 5-layer verification process and claim your belongings from the school office.</p>
+          <div className="relative text-center p-8 xl:p-12 rounded-2xl bg-[#FCE7F3]/80 backdrop-blur border border-pink-400/20 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+            <span className="absolute top-5 right-6 text-5xl font-black text-[#0D5C3A]/10">03</span>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/80 text-pink-600 flex items-center justify-center shadow-sm">
+              <SectionIcon name="box" />
+            </div>
+            <h3 className="font-black text-[#0D5C3A] text-xl mb-3">Claim Your Item</h3>
+            <p className="text-gray-600 leading-relaxed">Go through our secure 5-layer verification process and claim your belongings from the school office.</p>
           </div>
         </div>
       </section>
 
-      <section id="about" className="px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-[#f5f7ff] scroll-mt-24">
-        <div className="max-w-4xl mx-auto text-center">
-          <span className="text-[#ffd700] font-bold text-sm uppercase tracking-widest">Who We Are</span>
-          <h2 className="text-3xl md:text-4xl font-black text-[#1a237e] mt-2 mb-6">About FindNest</h2>
-          <p className="text-gray-500 text-lg leading-relaxed mb-10">
+      {/* About FindNest: floating shapes and three tinted cards */}
+      <section id="about" className="relative px-4 sm:px-8 xl:px-20 pb-16 md:pb-24 pt-4 bg-[#F9FBF7] scroll-mt-24 overflow-hidden">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <div className="absolute top-8 left-6 w-14 h-14 rounded-full bg-[#86EFAC]/40" />
+          <div className="absolute top-1/3 right-8 w-10 h-10 rounded-full bg-[#86EFAC]/30" />
+          <div className="absolute bottom-10 left-1/4 w-8 h-8 rounded-full bg-[#4ADE80]/25" />
+          <svg className="absolute top-16 right-1/4 w-9 h-9 text-[#FACC15]/60" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,3 22,21 2,21" /></svg>
+          <svg className="absolute bottom-1/4 right-10 w-7 h-7 text-[#FACC15]/50 rotate-12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,3 22,21 2,21" /></svg>
+          <svg className="absolute bottom-16 left-10 w-6 h-6 text-[#FACC15]/50 -rotate-12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,3 22,21 2,21" /></svg>
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <span className="text-[#2E7D32] font-bold text-sm uppercase tracking-widest">Who We Are</span>
+          <h2 className="text-3xl md:text-4xl font-black text-[#0D5C3A] mt-2 mb-6">About FindNest</h2>
+          <p className="text-gray-600 text-lg leading-relaxed mb-10">
             FindNest is a multi-platform lost and found record management system built specifically
             for the Junior High School, Senior High School, and College programs of SJDM Cornerstone
             College Inc. It replaces the school&apos;s manual, logbook-based process with a digital
@@ -508,25 +636,25 @@ export default function Home() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-black text-[#1a237e] mb-2">Our Purpose</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
+            <div className="bg-[#E8F5E9]/70 rounded-2xl p-6 border border-[#0D5C3A]/15 hover:-translate-y-1 transition-all duration-300">
+              <h3 className="font-black text-[#0D5C3A] mb-2">Our Purpose</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
                 To modernize the campus lost and found process with photo documentation, real-time
                 tracking, and a searchable digital record for every reported item.
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-black text-[#1a237e] mb-2">Trust &amp; Security</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
+            <div className="bg-[#FEF9C3]/70 rounded-2xl p-6 border border-yellow-500/25 hover:-translate-y-1 transition-all duration-300">
+              <h3 className="font-black text-[#0D5C3A] mb-2">Trust &amp; Security</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
                 A five-layer claim verification process protects students from fraudulent claims and
                 ensures every recovered item goes back to its rightful owner.
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-black text-[#1a237e] mb-2">Built for SJDM</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
+            <div className="bg-[#FCE7F3]/70 rounded-2xl p-6 border border-pink-400/25 hover:-translate-y-1 transition-all duration-300">
+              <h3 className="font-black text-[#0D5C3A] mb-2">Built for SJDM</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
                 Designed around the real needs of SJDM Cornerstone College Inc., gathered through
                 direct surveys and interviews with students and school personnel.
               </p>
@@ -535,122 +663,85 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="how-it-works" className="px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-white scroll-mt-24">
+      {/* Step by Step: horizontal cards with a colored pointer and an icon at the end */}
+      <section id="how-it-works" className="px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-gradient-to-b from-white to-[#F3F4F6] scroll-mt-24">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <span className="text-[#ffd700] font-bold text-sm uppercase tracking-widest">Step by Step</span>
-            <h2 className="text-3xl md:text-4xl font-black text-[#1a237e] mt-2 mb-4">How It Works</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">
+            <span className="text-[#2E7D32] font-bold text-sm uppercase tracking-widest">Step by Step</span>
+            <h2 className="text-3xl md:text-4xl font-black text-[#0D5C3A] mt-2 mb-4">How It Works</h2>
+            <p className="text-gray-600 text-lg max-w-xl mx-auto">
               Here&apos;s a closer look at how FindNest takes an item from &quot;lost&quot; to &quot;returned&quot;.
             </p>
           </div>
 
           <div className="space-y-6">
-            <div className="flex gap-6 items-start bg-[#f5f7ff] rounded-2xl p-6">
-              <div className="w-10 h-10 shrink-0 bg-[#1a237e] text-white rounded-full flex items-center justify-center font-black">1</div>
-              <div>
-                <h3 className="font-black text-[#1a237e] mb-1">Report with a Photo</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  A student submits a lost or found item report with a required photo. The system
-                  checks image quality and content, then the AI pre-fills details like category,
-                  color, and fine features such as scratches or stickers.
-                </p>
+            {STEPS.map((s, i) => (
+              <div
+                key={s.title}
+                className="relative flex items-center gap-4 sm:gap-6 bg-white rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 p-5 sm:p-6 pl-7 sm:pl-8"
+              >
+                <span aria-hidden="true" className={`absolute left-0 top-4 bottom-4 w-1.5 rounded-full ${s.bar}`} />
+                <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-black ${s.circle}`}>{i + 1}</div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-[#0D5C3A] mb-1">{s.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{s.text}</p>
+                </div>
+                <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center ${s.iconBox}`}>
+                  <SectionIcon name={s.icon} size={28} />
+                </div>
               </div>
-            </div>
-
-            <div className="flex gap-6 items-start bg-[#fff9e6] rounded-2xl p-6">
-              <div className="w-10 h-10 shrink-0 bg-[#ffd700] text-[#1a237e] rounded-full flex items-center justify-center font-black">2</div>
-              <div>
-                <h3 className="font-black text-[#1a237e] mb-1">AI-Powered Matching</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  As soon as a report is saved, the AI automatically compares it against existing
-                  records in both directions — new lost reports against approved found items, and
-                  newly approved found items against active lost reports — flagging matches above
-                  the confidence threshold.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-6 items-start bg-red-50 rounded-2xl p-6">
-              <div className="w-10 h-10 shrink-0 bg-red-500 text-white rounded-full flex items-center justify-center font-black">3</div>
-              <div>
-                <h3 className="font-black text-[#1a237e] mb-1">Instant Notification</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  The student is notified the moment a likely match is found, so there&apos;s no need
-                  to keep checking the office in person or wait for a flag ceremony announcement.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-6 items-start bg-[#f5f7ff] rounded-2xl p-6">
-              <div className="w-10 h-10 shrink-0 bg-[#1a237e] text-white rounded-full flex items-center justify-center font-black">4</div>
-              <div>
-                <h3 className="font-black text-[#1a237e] mb-1">Five-Layer Claim Verification</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  Before releasing any item, an administrator reviews verified student identity,
-                  submitted evidence, the AI similarity score, and secret question results — no
-                  single factor decides ownership on its own.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-6 items-start bg-[#fff9e6] rounded-2xl p-6">
-              <div className="w-10 h-10 shrink-0 bg-[#ffd700] text-[#1a237e] rounded-full flex items-center justify-center font-black">5</div>
-              <div>
-                <h3 className="font-black text-[#1a237e] mb-1">Item Returned &amp; Logged</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  Once ownership is confirmed, the item is marked as returned and the full
-                  transaction — evidence, scores, and the approving admin — is permanently stored in
-                  a tamper-evident audit trail.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="relative px-4 sm:px-8 xl:px-20 py-16 md:py-24 bg-[#1a237e] overflow-hidden">
-        <div className="absolute -top-20 -left-20 w-72 h-72 bg-[#ffd700]/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-red-500/10 rounded-full blur-3xl" />
-        <div className="relative text-center">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Lost Something on Campus?</h2>
-          <p className="text-blue-200 text-lg mb-10">Report it now and let our AI do the work for you.</p>
-          <button
-            onClick={openLogin}
-            className="bg-[#ffd700] text-[#1a237e] font-black px-10 py-4 rounded-2xl hover:bg-yellow-300 transition shadow-xl text-lg cursor-pointer"
-          >
-            Get Started Now
-          </button>
-        </div>
-      </section>
-
-      <footer className="bg-[#0d1757] px-8 py-14">
-        <div className="max-w-3xl mx-auto text-center">
-          <span className="text-2xl font-black text-white">
-            FIND<span className="text-[#ffd700]">NEST</span>
-          </span>
-          <p className="text-blue-300 text-sm leading-relaxed mt-4 max-w-lg mx-auto">
-            A Multi-Platform Lost &amp; Found Record Management System with Image Recognition &amp; Description Based Matching and Claim Verification for San Jose Del Monte Cornerstone College Inc.
-          </p>
-
-          <div className="flex items-center justify-center gap-8 mt-8 flex-wrap">
-            <a
-              href="https://www.facebook.com/sjdmcci.2023"
-              className="text-blue-300 text-sm hover:text-white transition-colors font-medium"
-              target="_blank"
-              rel="noopener noreferrer"
+      {/* Last call to action and footer share one deep green gradient */}
+      <div className="bg-gradient-to-b from-[#09301B] to-[#0A1E12]">
+        <section className="relative px-4 sm:px-8 xl:px-20 py-16 md:py-24 overflow-hidden">
+          <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full bg-[#22C55E]/20 blur-3xl" />
+          <div className="relative text-center">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 drop-shadow-[0_0_24px_rgba(74,222,128,0.45)]">Lost Something on Campus?</h2>
+            <p className="text-emerald-100/80 text-lg mb-10">Report it now and let our AI do the work for you.</p>
+            <button
+              onClick={openLogin}
+              className="inline-flex items-center gap-2 bg-[#FACC15] hover:bg-[#EAB308] text-black font-black px-10 py-4 rounded-full shadow-xl hover:-translate-y-0.5 text-lg transition-all duration-300 cursor-pointer"
             >
-              Facebook
-            </a>
-            <span className="text-blue-300 text-sm font-medium">0917 700 4758</span>
-            <span className="text-blue-300 text-sm font-medium">sjdmcornerstonecollege.inc@gmail.com</span>
+              Get Started Now <span aria-hidden="true">&#10140;</span>
+            </button>
           </div>
+        </section>
 
-          <div className="border-t border-white/10 mt-8 pt-6">
-            <p className="text-blue-400 text-sm">© 2026 FindNest — SJDM Cornerstone College Inc. All rights reserved.</p>
+        <footer className="px-8 pb-14 pt-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="flex items-center justify-center gap-3">
+              <Image src="/images/findnest-logo.png" alt="FindNest logo" width={44} height={44} className="rounded-xl" />
+              <span className="text-2xl font-black text-white tracking-wide">
+                FIND<span className="text-[#FACC15]">NEST</span>
+              </span>
+            </div>
+            <p className="text-emerald-100/70 text-sm leading-relaxed mt-4 max-w-lg mx-auto">
+              A Multi-Platform Lost &amp; Found Record Management System with Image Recognition &amp; Description Based Matching and Claim Verification for San Jose Del Monte Cornerstone College Inc.
+            </p>
+
+            <div className="flex items-center justify-center gap-8 mt-8 flex-wrap">
+              <a
+                href="https://www.facebook.com/sjdmcci.2023"
+                className="text-emerald-100/80 text-sm hover:text-white transition-all duration-300 font-medium"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Facebook
+              </a>
+              <span className="text-emerald-100/80 text-sm font-medium">0917 700 4758</span>
+              <span className="text-emerald-100/80 text-sm font-medium">sjdmcornerstonecollege.inc@gmail.com</span>
+            </div>
+
+            <div className="border-t border-white/10 mt-8 pt-6">
+              <p className="text-emerald-100/60 text-sm">© 2026 FindNest — SJDM Cornerstone College Inc. All rights reserved.</p>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </main>
   );
 }

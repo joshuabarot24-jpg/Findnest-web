@@ -326,7 +326,7 @@ function StudentHomeContent() {
               <span className="block"><span className="text-[#2FD18B]">WHAT</span> <span className="text-[#0E4D34]">MATTERS</span></span>
               <span className="block text-[#2FD18B]">MOST.</span>
             </h1>
-            <p className="text-gray-600 text-sm mt-3 max-w-md leading-relaxed">
+            <p className="text-gray-700 text-sm font-bold mt-3 max-w-md leading-relaxed">
               FindNest uses advanced AI image recognition to match lost and found items on campus. Submit a report, get notified instantly.
             </p>
 
