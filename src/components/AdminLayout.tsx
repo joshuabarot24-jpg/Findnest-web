@@ -2,7 +2,8 @@
 // [UI] Shared Admin shell: sidebar on lg+, slide-in menu below lg.
 // Palette: canvas #F1F7F4, sidebar #0D3B29, active pill #D8E8DF, nav text #E2EFE9, profile card #C9DCD2.
 // Icons: Lucide shapes drawn inline (no extra package).
-import { useState, ReactNode } from "react";
+import { useState, useEffect, ReactNode } from "react";
+import api from "@/lib/api";
 import Link from "next/link";
 import { logoutUser } from "@/lib/api";
 
@@ -98,6 +99,30 @@ const NAV = [
 
 export default function AdminLayout({ active, children }: { active: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Found reports not yet confirmed received (the "Awaiting Physical Surrender" ones)
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await api.get("/found-items");
+        const records: { receipt_confirmed?: boolean }[] = res.data.records || [];
+        if (alive) setPendingCount(records.filter((r) => r.receipt_confirmed === false).length);
+      } catch {
+        // keep the last known count
+      }
+    };
+    load();
+    const timer = setInterval(load, 10000);
+    window.addEventListener("focus", load);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", load);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F1F7F4]">
@@ -145,6 +170,11 @@ export default function AdminLayout({ active, children }: { active: string; chil
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
+              {item.href === "/item-management" && pendingCount > 0 && (
+                <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-[#DC2626] text-white text-xs font-bold flex items-center justify-center">
+                  {pendingCount > 99 ? "99+" : pendingCount}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
