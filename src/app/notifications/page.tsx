@@ -87,9 +87,9 @@ function NotificationsContent() {
       await handleMarkAsRead(n.id);
     }
     const t = n.type.toLowerCase();
-    if (t === "override") {
-    // stays on the Notifications tab
-    } else if (t === "unclaimed") {
+    if ((n.title || "").toLowerCase().includes("override")) {
+      // stays on the Notifications tab
+    } else if ((n.title || "").toLowerCase().includes("unclaimed")) {
       window.location.href = "/student-home";
     } else if (t.includes("support")) {
       window.location.href = "/support";

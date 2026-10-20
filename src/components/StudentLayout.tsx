@@ -154,8 +154,8 @@ export default function StudentLayout({
     }
     const t = (n.type || "").toLowerCase();
     if (t.includes("match") && n.match_id) window.location.href = `/matched-item?matchId=${n.match_id}`;
-      else if (t === "override") window.location.href = "/notifications";
-      else if (t === "unclaimed") window.location.href = "/student-home";
+      else if ((n.title || "").toLowerCase().includes("override")) window.location.href = "/notifications";
+      else if ((n.title || "").toLowerCase().includes("unclaimed")) window.location.href = "/student-home";
       else if (t.includes("status") || t.includes("claim") || t.includes("reminder")) window.location.href = "/claim-status";
     else window.location.href = "/notifications";
   };
