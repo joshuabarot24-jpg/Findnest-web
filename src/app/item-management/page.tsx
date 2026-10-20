@@ -175,7 +175,7 @@ export default function ItemManagement() {
 }
 
 function ItemManagementContent() {
-  const [mainTab, setMainTab] = useState<"found" | "lost">("found");
+  const [mainTab, setMainTab] = useState<"found" | "lost" | "aged">("found");
 
   const [foundItems, setFoundItems] = useState<FoundItem[]>([]);
   const [lostItems, setLostItems] = useState<LostItem[]>([]);
@@ -367,7 +367,16 @@ function ItemManagementContent() {
     });
   }, [lostItems, search, lostStatusFilter, categoryFilter, dateRange]);
 
-  const activeFiltered = mainTab === "found" ? filteredFound : filteredLost;
+  // Aged items: flagged by the daily job (10+ days) or waiting for the 30-day disposal record
+  const isAged = (i: FoundItem) =>
+    i.status === "unclaimed" && (!!i.needs_disposal_review || !!i.unclaimed_flagged_at);
+  const agedItems = useMemo(
+    () => foundItems.filter(isAged),
+    [foundItems]
+  );
+  const filteredAged = useMemo(() => filteredFound.filter(isAged), [filteredFound]);
+
+  const activeFiltered = mainTab === "found" ? filteredFound : mainTab === "aged" ? filteredAged : filteredLost;
   const totalPages = Math.max(1, Math.ceil(activeFiltered.length / PAGE_SIZE));
 
   useEffect(() => {
@@ -377,14 +386,16 @@ function ItemManagementContent() {
   // Flagged unclaimed items float to the top of the found list
   const flagRank = (i: FoundItem) =>
     i.status !== "unclaimed" ? 2 : i.needs_disposal_review ? 0 : i.unclaimed_flagged_at ? 1 : 2;
-  // [Sort] By logged time; on the Found tab flagged items still stay on top (stable sort)
+  // [Sort] Strictly by logged time. Flagged items are handled in the Aged Items tab.
   const byTime = (a: { created_at: string }, b: { created_at: string }) => {
     const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     return sortOrder === "oldest" ? diff : -diff;
   };
-  const sortedFound = [...filteredFound].sort(byTime).sort((a, b) => flagRank(a) - flagRank(b));
+  const sortedFound = [...filteredFound].sort(byTime);
   const sortedLost = [...filteredLost].sort(byTime);
-  const paginatedFound = sortedFound.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Aged tab: disposal-review items first, then the rest, newest first inside each group
+  const sortedAged = [...filteredAged].sort(byTime).sort((a, b) => flagRank(a) - flagRank(b));
+  const paginatedFound = (mainTab === "aged" ? sortedAged : sortedFound).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const paginatedLost = sortedLost.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const unclaimedCount = foundItems.filter((i) => i.status === "unclaimed").length;
@@ -395,7 +406,7 @@ function ItemManagementContent() {
   const returnedCount = lostItems.filter((i) => i.status === "returned").length;
 
   const statCards =
-    mainTab === "found"
+    mainTab === "found" || mainTab === "aged"
       ? [
           { label: "Unclaimed Items", value: unclaimedCount, color: "text-[#1a237e]" },
           { label: "Claimed Items", value: claimedCount, color: "text-green-600" },
@@ -646,6 +657,7 @@ function ItemManagementContent() {
         {([
           { key: "found", label: "Found Items Reports" },
           { key: "lost", label: "Lost Items Reports" },
+          { key: "aged", label: "Aged Items (10+ Days)" },
         ] as const).map((t) => (
           <button
             key={t.key}
@@ -657,6 +669,11 @@ function ItemManagementContent() {
             }`}
           >
             {t.label}
+            {t.key === "aged" && agedItems.length > 0 && (
+              <span className="ml-2 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-[#DC2626] text-white text-xs font-bold align-middle">
+                {agedItems.length > 99 ? "99+" : agedItems.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -675,10 +692,10 @@ function ItemManagementContent() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
           <h2 className="font-black text-gray-700 text-lg">
-            {mainTab === "found" ? "All Found Items" : "All Lost Item Reports"}
+            {mainTab === "found" ? "All Found Items" : mainTab === "aged" ? "Aged Items (10+ Days)" : "All Lost Item Reports"}
           </h2>
           <div className="flex items-center gap-2 flex-wrap">
-            {mainTab === "found" ? (
+          {mainTab === "found" || mainTab === "aged" ? (
               <select
                 value={foundStatusFilter}
                 onChange={(e) => { setFoundStatusFilter(e.target.value); setPage(1); }}
@@ -743,7 +760,7 @@ function ItemManagementContent() {
 
         {loading ? (
           <div className="text-center py-16 text-gray-400 text-sm">Loading items...</div>
-        ) : mainTab === "found" ? (
+        ) : mainTab === "found" || mainTab === "aged" ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[60rem]">
               <thead>
