@@ -293,12 +293,12 @@ function StudentHomeContent() {
     <StudentLayout active="/student-home">
       <div className="w-full flex-1 flex flex-col pb-20">
         {matchNotification && showNotification && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl px-6 py-4 mb-8 flex flex-wrap items-center justify-between gap-3">
-            <div>
+          <div className="bg-green-50 border border-green-200 rounded-2xl px-6 py-4 mb-8 flex flex-wrap items-center justify-between gap-3 lg:mr-72">
+            <div className="min-w-0 flex-1">
               <p className="font-bold text-green-700 text-sm">{matchNotification.title}</p>
               <p className="text-green-600 text-sm">{matchNotification.message}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <a
                 href={matchNotification.match_id ? `/matched-item?matchId=${matchNotification.match_id}` : "/claim-status"}
                 onClick={() => { markNotificationRead(matchNotification.id); setShowNotification(false); }}
