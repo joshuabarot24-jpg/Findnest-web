@@ -138,7 +138,7 @@ export default function MatchedItemPage() {
 
   return (
     <StudentLayout active="/claim-status" hideHeader>
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-2xl mx-auto px-4 md:px-8 py-6">
         {loading ? (
           <div className="text-center py-20 text-gray-400 text-sm">Loading your match...</div>
         ) : error ? (
