@@ -98,12 +98,12 @@ const NAV = [
 ];
 
 // Shared across page navigations: the sidebar remounts on every page, but this stays
-let cachedPendingCount = 0;
+let cachedCounts = { item: 0, claim: 0, inbox: 0 };
 let cachedAt = 0;
 
 export default function AdminLayout({ active, children }: { active: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(cachedPendingCount);
+  const [counts, setCounts] = useState(cachedCounts);
 
   // Found reports not yet confirmed received (the "Awaiting Physical Surrender" ones)
   useEffect(() => {
@@ -111,12 +111,26 @@ export default function AdminLayout({ active, children }: { active: string; chil
     const load = async () => {
       if (document.hidden) return;
       try {
-        const res = await api.get("/found-items");
-        const records: { receipt_confirmed?: boolean }[] = res.data.records || [];
-        const count = records.filter((r) => r.receipt_confirmed === false).length;
-        cachedPendingCount = count;
+        const [found, claims, support] = await Promise.allSettled([
+          api.get("/found-items"),
+          api.get("/claims"),
+          api.get("/support"),
+        ]);
+        // Tolerate either { key: [...] } or a plain list in the response
+        const pick = (d: any, key: string): any[] => d?.[key] ?? d?.data ?? (Array.isArray(d) ? d : []);
+        const next = { ...cachedCounts };
+        if (found.status === "fulfilled") {
+          next.item = pick(found.value.data, "records").filter((r: any) => r.receipt_confirmed === false).length;
+        }
+        if (claims.status === "fulfilled") {
+          next.claim = pick(claims.value.data, "claims").filter((c: any) => c.claim_status === "pending").length;
+        }
+        if (support.status === "fulfilled") {
+          next.inbox = pick(support.value.data, "messages").filter((m: any) => m.status === "new").length;
+        }
+        cachedCounts = next;
         cachedAt = Date.now();
-        if (alive) setPendingCount(count);
+        if (alive) setCounts(next);
       } catch {
         // keep the last known count
       }
@@ -131,6 +145,12 @@ export default function AdminLayout({ active, children }: { active: string; chil
       window.removeEventListener("focus", load);
     };
   }, []);
+
+  const badgeFor: Record<string, number> = {
+    "/item-management": counts.item,
+    "/claim-verification": counts.claim,
+    "/admin-support": counts.inbox,
+  };
 
   return (
     <div className="min-h-screen bg-[#F1F7F4]">
@@ -178,9 +198,9 @@ export default function AdminLayout({ active, children }: { active: string; chil
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-              {item.href === "/item-management" && pendingCount > 0 && (
+              {(badgeFor[item.href] ?? 0) > 0 && (
                 <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-[#DC2626] text-white text-xs font-bold flex items-center justify-center">
-                  {pendingCount > 99 ? "99+" : pendingCount}
+                  {badgeFor[item.href] > 99 ? "99+" : badgeFor[item.href]}
                 </span>
               )}
             </Link>
