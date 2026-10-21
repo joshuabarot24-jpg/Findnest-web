@@ -325,11 +325,6 @@ function ReportFoundContent() {
                           </label>
                         )}
                       </div>
-                      {photoError && (
-                        <p className="text-red-500 text-xs font-bold mt-2">
-                          {photoErrorMessage || "At least one photo is required before you can submit this report."}
-                        </p>
-                      )}
                     </div>
 
                     {/* Fields */}
@@ -392,15 +387,32 @@ function ReportFoundContent() {
                     </div>
                   </div>
 
-                  <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mt-5">
-                    <p className="font-bold text-orange-700 text-sm mb-1">Surrender Reminder!</p>
-                    <p className="text-orange-600 text-xs leading-relaxed">
-                      You must surrender this item to <strong>Ms. Shelly S. Durban</strong> at the Guidance Office within <strong>2 school days</strong>. Failure to do so will result in automatic post rejection and account flagging.
-                    </p>
-                  </div>
-                  <p className="text-gray-500 text-xs mt-3">This report is private and visible only to you and administrators.</p>
+                  <div className="flex flex-col gap-4 mt-5">
+                    {photoError && (
+                      <div role="alert" className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                        <p className="text-sm font-semibold leading-snug">
+                          {photoErrorMessage || "At least one photo is required before you can submit this report."}
+                        </p>
+                      </div>
+                    )}
 
-                  {submitError && <p className="text-red-500 text-xs font-bold mt-3">{submitError}</p>}
+                    {submitError && (
+                      <div role="alert" className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                        <p className="text-sm font-semibold leading-snug">{submitError}</p>
+                      </div>
+                    )}
+
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <p className="font-bold text-orange-800 text-sm mb-1">Surrender Reminder!</p>
+                      <p className="text-orange-700 text-xs leading-relaxed">
+                        You must surrender this item to <strong>Ms. Shelly S. Durban</strong> at the Guidance Office within <strong>2 school days</strong>. Failure to do so will result in automatic post rejection and account flagging.
+                      </p>
+                    </div>
+
+                    <p className="text-gray-500 text-xs">This report is private and visible only to you and administrators.</p>
+                  </div>
                 </div>
 
                 {/* Footer with soft green gradient */}
