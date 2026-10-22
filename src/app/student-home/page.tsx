@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import StudentLayout from "@/components/StudentLayout";
+import MatchBanner from "@/components/MatchBanner";
 import AuthGate from "@/components/AuthGate";
 import HeroCarousel from "@/components/HeroCarousel";
 
@@ -160,8 +161,7 @@ function StudentHomeContent() {
   const [publicReports, setPublicReports] = useState<PublicLostReport[]>([]);
   const [publicLoading, setPublicLoading] = useState(true);
 
-  const [matchNotification, setMatchNotification] = useState<NotificationItem | null>(null);
-  const [showNotification, setShowNotification] = useState(true);
+  const [matchNotifications, setMatchNotifications] = useState<NotificationItem[]>([]);
 
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [chatbotInput, setChatbotInput] = useState("");
@@ -177,8 +177,11 @@ function StudentHomeContent() {
   const [chatError, setChatError] = useState("");
 
   const markNotificationRead = async (id: number) => {
+    // Remove it from the banner at once so the next match slides in
+    setMatchNotifications((prev) => prev.filter((n) => n.id !== id));
     try {
       await api.post(`/notifications/${id}/read`);
+      window.dispatchEvent(new Event("findnest:notifs-changed"));
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }
@@ -257,10 +260,10 @@ function StudentHomeContent() {
       try {
         const response = await api.get("/notifications");
         const notifications: NotificationItem[] = response.data.notifications || [];
-        const unreadMatch = notifications.find(
+        const unreadMatches = notifications.filter(
           (n) => !n.is_read && n.type?.toLowerCase().includes("match") && n.match_id
         );
-        setMatchNotification(unreadMatch || null);
+        setMatchNotifications(unreadMatches);
       } catch (err) {
         console.error("Error fetching notifications:", err);
       }
@@ -292,29 +295,11 @@ function StudentHomeContent() {
   return (
     <StudentLayout active="/student-home">
       <div className="w-full flex-1 flex flex-col pb-20">
-        {matchNotification && showNotification && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl px-6 py-4 mb-8 flex flex-wrap items-center justify-between gap-3 lg:mr-72">
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-green-700 text-sm">{matchNotification.title}</p>
-              <p className="text-green-600 text-sm">{matchNotification.message}</p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <a
-                href={matchNotification.match_id ? `/matched-item?matchId=${matchNotification.match_id}` : "/claim-status"}
-                onClick={() => { markNotificationRead(matchNotification.id); setShowNotification(false); }}
-                className="text-sm font-bold text-[#0E4D34] hover:underline"
-              >
-                View Match
-              </a>
-              <button
-                onClick={() => { markNotificationRead(matchNotification.id); setShowNotification(false); }}
-                className="text-green-400 hover:text-green-600 transition font-bold text-sm px-2"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        )}
+        <MatchBanner
+          items={matchNotifications}
+          onView={(n) => markNotificationRead(n.id)}
+          onDismiss={(n) => markNotificationRead(n.id)}
+        />
 
         {/* Hero */}
         <section className="grid grid-cols-1 md:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] gap-6 md:gap-10 items-start mb-6">
