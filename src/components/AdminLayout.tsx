@@ -155,8 +155,9 @@ export default function AdminLayout({ active, children }: { active: string; chil
   return (
     <div className="min-h-screen bg-[#F1F7F4]">
       <div className="font-[family-name:var(--font-inter)] lg:hidden sticky top-0 z-40 flex items-center justify-between bg-[#0D3B29] px-4 py-3">
-        <a href="/dashboard" className="text-[#E2EFE9] font-black text-lg">
-          FIND<span className="text-[#ffd700]">NEST</span>
+        <a href="/dashboard" className="flex items-center gap-2.5 text-[#E2EFE9] font-black text-lg">
+          <img src="/images/findnest-logo.png" alt="FindNest" className="w-9 h-9 object-contain shrink-0" />
+          <span>FIND<span className="text-[#ffd700]">NEST</span></span>
         </a>
         <button onClick={() => setOpen(true)} aria-label="Open menu" className="text-[#E2EFE9] text-2xl leading-none px-2">
           &#9776;
@@ -171,12 +172,15 @@ export default function AdminLayout({ active, children }: { active: string; chil
         } lg:translate-x-0`}
       >
         <div className="flex items-start justify-between px-6 py-6">
-          <div>
-            <a href="/dashboard" className="text-[#E2EFE9] font-black text-lg block">
-              FIND<span className="text-[#ffd700]">NEST</span>
-            </a>
-            <span className="text-[#E2EFE9]/70 text-xs">Guidance Counselor</span>
-          </div>
+          <a href="/dashboard" className="flex items-center gap-3">
+            <img src="/images/findnest-logo.png" alt="FindNest" className="w-12 h-12 object-contain shrink-0" />
+            <div className="flex flex-col justify-center gap-1">
+              <span className="text-[#E2EFE9] font-black text-xl leading-none">
+                FIND<span className="text-[#ffd700]">NEST</span>
+              </span>
+              <span className="text-[#E2EFE9]/70 text-xs leading-tight">Guidance Counselor</span>
+            </div>
+          </a>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="lg:hidden text-[#E2EFE9] hover:text-white text-2xl leading-none">
             &times;
           </button>

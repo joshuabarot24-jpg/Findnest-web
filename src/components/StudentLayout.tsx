@@ -183,10 +183,13 @@ export default function StudentLayout({
           <Link
             href="/student-home"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="flex items-center gap-2"
+            className="flex items-center gap-3"
           >
             <img src="/images/findnest-logo.png" alt="FindNest" className="w-12 h-12 object-contain shrink-0" />
-            <span className="text-white font-black text-2xl tracking-tight">FindNest</span>
+            <div className="flex flex-col justify-center gap-1 font-[family-name:var(--font-inter)]">
+              <span className="text-[#E2EFE9] font-black text-xl leading-none">FIND<span className="text-[#ffd700]">NEST</span></span>
+              <span className="text-[#E2EFE9]/70 text-xs leading-tight">Student Portal</span>
+            </div>
           </Link>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="lg:hidden text-white text-2xl leading-none">&times;</button>
         </div>

@@ -87,12 +87,15 @@ export default function SuperAdminLayout({ active, children }: { active: string;
         } lg:translate-x-0`}
       >
         <div className="flex items-start justify-between px-6 py-6">
-          <div>
-            <a href="/user-management" className="text-white font-black text-2xl uppercase tracking-wide block leading-tight">
-              FINDNEST
-            </a>
-            <span className="text-white/70 text-xs">IT Coordinator Panel</span>
-          </div>
+          <a href="/user-management" className="flex items-center gap-3">
+            <img src="/images/findnest-logo.png" alt="FindNest" className="w-12 h-12 object-contain shrink-0" />
+            <div className="flex flex-col justify-center gap-1">
+              <span className="text-[#E2EFE9] font-black text-xl leading-none tracking-wide">
+                FIND<span className="text-[#ffd700]">NEST</span>
+              </span>
+              <span className="text-[#E2EFE9]/70 text-xs leading-tight">IT Coordinator Panel</span>
+            </div>
+          </a>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="lg:hidden text-[#E2EFE9] hover:text-white text-2xl leading-none">
             &times;
           </button>
