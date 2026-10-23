@@ -1,6 +1,7 @@
 ﻿"use client";
 // Admin > Support Inbox (/admin-support). Gmail-style: list + conversation, search, filters.
 // API: GET /support, POST /support/{id}/read, GET /support/{id}/thread, POST /support/{id}/reply,
+//      GET /support/students/search, POST /support/compose
 import { useState, useEffect, useMemo } from "react";
 import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
@@ -8,6 +9,8 @@ import AdminLayout from "@/components/AdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 const PAGE_SIZE = 5;
+// The first line the backend saves when the admin starts a conversation
+const STARTED_TEXT = "The Guidance Office started this conversation.";
 
 interface SupportMessage {
   user?: { id: number; profile_photo_url: string | null } | null;
@@ -29,6 +32,14 @@ interface SupportReplyItem {
   user: { id: number; name: string } | null;
 }
 
+interface StudentResult {
+  id: number;
+  name: string;
+  email: string;
+  school_id: string | null;
+  profile_photo_url: string | null;
+}
+
 type StatusFilter = "all" | "new" | "read" | "responded";
 
 function formatTime(dateStr: string) {
@@ -40,6 +51,14 @@ function statusChip(status: string) {
   if (status === "new") return { label: "NEW", cls: "bg-red-50 text-red-600" };
   if (status === "responded") return { label: "REPLIED", cls: "bg-green-50 text-green-700" };
   return { label: "READ", cls: "bg-gray-100 text-gray-500" };
+}
+
+function Avatar({ name, url, className = "w-10 h-10" }: { name: string; url?: string | null; className?: string }) {
+  return (
+    <div className={`${className} bg-gradient-to-br from-[#0D5C3A] to-[#2E8B57] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-sm shrink-0`}>
+      {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
+    </div>
+  );
 }
 
 export default function SupportInbox() {
@@ -66,6 +85,13 @@ function SupportInboxContent() {
   const [replySending, setReplySending] = useState(false);
   const [overrideBusy, setOverrideBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // New message: student search modal, and the student chosen who has no thread yet
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [studentQuery, setStudentQuery] = useState("");
+  const [studentResults, setStudentResults] = useState<StudentResult[]>([]);
+  const [studentSearching, setStudentSearching] = useState(false);
+  const [newStudent, setNewStudent] = useState<StudentResult | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -94,6 +120,29 @@ function SupportInboxContent() {
   }, []);
   useAutoRefresh(fetchMessages);
 
+  // Live student lookup while the modal is open
+  useEffect(() => {
+    if (!composeOpen) return;
+    const q = studentQuery.trim();
+    if (q.length < 2) {
+      setStudentResults([]);
+      setStudentSearching(false);
+      return;
+    }
+    setStudentSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.get("/support/students/search", { params: { q } });
+        setStudentResults(res.data.students || []);
+      } catch {
+        setStudentResults([]);
+      } finally {
+        setStudentSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [studentQuery, composeOpen]);
+
   const fetchThread = async (id: number) => {
     setThreadLoading(true);
     try {
@@ -108,6 +157,7 @@ function SupportInboxContent() {
 
   // Opens a conversation and marks it read
   const openMessage = async (msg: SupportMessage) => {
+    setNewStudent(null);
     setSelectedId(msg.id);
     setReplyText("");
     setReplies([]);
@@ -122,6 +172,22 @@ function SupportInboxContent() {
     }
   };
 
+  // A student was picked in the modal: open their existing thread, or start an empty one
+  const pickStudent = (s: StudentResult) => {
+    setComposeOpen(false);
+    setStudentQuery("");
+    setStudentResults([]);
+    const existing = messages.find((m) => m.user?.id === s.id);
+    if (existing) {
+      openMessage(existing);
+    } else {
+      setSelectedId(null);
+      setReplies([]);
+      setReplyText("");
+      setNewStudent(s);
+    }
+  };
+
   const handleSendReply = async (id: number) => {
     if (!replyText.trim()) return;
     setReplySending(true);
@@ -132,6 +198,28 @@ function SupportInboxContent() {
       setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: "responded" } : m)));
     } catch (err) {
       console.error("Error sending reply:", err);
+    } finally {
+      setReplySending(false);
+    }
+  };
+
+  // First message to a student who has no conversation yet
+  const handleStartConversation = async () => {
+    if (!newStudent || !replyText.trim()) return;
+    const studentName = newStudent.name;
+    setReplySending(true);
+    try {
+      const res = await api.post("/support/compose", { student_id: newStudent.id, message: replyText.trim() });
+      const threadId: number = res.data.thread.id;
+      setReplyText("");
+      setNewStudent(null);
+      await fetchMessages();
+      setSelectedId(threadId);
+      fetchThread(threadId);
+      setToast(`Message sent to ${studentName}.`);
+    } catch (err) {
+      console.error("Error starting conversation:", err);
+      setToast("Failed to send the message.");
     } finally {
       setReplySending(false);
     }
@@ -188,6 +276,7 @@ function SupportInboxContent() {
   const pageRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const selected = messages.find((m) => m.id === selectedId) || null;
+  const showConversation = !!selected || !!newStudent;
 
   const pageNums = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
     (p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1
@@ -223,7 +312,7 @@ function SupportInboxContent() {
   return (
     <AdminLayout active="/admin-support">
       {toast && (
-        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
+        <div className="fixed top-6 right-6 z-[200] bg-[#0D5C3A] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
           {toast}
         </div>
       )}
@@ -231,7 +320,7 @@ function SupportInboxContent() {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-black text-[#06321C]">Support Inbox</h1>
-          <p className="text-gray-400 text-sm mt-1">Messages sent by students through the Support page</p>
+          <p className="text-gray-400 text-sm mt-1">Messages from students, and direct messages from the Guidance Office</p>
         </div>
         {counts.new > 0 && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
@@ -243,15 +332,22 @@ function SupportInboxContent() {
       {/* Two panes: list + conversation. Below xl only one shows at a time. */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* LIST */}
-        <div className={`xl:col-span-2 min-w-0 ${selected ? "hidden xl:block" : ""}`}>
+        <div className={`xl:col-span-2 min-w-0 ${showConversation ? "hidden xl:block" : ""}`}>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 space-y-3">
+              <button
+                type="button"
+                onClick={() => setComposeOpen(true)}
+                className="w-full bg-[#0D5C3A] hover:bg-[#0A4A2E] text-white text-sm font-bold py-2.5 rounded-xl transition"
+              >
+                + New Message
+              </button>
               <input
                 type="text"
                 placeholder="Search name, email, or message..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm"
               />
               <div className="flex flex-wrap gap-2">
                 {tabs.map((t) => (
@@ -260,8 +356,8 @@ function SupportInboxContent() {
                     onClick={() => { setStatusFilter(t.key); setPage(1); }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                       statusFilter === t.key
-                        ? "bg-[#1a237e] text-white"
-                        : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#1a237e]"
+                        ? "bg-[#0D5C3A] text-white"
+                        : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#0D5C3A]"
                     }`}
                   >
                     {t.label} ({counts[t.key]})
@@ -276,7 +372,7 @@ function SupportInboxContent() {
               <div className="text-center py-16 text-gray-400">
                 <p className="font-bold text-lg">{messages.length === 0 ? "No messages yet" : "No matches"}</p>
                 <p className="text-sm mt-1">
-                  {messages.length === 0 ? "Student support messages will appear here" : "Try a different search or filter"}
+                  {messages.length === 0 ? "Student messages will appear here, or start one with New Message" : "Try a different search or filter"}
                 </p>
               </div>
             ) : (
@@ -288,16 +384,10 @@ function SupportInboxContent() {
                       key={msg.id}
                       onClick={() => openMessage(msg)}
                       className={`w-full flex items-start gap-3 px-4 py-4 text-left transition ${
-                        selectedId === msg.id ? "bg-blue-50" : "hover:bg-gray-50"
+                        selectedId === msg.id ? "bg-[#E8F5E9]" : "hover:bg-gray-50"
                       }`}
                     >
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-sm shrink-0">
-                        {msg.user?.profile_photo_url ? (
-                          <img src={msg.user.profile_photo_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          msg.name.charAt(0).toUpperCase()
-                        )}
-                      </div>
+                      <Avatar name={msg.name} url={msg.user?.profile_photo_url} />
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className={`text-sm text-gray-700 ${msg.status === "new" ? "font-black" : "font-bold"}`}>{msg.name}</p>
@@ -327,7 +417,7 @@ function SupportInboxContent() {
                   <button
                     onClick={() => setPage(Math.max(1, safePage - 1))}
                     disabled={safePage === 1}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
@@ -338,8 +428,8 @@ function SupportInboxContent() {
                         onClick={() => setPage(p)}
                         className={
                           p === safePage
-                            ? "px-3 py-1.5 bg-[#1a237e] rounded-lg text-white text-xs font-bold"
-                            : "px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#1a237e] hover:text-[#1a237e] transition"
+                            ? "px-3 py-1.5 bg-[#0D5C3A] rounded-lg text-white text-xs font-bold"
+                            : "px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition"
                         }
                       >
                         {p}
@@ -349,7 +439,7 @@ function SupportInboxContent() {
                   <button
                     onClick={() => setPage(Math.min(totalPages, safePage + 1))}
                     disabled={safePage === totalPages}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
@@ -360,24 +450,18 @@ function SupportInboxContent() {
         </div>
 
         {/* CONVERSATION */}
-        <div className={`xl:col-span-3 min-w-0 ${selected ? "" : "hidden xl:block"}`}>
+        <div className={`xl:col-span-3 min-w-0 ${showConversation ? "" : "hidden xl:block"}`}>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             {selected ? (
               <>
                 <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => setSelectedId(null)}
-                    className="xl:hidden text-[#1a237e] text-sm font-bold hover:underline"
+                    className="xl:hidden text-[#0D5C3A] text-sm font-bold hover:underline"
                   >
                     &larr; Back
                   </button>
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-sm shrink-0">
-                    {selected.user?.profile_photo_url ? (
-                      <img src={selected.user.profile_photo_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      selected.name.charAt(0).toUpperCase()
-                    )}
-                  </div>
+                  <Avatar name={selected.name} url={selected.user?.profile_photo_url} />
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-700">{selected.name}</p>
                     <p className="text-gray-400 text-xs truncate">{selected.email}</p>
@@ -415,9 +499,13 @@ function SupportInboxContent() {
                     </div>
                   )}
 
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{selected.message}</p>
-                  </div>
+                  {selected.message === STARTED_TEXT ? (
+                    <p className="text-center text-gray-400 text-xs">{STARTED_TEXT}</p>
+                  ) : (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{selected.message}</p>
+                    </div>
+                  )}
 
                   {threadLoading ? (
                     <p className="text-gray-400 text-xs">Loading conversation...</p>
@@ -425,7 +513,7 @@ function SupportInboxContent() {
                     replies.map((r) => (
                       <div
                         key={r.id}
-                        className={`rounded-xl p-4 ${r.sender_type === "admin" ? "bg-blue-50 sm:ml-8" : "bg-gray-50 sm:mr-8"}`}
+                        className={`rounded-xl p-4 ${r.sender_type === "admin" ? "bg-[#E8F5E9] sm:ml-8" : "bg-gray-50 sm:mr-8"}`}
                       >
                         <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">
                           {r.sender_type === "admin" ? "Guidance Office" : selected.name} &middot; {formatTime(r.created_at)}
@@ -442,24 +530,126 @@ function SupportInboxContent() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Type your reply..."
-                    className="flex-1 min-w-[10rem] px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-sm text-gray-800"
+                    className="flex-1 min-w-[10rem] px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-sm text-gray-800"
                     onKeyDown={(e) => { if (e.key === "Enter") handleSendReply(selected.id); }}
                   />
                   <button
                     onClick={() => handleSendReply(selected.id)}
                     disabled={replySending || !replyText.trim()}
-                    className="bg-[#1a237e] hover:bg-[#283593] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-50"
+                    className="bg-[#0D5C3A] hover:bg-[#0A4A2E] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-50"
                   >
                     {replySending ? "Sending..." : "Reply"}
                   </button>
                 </div>
               </>
+            ) : newStudent ? (
+              <>
+                <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => { setNewStudent(null); setReplyText(""); }}
+                    className="xl:hidden text-[#0D5C3A] text-sm font-bold hover:underline"
+                  >
+                    &larr; Back
+                  </button>
+                  <Avatar name={newStudent.name} url={newStudent.profile_photo_url} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-700">{newStudent.name}</p>
+                    <p className="text-gray-400 text-xs truncate">
+                      {newStudent.email}{newStudent.school_id ? ` · ID ${newStudent.school_id}` : ""}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#0D5C3A]">NEW CONVERSATION</span>
+                </div>
+
+                <div className="p-5 min-h-[14rem] flex items-center justify-center">
+                  <p className="text-gray-400 text-sm text-center">Start a new conversation with {newStudent.name}</p>
+                </div>
+
+                <div className="p-4 border-t border-gray-100 flex flex-wrap gap-2">
+                  <input
+                    type="text"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type your message..."
+                    className="flex-1 min-w-[10rem] px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-sm text-gray-800"
+                    onKeyDown={(e) => { if (e.key === "Enter") handleStartConversation(); }}
+                  />
+                  <button
+                    onClick={handleStartConversation}
+                    disabled={replySending || !replyText.trim()}
+                    className="bg-[#0D5C3A] hover:bg-[#0A4A2E] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-50"
+                  >
+                    {replySending ? "Sending..." : "Send"}
+                  </button>
+                </div>
+              </>
             ) : (
-              <div className="text-center py-24 text-gray-400 text-sm">Select a message to read and reply.</div>
+              <div className="text-center py-24 text-gray-400 text-sm">Select a message to read and reply, or start a new one.</div>
             )}
           </div>
         </div>
       </div>
+
+      {/* NEW MESSAGE: student search */}
+      {composeOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
+          onClick={() => { setComposeOpen(false); setStudentQuery(""); setStudentResults([]); }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-black text-[#0D5C3A]">New Message</h2>
+                <p className="text-gray-400 text-xs mt-0.5">Search a student by name, email, or student ID</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => { setComposeOpen(false); setStudentQuery(""); setStudentResults([]); }}
+                className="text-gray-400 hover:text-gray-700 text-2xl leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            <input
+              autoFocus
+              type="text"
+              value={studentQuery}
+              onChange={(e) => setStudentQuery(e.target.value)}
+              placeholder="Type at least 2 characters..."
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-sm text-gray-800"
+            />
+
+            <div className="mt-3 max-h-72 overflow-y-auto divide-y divide-gray-50">
+              {studentQuery.trim().length < 2 ? (
+                <p className="text-gray-400 text-xs text-center py-6">Start typing to find a student.</p>
+              ) : studentSearching ? (
+                <p className="text-gray-400 text-xs text-center py-6">Searching...</p>
+              ) : studentResults.length === 0 ? (
+                <p className="text-gray-400 text-xs text-center py-6">No active student found.</p>
+              ) : (
+                studentResults.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => pickStudent(s)}
+                    className="w-full flex items-center gap-3 px-2 py-3 text-left hover:bg-[#E8F5E9] rounded-xl transition"
+                  >
+                    <Avatar name={s.name} url={s.profile_photo_url} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-700 truncate">{s.name}</p>
+                      <p className="text-gray-400 text-xs truncate">
+                        {s.school_id ? `ID ${s.school_id} · ` : ""}{s.email}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
