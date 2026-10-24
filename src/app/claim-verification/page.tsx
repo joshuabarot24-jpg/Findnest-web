@@ -308,11 +308,16 @@ function ClaimVerificationContent() {
   }
 
   async function handleMarkCollected(claim: Claim) {
+    if (actionLoading) return;
     setActionLoading(true);
     try {
-      await api.post(`/claims/${claim.id}/collected`);
+      const res = await api.post(`/claims/${claim.id}/collected`);
+      // Use the date the server saved, so the row changes right away
+      const collectedAt: string = res.data?.claim?.collected_at || new Date().toISOString();
+      setClaims((prev) => prev.map((c) => (c.id === claim.id ? { ...c, collected_at: collectedAt } : c)));
       setToast(`Item marked as collected by ${claim.student?.name || "student"}.`);
       setViewingClaim(null);
+      // Confirm with the server in the background
       fetchClaims();
     } catch (err) {
       console.error("Mark collected error:", err);
