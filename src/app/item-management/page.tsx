@@ -227,6 +227,7 @@ function ItemManagementContent() {
   const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
   const [formUploading, setFormUploading] = useState(false);
   const [formError, setFormError] = useState("");
+  const [intakeError, setIntakeError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -439,6 +440,7 @@ function ItemManagementContent() {
     const file = e.target.files?.[0];
     if (!file) return;
     uploadCancelledRef.current = false;
+    setIntakeError("");
     setFormPhotoPreview(URL.createObjectURL(file));
     setFormUploading(true);
     setFormPhotoUrl(null);
@@ -447,6 +449,7 @@ function ItemManagementContent() {
       formData.append("image", file);
       formData.append("folder", "found-items");
       formData.append("analyze", "true");
+      formData.append("intake_type", formIntakeType);
       const res = await api.post("/upload/image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -462,6 +465,9 @@ function ItemManagementContent() {
         setFormPhotoUrl(err.response.data.url);
         setItemChoices(err.response.data.items_found || []);
         setChoosingItemUrl(err.response.data.url);
+      } else if (err.response?.status === 422 && err.response?.data?.prohibited) {
+        setFormPhotoPreview(null);
+        setIntakeError(err.response.data.message || "This item can only be submitted under the 'Confiscated' intake type.");
       } else if (err.response?.status === 422) {
         console.error("Photo upload failed:", err);
         setFormPhotoPreview(null);
@@ -870,7 +876,7 @@ function ItemManagementContent() {
                       key={t.key}
                       type="button"
                       disabled={!!formPhotoPreview}
-                      onClick={() => setFormIntakeType(t.key)}
+                      onClick={() => { setFormIntakeType(t.key); setIntakeError(""); }}
                       className={`py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === t.key ? t.active : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       {t.label}
@@ -891,7 +897,12 @@ function ItemManagementContent() {
                     ) : formPhotoPreview ? (
                       <div>
                         <img src={formPhotoPreview} alt="Preview" className="max-h-32 mx-auto rounded-xl" />
-                        {formPhotoUrl && <p className="text-green-600 text-xs font-bold mt-2">Uploaded successfully</p>}
+                          {formPhotoUrl && <p className="text-green-600 text-xs font-bold mt-2">Uploaded successfully</p>}
+                  {intakeError && (
+                    <div role="alert" className="mt-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-xs font-semibold">
+                      {intakeError}
+                    </div>
+                  )}
                       </div>
                     ) : (
                       <p className="text-gray-400 text-xs">Click to upload a photo</p>
