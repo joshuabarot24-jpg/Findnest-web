@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { loginErrorMessage } from "@/lib/loginError";
 import { setAuth } from "@/lib/auth";
 
 export default function StudentLoginPage() {
@@ -70,7 +71,7 @@ export default function StudentLoginPage() {
       setStep("otp");
       startResendTimer();
     } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid credentials");
+      setError(loginErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { loginErrorMessage } from "@/lib/loginError";
 import { setAuth } from "@/lib/auth";
 
 export default function AdminLoginPage() {
@@ -59,7 +60,7 @@ export default function AdminLoginPage() {
         setAuth(response.data.token, response.data.user);
         window.location.href = "/dashboard";
       } catch (err: any) {
-        setError(err.response?.data?.message || "Invalid credentials");
+        setError(loginErrorMessage(err));
       } finally {
         setLoading(false);
       }

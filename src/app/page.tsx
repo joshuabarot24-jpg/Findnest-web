@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { loginErrorMessage } from "@/lib/loginError";
 import { setAuth } from "@/lib/auth";
 
 type ModalStep = "closed" | "login" | "otp";
@@ -275,7 +276,7 @@ export default function Home() {
         redirectByRole(response.data.user.role);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid credentials");
+      setError(loginErrorMessage(err));
     } finally {
       setLoading(false);
     }
