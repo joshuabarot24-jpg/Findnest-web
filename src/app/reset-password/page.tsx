@@ -88,12 +88,12 @@ function ResetPasswordForm() {
       <section className="relative flex items-center justify-center min-h-[calc(100vh-80px)] w-full px-4 py-8 overflow-hidden">
         {/* Soft shapes behind the card, so the frosted glass has something to blur */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <div className="absolute top-1/4 left-[12%] w-72 h-72 rounded-full bg-[#86EFAC]/40 blur-3xl"></div>
-          <div className="absolute bottom-[12%] right-[10%] w-80 h-80 rounded-full bg-[#4ADE80]/25 blur-3xl"></div>
-          <div className="absolute top-[12%] right-[28%] w-40 h-40 rounded-full bg-[#FACC15]/20 blur-3xl"></div>
+          <div className="absolute top-1/4 left-[12%] w-80 h-80 rounded-full bg-[#86EFAC]/60 blur-3xl"></div>
+          <div className="absolute bottom-[12%] right-[10%] w-96 h-96 rounded-full bg-[#4ADE80]/40 blur-3xl"></div>
+          <div className="absolute top-[12%] right-[28%] w-48 h-48 rounded-full bg-[#FACC15]/30 blur-3xl"></div>
         </div>
 
-        <div className="relative bg-white/80 backdrop-blur-md rounded-3xl shadow-xl shadow-[#0D5C3A]/10 border border-white/70 w-full max-w-md p-8 sm:p-10">
+        <div className="relative bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl shadow-[#0D5C3A]/10 border border-white/70 w-full max-w-md p-8 sm:p-10">
           <div className="absolute top-0 left-0 right-0 h-2 bg-[#0D5C3A] rounded-t-3xl"></div>
 
           <div className="flex flex-col items-center mb-8">
