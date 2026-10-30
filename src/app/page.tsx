@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import { loginErrorMessage } from "@/lib/loginError";
 import { setAuth } from "@/lib/auth";
 
-type ModalStep = "closed" | "login" | "otp";
+type ModalStep = "closed" | "login" | "forgot" | "otp";
 
 // Lucide shapes drawn inline (home, info, settings)
 function NavIcon({ name }: { name: "home" | "info" | "settings" }) {
@@ -190,12 +190,30 @@ export default function Home() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
+  // Forgot password, shown inside the same modal card
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+
+  // Fades the card content in whenever the view changes, so the swap is not abrupt
+  const [viewShown, setViewShown] = useState(true);
+  useEffect(() => {
+    setViewShown(false);
+    const t = setTimeout(() => setViewShown(true), 20);
+    return () => clearTimeout(t);
+  }, [step]);
+
   function closeModal() {
     setStep("closed");
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setOtpError("");
     setShowPassword(false);
+    setForgotEmail("");
+    setForgotError("");
+    setForgotSent(false);
+    setForgotLoading(false);
   }
 
   useEffect(() => {
@@ -319,6 +337,20 @@ export default function Home() {
     }
   };
 
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError("");
+    setForgotLoading(true);
+    try {
+      await api.post("/auth/forgot-password", { email: forgotEmail.trim() });
+      setForgotSent(true);
+    } catch (err: any) {
+      setForgotError(err.response?.data?.message || "Something went wrong. Please try again.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const handleResendOtp = async () => {
     if (resendTimer > 0) return;
     try {
@@ -334,12 +366,73 @@ export default function Home() {
   return (
     <main className="relative min-h-screen bg-[#F8FAF7] font-sans overflow-x-hidden scroll-smooth">
 
-      {step === "login" && (
+      {(step === "login" || step === "forgot") && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           {/* [UI] max-h + scroll so the card is never cut off on short screens */}
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
+            <div className={`min-h-[25rem] transition-opacity duration-300 ${viewShown ? "opacity-100" : "opacity-0"}`}>
+            {step === "forgot" ? (
+              <div>
+                <div className="flex flex-col items-center text-center mb-6">
+                  <Image src="/images/findnest-logo.png" alt="FindNest Logo" width={56} height={56} className="rounded-xl mb-3" />
+                  <h2 className="text-xl font-black text-[#0D5C3A]">Forgot Password</h2>
+                  <p className="text-[#64748B] text-sm mt-1">Enter your email and we will send you a reset link</p>
+                </div>
+
+                {forgotSent ? (
+                  <div className="text-center py-2">
+                    <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <p className="font-black text-gray-700 text-lg">Check Your Email</p>
+                    <p className="text-[#64748B] text-sm mt-2">
+                      If an account exists with that email, a password reset link has been sent. The link expires in 60 minutes.
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleForgotSubmit} className="space-y-4">
+                    <fieldset disabled={forgotLoading} className="space-y-4 min-w-0 border-0 p-0 m-0">
+                      <div>
+                        <label className="block text-sm font-semibold text-[#383838] mb-2">Email Address</label>
+                        <input
+                          type="email"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none transition text-gray-700"
+                          required
+                        />
+                      </div>
+                      {forgotError && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{forgotError}</div>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={forgotLoading}
+                        className="w-full bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold py-3.5 rounded-xl transition shadow-lg disabled:opacity-50"
+                      >
+                        {forgotLoading ? "Sending..." : "Send Reset Link"}
+                      </button>
+                    </fieldset>
+                  </form>
+                )}
+
+                <div className="text-center mt-4">
+                  <button
+                    type="button"
+                    onClick={() => { setStep("login"); setForgotSent(false); setForgotError(""); }}
+                    className="text-[#0D5C3A] hover:text-[#16A34A] text-sm transition font-medium"
+                  >
+                    &larr; Back to Login
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
             <div className="text-center mb-6">
               <h2 className="text-xl font-black text-[#0D5C3A]">Welcome Back</h2>
               <p className="text-[#64748B] text-sm mt-1">Sign in with your email or Student ID</p>
@@ -394,10 +487,24 @@ export default function Home() {
                 {loading ? "Signing in..." : "Sign In"}
               </button>
               <div className="text-center">
-                <a href="/forgot-password" className="text-[#0D5C3A] hover:text-[#16A34A] text-sm transition font-medium">Forgot Password?</a>
+                    <button
+                     type="button"
+                     onClick={() => {
+                       if (identifier.includes("@")) setForgotEmail(identifier.trim());
+                       setForgotError("");
+                       setForgotSent(false);
+                       setStep("forgot");
+                     }}
+                     className="text-[#0D5C3A] hover:text-[#16A34A] text-sm transition font-medium"
+                   >
+                     Forgot Password?
+                   </button>
               </div>
               </fieldset>
             </form>
+              </>
+            )}
+            </div>
           </div>
         </div>
       )}
