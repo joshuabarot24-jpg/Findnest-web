@@ -63,9 +63,9 @@ function ResetPasswordForm() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col bg-gradient-to-b from-[#F2F8F5] to-white font-sans">
+    <main className="relative min-h-screen w-full m-0 bg-gradient-to-b from-[#F2F8F5] to-white font-sans overflow-x-hidden">
       {/* Top navigation, like the landing page */}
-      <header className="w-full flex items-center justify-between px-4 sm:px-8 xl:px-12 py-4">
+      <header className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 sm:px-8 xl:px-12 py-4">
         <a href="/" className="flex items-center gap-2 hover:opacity-80 transition">
           <Image src="/images/findnest-logo.png" alt="FindNest logo" width={36} height={36} className="rounded-lg" />
           <span className="text-xl font-black tracking-wide text-[#0D5C3A]">
@@ -85,7 +85,7 @@ function ResetPasswordForm() {
       </header>
 
       {/* Card */}
-      <section className="relative flex items-center justify-center min-h-[calc(100vh-80px)] w-full px-4 py-8 overflow-hidden">
+      <section className="relative flex items-center justify-center min-h-screen w-full m-0 px-4 py-24 overflow-hidden">
         {/* Soft shapes behind the card, so the frosted glass has something to blur */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute top-1/4 left-[12%] w-80 h-80 rounded-full bg-[#86EFAC]/60 blur-3xl"></div>
@@ -93,7 +93,7 @@ function ResetPasswordForm() {
           <div className="absolute top-[12%] right-[28%] w-48 h-48 rounded-full bg-[#FACC15]/30 blur-3xl"></div>
         </div>
 
-        <div className="relative bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl shadow-[#0D5C3A]/10 border border-white/70 w-full max-w-md p-8 sm:p-10">
+        <div className="relative bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl shadow-[#0D5C3A]/10 border border-white/70 w-full max-w-md mx-auto p-8 sm:p-10">
           <div className="absolute top-0 left-0 right-0 h-2 bg-[#0D5C3A] rounded-t-3xl"></div>
 
           <div className="flex flex-col items-center mb-8">
