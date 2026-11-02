@@ -249,6 +249,14 @@ function ItemManagementContent() {
   const [formError, setFormError] = useState("");
   const [intakeError, setIntakeError] = useState("");
   const [inventoryAddSignal, setInventoryAddSignal] = useState(0);
+
+  // Opens on the tab named in the address, for example /item-management?tab=aged from a Dashboard alert
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "found" || t === "lost" || t === "aged" || t === "confiscated" || t === "inventory") {
+      setMainTab(t);
+    }
+  }, []);
   const [intakeTone, setIntakeTone] = useState<"red" | "amber">("red");
   const [formStudentName, setFormStudentName] = useState("");
   const [formViolationNotes, setFormViolationNotes] = useState("");

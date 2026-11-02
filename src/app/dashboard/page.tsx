@@ -362,7 +362,7 @@ function DashboardContent() {
         {(monitorAlert.review > 0 || monitorAlert.unclaimed > 0) && (
           <div className="mt-4 space-y-2">
             {monitorAlert.review > 0 && (
-              <Link href="/item-management" className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 bg-orange-50 border border-orange-200 rounded-2xl px-5 py-3 hover:bg-orange-100 transition">
+              <Link href="/item-management?tab=aged" className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 bg-orange-50 border border-orange-200 rounded-2xl px-5 py-3 hover:bg-orange-100 transition">
                 <span className="text-orange-700 text-sm font-bold">
                   {monitorAlert.review} item{monitorAlert.review !== 1 ? "s have" : " has"} reached the disposal threshold. Please document the disposal method.
                 </span>
@@ -370,7 +370,7 @@ function DashboardContent() {
               </Link>
             )}
             {monitorAlert.unclaimed > 0 && (
-              <Link href="/item-management" className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-3 hover:bg-yellow-100 transition">
+              <Link href="/item-management?tab=aged" className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-3 hover:bg-yellow-100 transition">
                 <span className="text-yellow-700 text-sm font-bold">
                   {monitorAlert.unclaimed} item{monitorAlert.unclaimed !== 1 ? "s have" : " has"} been unclaimed for over 10 days.
                 </span>
