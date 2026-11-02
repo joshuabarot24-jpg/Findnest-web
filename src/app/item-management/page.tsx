@@ -471,11 +471,15 @@ function ItemManagementContent() {
       } else if (err.response?.status === 422) {
         console.error("Photo upload failed:", err);
         setFormPhotoPreview(null);
-        alert(err.response?.data?.message || "Photo upload failed. Please try again.");
+        setIntakeError(err.response?.data?.message || "This photo could not be used. Please upload a clearer photo of the item.");
       } else {
         console.error("Photo upload failed:", err);
         setFormPhotoPreview(null);
-        alert("Photo upload failed. Please try again.");
+        setIntakeError(
+          err.code === "ECONNABORTED" || !err.response
+            ? "The upload took too long or the connection dropped. Please check your connection and try again."
+            : "The photo could not be processed right now. Please try again, or use a different photo."
+        );
       }
     } finally {
       if (!uploadCancelledRef.current) setFormUploading(false);
