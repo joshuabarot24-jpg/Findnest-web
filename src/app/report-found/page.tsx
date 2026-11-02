@@ -226,7 +226,7 @@ function ReportFoundContent() {
     } catch (err: any) {
       console.error("Error submitting report:", err);
       setShowConfirm(false);
-      alert(err.response?.data?.message || "Failed to submit report. Please try again.");
+      setSubmitError(err.response?.data?.message || "Failed to submit report. Please try again.");
     } finally {
       setSubmitLoading(false);
     }

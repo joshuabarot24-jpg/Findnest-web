@@ -2,6 +2,8 @@
 // Admin > Item Management (/item-management). Found items + lost reports, add item, receipt, disposal.
 // Lists show 5 rows per page (refreshes every 20s).
 import { useState, useMemo, useEffect, useRef } from "react";
+import ConfiscatedPanel from "@/components/ConfiscatedPanel";
+import InventoryPanel from "@/components/InventoryPanel";
 import api from "@/lib/api";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import AuthGate from "@/components/AuthGate";
@@ -175,7 +177,7 @@ export default function ItemManagement() {
 }
 
 function ItemManagementContent() {
-  const [mainTab, setMainTab] = useState<"found" | "lost" | "aged">("found");
+ const [mainTab, setMainTab] = useState<"found" | "lost" | "aged" | "confiscated" | "inventory">("found");
 
   const [foundItems, setFoundItems] = useState<FoundItem[]>([]);
   const [lostItems, setLostItems] = useState<LostItem[]>([]);
@@ -228,6 +230,8 @@ function ItemManagementContent() {
   const [formUploading, setFormUploading] = useState(false);
   const [formError, setFormError] = useState("");
   const [intakeError, setIntakeError] = useState("");
+  const [formStudentName, setFormStudentName] = useState("");
+  const [formViolationNotes, setFormViolationNotes] = useState("");
   const [formLoading, setFormLoading] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -325,7 +329,7 @@ function ItemManagementContent() {
   // Found items after status filter + search
   const filteredFound = useMemo(() => {
     const byStatus = foundItems.filter(
-      (i) => (foundStatusFilter === "all" || i.status === foundStatusFilter) && passesCategoryAndDate(i.category, i.created_at)
+      (i) => i.status !== "confiscated" && (foundStatusFilter === "all" || i.status === foundStatusFilter) && passesCategoryAndDate(i.category, i.created_at)
     );
     const q = search.toLowerCase().trim();
     if (!q) return byStatus;
@@ -428,6 +432,8 @@ function ItemManagementContent() {
     setFormDateFound("");
     setFormDescription("");
     setFormIntakeType("found_item");
+    setFormStudentName("");
+    setFormViolationNotes("");
     setFormPhotoUrl(null);
     setFormPhotoPreview(null);
     setFormError("");
@@ -556,6 +562,8 @@ function ItemManagementContent() {
         photo_url: formPhotoUrl,
         storage_location: formStorageLocation.trim() || null,
         status: formIntakeType,
+        student_name: formIntakeType === "confiscated" ? formStudentName.trim() || null : null,
+        violation_notes: formIntakeType === "confiscated" ? formViolationNotes.trim() || null : null,
       });
       setShowAddModal(false);
       resetForm();
@@ -668,6 +676,8 @@ function ItemManagementContent() {
           { key: "found", label: "Found Items Reports" },
           { key: "lost", label: "Lost Items Reports" },
           { key: "aged", label: "Aged Items (10+ Days)" },
+          { key: "confiscated", label: "Confiscated Items" },
+          { key: "inventory", label: "Others / Inventory" },
         ] as const).map((t) => (
           <button
             key={t.key}
@@ -689,7 +699,7 @@ function ItemManagementContent() {
       </div>
 
       {/* Stat cards: 1 column on small screens, 3 from sm */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6 mb-8">
+      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-6 mb-8 ${mainTab === "confiscated" || mainTab === "inventory" ? "hidden" : ""}`}>
         {statCards.map((c) => (
           <div key={c.label} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-sm font-medium">{c.label}</p>
@@ -698,8 +708,18 @@ function ItemManagementContent() {
         ))}
       </div>
 
+      {mainTab === "confiscated" && (
+        <ConfiscatedPanel
+          items={foundItems.filter((i) => i.status === "confiscated")}
+          onAdd={() => { resetForm(); setFormIntakeType("confiscated"); setShowAddModal(true); }}
+          onView={(id) => { const f = foundItems.find((x) => x.id === id); if (f) setViewingFoundItem(f); }}
+          onDelete={(id) => { const f = foundItems.find((x) => x.id === id); if (f) setDeletingItem(f); }}
+        />
+      )}
+      {mainTab === "inventory" && <InventoryPanel />}
+
       {/* List card: 5 rows per page */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${mainTab === "confiscated" || mainTab === "inventory" ? "hidden" : ""}`}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
           <h2 className="font-black text-gray-700 text-lg">
             {mainTab === "found" ? "All Found Items" : mainTab === "aged" ? "Aged Items (10+ Days)" : "All Lost Item Reports"}
@@ -941,6 +961,18 @@ function ItemManagementContent() {
                 </div>
               )}
 
+              {formIntakeType === "confiscated" && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student Name (if known)</label>
+                    <input type="text" value={formStudentName} onChange={(e) => setFormStudentName(e.target.value)} placeholder="Optional" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Violation Notes</label>
+                    <textarea value={formViolationNotes} onChange={(e) => setFormViolationNotes(e.target.value)} rows={2} placeholder="e.g. Found inside the classroom during inspection" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm resize-none" />
+                  </div>
+                </div>
+              )}
               {formIntakeType !== "others" && (
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
