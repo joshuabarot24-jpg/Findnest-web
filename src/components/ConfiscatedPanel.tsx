@@ -2,6 +2,12 @@
 import { useMemo, useState } from "react";
 
 const PAGE_SIZE = 5;
+const CATEGORY_OPTIONS = [
+  "Electronics", "Personal Belongings", "ID/Cards", "Keys",
+  "School Supplies", "Accessories", "Books", "Vapes", "Others",
+];
+
+type DateRange = "all" | "today" | "7d" | "10d" | "15d" | "30d";
 
 export interface ConfiscatedItem {
   id: number;
@@ -12,8 +18,8 @@ export interface ConfiscatedItem {
   status: string;
   photo_url: string | null;
   student_name?: string | null;
-  approx_time?: string | null;
   violation_notes?: string | null;
+  approx_time?: string | null;
   admin?: { name: string } | null;
 }
 
@@ -30,6 +36,11 @@ function formatTime(t?: string | null) {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
+const manilaDay = (ts: number) => new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
+const selectCls =
+  "px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold";
+
 export default function ConfiscatedPanel({
   items,
   onAdd,
@@ -42,20 +53,50 @@ export default function ConfiscatedPanel({
   onDelete: (id: number) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    const sorted = [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    if (!q) return sorted;
-    return sorted.filter(
-      (i) =>
+    const todayKey = manilaDay(Date.now());
+    const standard = CATEGORY_OPTIONS.filter((c) => c !== "Others");
+
+    const list = items.filter((i) => {
+      if (statusFilter !== "all" && i.status !== statusFilter) return false;
+
+      if (categoryFilter === "Others") {
+        if (standard.includes(i.category)) return false;
+      } else if (categoryFilter !== "all" && i.category !== categoryFilter) {
+        return false;
+      }
+
+      if (dateRange !== "all") {
+        const ts = new Date(i.created_at).getTime();
+        if (dateRange === "today") {
+          if (manilaDay(ts) !== todayKey) return false;
+        } else {
+          const days = { "7d": 7, "10d": 10, "15d": 15, "30d": 30 }[dateRange];
+          if (ts < Date.now() - days * 24 * 60 * 60 * 1000) return false;
+        }
+      }
+
+      if (!q) return true;
+      return (
         i.item_name.toLowerCase().includes(q) ||
         (i.category || "").toLowerCase().includes(q) ||
         (i.student_name || "").toLowerCase().includes(q) ||
         (i.admin?.name || "").toLowerCase().includes(q)
-    );
-  }, [items, search]);
+      );
+    });
+
+    return list.sort((a, b) => {
+      const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return sortOrder === "oldest" ? diff : -diff;
+    });
+  }, [items, search, statusFilter, categoryFilter, dateRange, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -63,23 +104,43 @@ export default function ConfiscatedPanel({
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5 border-b border-gray-100">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
         <div>
-          <h2 className="font-black text-gray-700 text-lg">Confiscated Items</h2>
+          <h2 className="font-black text-gray-700 text-lg">All Confiscated Items</h2>
           <p className="text-gray-400 text-xs mt-0.5">School-confiscated property. Kept apart from lost and found records.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className={selectCls}>
+            <option value="all">All Statuses</option>
+            <option value="confiscated">Confiscated</option>
+          </select>
+          <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }} className={selectCls}>
+            <option value="all">All Categories</option>
+            {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={dateRange} onChange={(e) => { setDateRange(e.target.value as DateRange); setPage(1); }} className={selectCls}>
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="7d">Last 7 days</option>
+            <option value="10d">Last 10 days</option>
+            <option value="15d">Last 15 days</option>
+            <option value="30d">Last 30 days</option>
+          </select>
+          <select value={sortOrder} onChange={(e) => { setSortOrder(e.target.value as "newest" | "oldest"); setPage(1); }} className={selectCls}>
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
           <input
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search item, student, or admin..."
-            className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-sm text-gray-700"
+            placeholder="Search by name, category, or student..."
+            className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs w-56"
           />
           <button
             type="button"
             onClick={onAdd}
-            className="bg-[#0D5C3A] hover:bg-[#0A4A2E] text-white text-sm font-bold px-4 py-2 rounded-xl transition"
+            className="bg-[#1a237e] hover:bg-[#283593] text-white text-xs font-bold px-4 py-2 rounded-xl transition"
           >
             + Add Confiscated Item
           </button>
@@ -90,7 +151,7 @@ export default function ConfiscatedPanel({
         <div className="text-center py-16 text-gray-400">
           <p className="font-bold text-lg">{items.length === 0 ? "No confiscated items yet" : "No matches"}</p>
           <p className="text-sm mt-1">
-            {items.length === 0 ? "Items recorded under the Confiscated intake type appear here" : "Try a different search"}
+            {items.length === 0 ? "Items recorded under the Confiscated intake type appear here" : "Try a different search or filter"}
           </p>
         </div>
       ) : (
@@ -138,8 +199,18 @@ export default function ConfiscatedPanel({
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right whitespace-nowrap">
-                    <button onClick={() => onView(i.id)} className="text-[#0D5C3A] hover:underline text-xs font-bold mr-4">View</button>
-                    <button onClick={() => onDelete(i.id)} className="text-red-500 hover:underline text-xs font-bold">Delete</button>
+                    <button
+                      onClick={() => onView(i.id)}
+                      className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition mr-2"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => onDelete(i.id)}
+                      className="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -157,7 +228,7 @@ export default function ConfiscatedPanel({
             <button
               onClick={() => setPage(Math.max(1, safePage - 1))}
               disabled={safePage === 1}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Previous
             </button>
@@ -165,7 +236,7 @@ export default function ConfiscatedPanel({
             <button
               onClick={() => setPage(Math.min(totalPages, safePage + 1))}
               disabled={safePage === totalPages}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Next
             </button>

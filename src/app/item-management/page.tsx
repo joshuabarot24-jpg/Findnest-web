@@ -51,6 +51,8 @@ interface FoundItem {
   disposed_at?: string | null;
   receipt_confirmed?: boolean;
   approx_time?: string | null;
+  student_name?: string | null;
+  violation_notes?: string | null;
   surrender_deadline?: string | null;
 }
 
@@ -1201,10 +1203,24 @@ function ItemManagementContent() {
             )}
 
             <div className="space-y-3 text-sm">
-              <DetailRow label="Category"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.category}</span></DetailRow>
+             <DetailRow label="Category"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.category}</span></DetailRow>
+            {viewingFoundItem.status === "confiscated" ? (
+              <>
+                <DetailRow label="Confiscated From / Student Owner">
+                  <span className="font-bold text-gray-700 text-right">
+                    {viewingFoundItem.student_name ? `Student: ${viewingFoundItem.student_name}` : "Not recorded"}
+                  </span>
+                </DetailRow>
+                {viewingFoundItem.violation_notes ? (
+                  <DetailRow label="Violation Notes">
+                    <span className="font-bold text-gray-700 text-xs text-right max-w-[14rem]">{viewingFoundItem.violation_notes}</span>
+                  </DetailRow>
+                ) : null}
+              </>
+            ) : null}
               <DetailRow label="Location Found"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.location_found || "—"}</span></DetailRow>
               <DetailRow label="Storage Location"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.storage_location || "—"}</span></DetailRow>
-              <DetailRow label="Date Found"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.date_found || "—"}</span></DetailRow>
+              <DetailRow label={viewingFoundItem.status === "confiscated" ? "Date Confiscated" : "Date Found"}><span className="font-bold text-gray-700 text-right">{viewingFoundItem.date_found || "—"}</span></DetailRow>
               <DetailRow label="Logged"><span className="font-bold text-gray-700 text-xs text-right">{formatDateTime(viewingFoundItem.created_at)}</span></DetailRow>
             {viewingFoundItem.approx_time ? (
               <DetailRow label="Approx. Time"><span className="font-bold text-gray-700 text-xs text-right">{formatApproxTime(viewingFoundItem.approx_time)}</span></DetailRow>

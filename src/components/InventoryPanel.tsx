@@ -6,6 +6,7 @@ const PAGE_SIZE = 5;
 const CATEGORIES = ["Office Supplies", "Cleaning Supplies", "Equipment", "Furniture", "Documents", "Others"];
 
 type InvStatus = "in_stock" | "in_use" | "disposed";
+type DateRange = "all" | "today" | "7d" | "10d" | "15d" | "30d";
 
 interface InventoryItem {
   id: number;
@@ -30,11 +31,19 @@ function formatDate(value: string) {
   return isNaN(d.getTime()) ? "-" : d.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
 }
 
+const manilaDay = (ts: number) => new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
+const selectCls =
+  "px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold";
+
 export default function InventoryPanel() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | InvStatus>("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -75,8 +84,28 @@ export default function InventoryPanel() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return items.filter((i) => {
+    const todayKey = manilaDay(Date.now());
+    const standard = CATEGORIES.filter((c) => c !== "Others");
+
+    const list = items.filter((i) => {
       if (statusFilter !== "all" && i.status !== statusFilter) return false;
+
+      if (categoryFilter === "Others") {
+        if (standard.includes(i.category)) return false;
+      } else if (categoryFilter !== "all" && i.category !== categoryFilter) {
+        return false;
+      }
+
+      if (dateRange !== "all") {
+        const ts = new Date(i.created_at).getTime();
+        if (dateRange === "today") {
+          if (manilaDay(ts) !== todayKey) return false;
+        } else {
+          const days = { "7d": 7, "10d": 10, "15d": 15, "30d": 30 }[dateRange];
+          if (ts < Date.now() - days * 24 * 60 * 60 * 1000) return false;
+        }
+      }
+
       if (!q) return true;
       return (
         i.name.toLowerCase().includes(q) ||
@@ -85,7 +114,12 @@ export default function InventoryPanel() {
         (i.location || "").toLowerCase().includes(q)
       );
     });
-  }, [items, search, statusFilter]);
+
+    return list.sort((a, b) => {
+      const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return sortOrder === "oldest" ? diff : -diff;
+    });
+  }, [items, search, statusFilter, categoryFilter, dateRange, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -208,33 +242,45 @@ export default function InventoryPanel() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
           <div>
-            <h2 className="font-black text-gray-700 text-lg">Others / Inventory</h2>
+            <h2 className="font-black text-gray-700 text-lg">All Inventory Items</h2>
             <p className="text-gray-400 text-xs mt-0.5">Office stock and supplies. Separate from lost and found, matching, and claims.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Search item, category, or location..."
-              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-sm text-gray-700"
-            />
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value as "all" | InvStatus); setPage(1); }}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 focus:outline-none focus:border-[#4ADE80]"
-            >
-              <option value="all">All statuses</option>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as "all" | InvStatus); setPage(1); }} className={selectCls}>
+              <option value="all">All Statuses</option>
               <option value="in_stock">In Stock</option>
               <option value="in_use">In Use</option>
               <option value="disposed">Disposed</option>
             </select>
+            <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }} className={selectCls}>
+              <option value="all">All Categories</option>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={dateRange} onChange={(e) => { setDateRange(e.target.value as DateRange); setPage(1); }} className={selectCls}>
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="7d">Last 7 days</option>
+              <option value="10d">Last 10 days</option>
+              <option value="15d">Last 15 days</option>
+              <option value="30d">Last 30 days</option>
+            </select>
+            <select value={sortOrder} onChange={(e) => { setSortOrder(e.target.value as "newest" | "oldest"); setPage(1); }} className={selectCls}>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search by name, category, or location..."
+              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs w-56"
+            />
             <button
               type="button"
               onClick={openAdd}
-              className="bg-[#0D5C3A] hover:bg-[#0A4A2E] text-white text-sm font-bold px-4 py-2 rounded-xl transition"
+              className="bg-[#1a237e] hover:bg-[#283593] text-white text-xs font-bold px-4 py-2 rounded-xl transition"
             >
               + Add Inventory Item
             </button>
@@ -279,8 +325,18 @@ export default function InventoryPanel() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
-                      <button onClick={() => openEdit(i)} className="text-[#0D5C3A] hover:underline text-xs font-bold mr-4">Edit</button>
-                      <button onClick={() => setDeleting(i)} className="text-red-500 hover:underline text-xs font-bold">Delete</button>
+                      <button
+                        onClick={() => openEdit(i)}
+                        className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition mr-2"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setDeleting(i)}
+                        className="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -298,7 +354,7 @@ export default function InventoryPanel() {
               <button
                 onClick={() => setPage(Math.max(1, safePage - 1))}
                 disabled={safePage === 1}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
@@ -306,7 +362,7 @@ export default function InventoryPanel() {
               <button
                 onClick={() => setPage(Math.min(totalPages, safePage + 1))}
                 disabled={safePage === totalPages}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-400 text-xs hover:border-[#1a237e] hover:text-[#1a237e] transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Next
               </button>
