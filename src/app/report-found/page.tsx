@@ -392,7 +392,7 @@ function ReportFoundContent() {
 
                   <div className="flex flex-col gap-4 mt-5">
                     {photoError && (
-                      <div role="alert" className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+                      <div role="alert" className={`flex items-start gap-3 border rounded-lg p-4 ${photoErrorTone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-700"}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
                         <p className="text-sm font-semibold leading-snug">
                           {photoErrorMessage || "At least one photo is required before you can submit this report."}
