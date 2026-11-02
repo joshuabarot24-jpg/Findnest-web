@@ -248,6 +248,7 @@ function ItemManagementContent() {
   const [formUploading, setFormUploading] = useState(false);
   const [formError, setFormError] = useState("");
   const [intakeError, setIntakeError] = useState("");
+  const [inventoryAddSignal, setInventoryAddSignal] = useState(0);
   const [intakeTone, setIntakeTone] = useState<"red" | "amber">("red");
   const [formStudentName, setFormStudentName] = useState("");
   const [formViolationNotes, setFormViolationNotes] = useState("");
@@ -725,18 +726,27 @@ function ItemManagementContent() {
           <h1 className="text-3xl font-black text-[#06321C]">Item Management</h1>
           <p className="text-gray-400 text-sm mt-1">Review, approve and manage all lost and found item reports</p>
         </div>
-        {(mainTab === "found" || mainTab === "lost") && (
-          <button
-            onClick={() => {
-              resetForm();
-              if (mainTab === "lost") setFormIntakeType("lost_item");
-              setShowAddModal(true);
-            }}
-            className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
-          >
-            {mainTab === "lost" ? "+ Add Lost Item" : "+ Add Item"}
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (mainTab === "inventory") {
+              setInventoryAddSignal((n) => n + 1);
+              return;
+            }
+            resetForm();
+            if (mainTab === "lost") setFormIntakeType("lost_item");
+            if (mainTab === "confiscated") setFormIntakeType("confiscated");
+            setShowAddModal(true);
+          }}
+          className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
+        >
+          {mainTab === "lost"
+            ? "+ Add Lost Item"
+            : mainTab === "confiscated"
+            ? "+ Add Confiscated Item"
+            : mainTab === "inventory"
+            ? "+ Add Inventory Item"
+            : "+ Add Found Item"}
+        </button>
       </div>
 
       {/* Found / Lost tabs */}
@@ -780,12 +790,11 @@ function ItemManagementContent() {
       {mainTab === "confiscated" && (
         <ConfiscatedPanel
           items={foundItems.filter((i) => i.status === "confiscated")}
-          onAdd={() => { resetForm(); setFormIntakeType("confiscated"); setShowAddModal(true); }}
           onView={(id) => { const f = foundItems.find((x) => x.id === id); if (f) setViewingFoundItem(f); }}
           onDelete={(id) => { const f = foundItems.find((x) => x.id === id); if (f) setDeletingItem(f); }}
         />
       )}
-      {mainTab === "inventory" && <InventoryPanel />}
+      {mainTab === "inventory" && <InventoryPanel addSignal={inventoryAddSignal} />}
 
       {/* List card: 5 rows per page */}
       <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${mainTab === "confiscated" || mainTab === "inventory" ? "hidden" : ""}`}>

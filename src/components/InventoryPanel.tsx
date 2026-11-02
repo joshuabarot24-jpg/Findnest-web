@@ -36,7 +36,7 @@ const manilaDay = (ts: number) => new Date(ts).toLocaleDateString("en-CA", { tim
 const selectCls =
   "px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold";
 
-export default function InventoryPanel() {
+export default function InventoryPanel({ addSignal = 0 }: { addSignal?: number }) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -66,6 +66,12 @@ export default function InventoryPanel() {
     const t = setTimeout(() => setToast(null), 2500);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // The page's top-right "+ Add Inventory Item" button raises this number
+  useEffect(() => {
+    if (addSignal > 0) openAdd();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addSignal]);
 
   const fetchItems = async () => {
     try {
@@ -277,13 +283,6 @@ export default function InventoryPanel() {
               placeholder="Search by name, category, or location..."
               className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs w-56"
             />
-            <button
-              type="button"
-              onClick={openAdd}
-              className="bg-[#1a237e] hover:bg-[#283593] text-white text-xs font-bold px-4 py-2 rounded-xl transition"
-            >
-              + Add Inventory Item
-            </button>
           </div>
         </div>
 

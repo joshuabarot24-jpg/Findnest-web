@@ -43,12 +43,10 @@ const selectCls =
 
 export default function ConfiscatedPanel({
   items,
-  onAdd,
   onView,
   onDelete,
 }: {
   items: ConfiscatedItem[];
-  onAdd: () => void;
   onView: (id: number) => void;
   onDelete: (id: number) => void;
 }) {
@@ -137,13 +135,6 @@ export default function ConfiscatedPanel({
             placeholder="Search by name, category, or student..."
             className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs w-56"
           />
-          <button
-            type="button"
-            onClick={onAdd}
-            className="bg-[#1a237e] hover:bg-[#283593] text-white text-xs font-bold px-4 py-2 rounded-xl transition"
-          >
-            + Add Confiscated Item
-          </button>
         </div>
       </div>
 
