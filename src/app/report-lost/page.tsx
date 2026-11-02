@@ -395,8 +395,8 @@ function ReportLostContent() {
 
                       <div>
                         <Label>Date Lost</Label>
-                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={getManilaDate(2)} max={getManilaDate(0)} className={FIELD} required />
-                        <p className="text-gray-400 text-[11px] mt-1">Today or up to 2 days ago.</p>
+                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={getManilaDate(21)} max={getManilaDate(0)} className={FIELD} required />
+                        <p className="text-gray-400 text-[11px] mt-1">Today or up to 3 weeks ago.</p>
                       </div>
                       <div>
                         <Label>Approx. Time</Label>

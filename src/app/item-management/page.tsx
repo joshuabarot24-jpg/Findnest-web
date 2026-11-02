@@ -1124,7 +1124,7 @@ function ItemManagementContent() {
                   type="date"
                   value={formDateFound}
                   onChange={(e) => setFormDateFound(e.target.value)}
-                  min={ALLOWED_DATES[2].value}
+                  min={getManilaDate(21)}
                   max={ALLOWED_DATES[0].value}
                   className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm bg-gray-50"
                 />
