@@ -79,7 +79,6 @@ const INTAKE_TYPES = [
   { key: "found_item", label: "Found Item", active: "border-teal-500 bg-teal-50 text-teal-700" },
   { key: "confiscated", label: "Confiscated", active: "border-purple-500 bg-purple-50 text-purple-700" },
   { key: "lost_item", label: "Lost Item", active: "border-red-500 bg-red-50 text-red-700" },
-  { key: "others", label: "Others", active: "border-gray-500 bg-gray-100 text-gray-700" },
 ] as const;
 
 const TH = "text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider";
@@ -223,8 +222,7 @@ function ItemManagementContent() {
   const [formStorageLocation, setFormStorageLocation] = useState("");
   const [formDateFound, setFormDateFound] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item" | "others">("found_item");
-  const [formOthersSpecify, setFormOthersSpecify] = useState("");
+  const [formIntakeType, setFormIntakeType] = useState<"confiscated" | "found_item" | "lost_item">("found_item");
   const [choosingItemUrl, setChoosingItemUrl] = useState<string | null>(null);
   const uploadCancelledRef = useRef(false);
   const [itemChoices, setItemChoices] = useState<string[]>([]);
@@ -474,7 +472,6 @@ function ItemManagementContent() {
     setFormCategory(CATEGORY_OPTIONS[0]);
     setFormLocationFound("");
     setFormStorageLocation("");
-    setFormOthersSpecify("");
     setFormDateFound("");
     setFormDescription("");
     setFormIntakeType("found_item");
@@ -565,7 +562,7 @@ function ItemManagementContent() {
     }
   }
 
-  // Saves a lost report or a found/confiscated/others item
+  // Saves a lost report or a found/confiscated item
   async function handleAddSubmit() {
     if (formIntakeType === "lost_item") {
       if (!formOwner) {
@@ -605,8 +602,8 @@ function ItemManagementContent() {
       return;
     }
 
-    if (!formName.trim() || (formIntakeType !== "others" && !formLocationFound.trim()) || !formDateFound || !formPhotoUrl) {
-      setFormError(formIntakeType === "others" ? "Item name, date, and photo are required." : "Item name, location found, date found, and photo are required.");
+    if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
+      setFormError("Item name, location found, date found, and photo are required.");
       return;
     }
     setFormError("");
@@ -1015,20 +1012,7 @@ function ItemManagementContent() {
                 </select>
               </div>
 
-              {formIntakeType === "others" && (
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Please Specify (Optional)</label>
-                  <input
-                    type="text"
-                    value={formOthersSpecify}
-                    onChange={(e) => setFormOthersSpecify(e.target.value)}
-                    placeholder="e.g. Classroom projector, office supplies"
-                    className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                  />
-                </div>
-              )}
-
-{formIntakeType === "lost_item" && (
+              {formIntakeType === "lost_item" && (
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student / Owner</label>
                   {formOwner ? (
@@ -1089,14 +1073,12 @@ function ItemManagementContent() {
                   </div>
                 </div>
               )}
-              {formIntakeType !== "others" && (
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    {formIntakeType === "lost_item" ? "Approx. Time Lost" : formIntakeType === "confiscated" ? "Time Confiscated" : "Approx. Time Found"}
-                  </label>
-                  <input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
-                </div>
-              )}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  {formIntakeType === "lost_item" ? "Approx. Time Lost" : formIntakeType === "confiscated" ? "Time Confiscated" : "Approx. Time Found"}
+                </label>
+                <input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
+              </div>
               {formIntakeType === "confiscated" && (
                 <div className="space-y-4">
                   <div>
@@ -1109,12 +1091,10 @@ function ItemManagementContent() {
                   </div>
                 </div>
               )}
-              {formIntakeType !== "others" && (
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
-                  <input type="text" value={formLocationFound} onChange={(e) => setFormLocationFound(e.target.value)} placeholder={formIntakeType === "lost_item" ? "e.g. Room 305" : "e.g. Near the canteen"} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
-                </div>
-              )}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
+                <input type="text" value={formLocationFound} onChange={(e) => setFormLocationFound(e.target.value)} placeholder={formIntakeType === "lost_item" ? "e.g. Room 305" : "e.g. Near the canteen"} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+              </div>
 
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"}</label>
