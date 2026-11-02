@@ -153,8 +153,8 @@ export default function AdminLayout({ active, children }: { active: string; chil
   };
 
   return (
-    <div className="min-h-screen bg-[#F1F7F4]">
-      <div className="font-[family-name:var(--font-inter)] lg:hidden sticky top-0 z-40 flex items-center justify-between bg-[#0D3B29] px-4 py-3">
+    <div className="admin-font min-h-screen bg-[#F1F7F4]">
+      <div className="lg:hidden sticky top-0 z-40 flex items-center justify-between bg-[#0D3B29] px-4 py-3">
         <a href="/dashboard" className="flex items-center gap-2.5 text-[#E2EFE9] font-black text-lg">
           <img src="/images/findnest-logo.png" alt="FindNest" className="w-9 h-9 object-contain shrink-0" />
           <span>FIND<span className="text-[#ffd700]">NEST</span></span>
@@ -167,7 +167,7 @@ export default function AdminLayout({ active, children }: { active: string; chil
       {open && <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setOpen(false)} />}
 
       <aside
-        className={`font-[family-name:var(--font-inter)] fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0D3B29] flex flex-col overflow-y-auto transition-transform duration-200 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0D3B29] flex flex-col overflow-y-auto transition-transform duration-200 ${
           open ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >

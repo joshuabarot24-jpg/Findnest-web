@@ -137,3 +137,24 @@ button {
 .rounded-3xl.overflow-y-auto {
   clip-path: inset(0 round 1.5rem); /* 1.5rem = Tailwind rounded-3xl */
 }
+
+/* [UI] Admin and Super Admin typography: Baloo Tamma 2 (Figma spec).
+   Scoped to the .admin-font wrapper so students and the landing page are not affected. */
+@theme inline {
+  --font-baloo: var(--font-baloo-tamma), sans-serif;
+}
+
+.admin-font,
+.admin-font label,
+.admin-font input,
+.admin-font select,
+.admin-font textarea,
+.admin-font button {
+  font-family: var(--font-baloo-tamma), 'Baloo Tamma 2', sans-serif;
+}
+
+.admin-font {
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}

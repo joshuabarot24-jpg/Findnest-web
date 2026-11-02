@@ -3,7 +3,14 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthGuard from "@/components/AuthGuard";
 import LogoutConfirmHost from "@/components/LogoutConfirmHost";
-import { Inter, Kanit } from "next/font/google";
+import { Inter, Kanit, Baloo_Tamma_2 } from "next/font/google";
+
+const balooTamma = Baloo_Tamma_2({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-baloo-tamma",
+});
 
 const kanit = Kanit({
   subsets: ["latin"],
@@ -46,7 +53,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className={`${inter.variable} ${kanit.variable} antialiased`}>
+      <body className={`${inter.variable} ${kanit.variable} ${balooTamma.variable} antialiased`}>
         <AuthGuard />
         <LogoutConfirmHost />
         {children}
