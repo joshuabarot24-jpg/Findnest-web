@@ -287,6 +287,7 @@ export default function Home() {
       const response = await api.post("/auth/login", { identifier: identifier.trim(), password });
       if (response.data.requires_otp) {
         setMaskedEmail(response.data.email);
+        if (response.data.school_id) setIdentifier(response.data.school_id);
         setStep("otp");
         startResendTimer();
       } else {
