@@ -12,6 +12,7 @@ export interface ConfiscatedItem {
   status: string;
   photo_url: string | null;
   student_name?: string | null;
+  approx_time?: string | null;
   violation_notes?: string | null;
   admin?: { name: string } | null;
 }
@@ -20,6 +21,13 @@ function formatDate(value: string | null | undefined) {
   if (!value) return "-";
   const d = new Date(value);
   return isNaN(d.getTime()) ? "-" : d.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function formatTime(t?: string | null) {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) return t;
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
 export default function ConfiscatedPanel({
@@ -118,7 +126,10 @@ export default function ConfiscatedPanel({
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-600">{i.category}</td>
-                  <td className="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">{formatDate(i.date_found || i.created_at)}</td>
+                  <td className="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">
+                    {formatDate(i.date_found || i.created_at)}
+                    {i.approx_time ? <span className="block text-xs text-gray-400">{formatTime(i.approx_time)}</span> : null}
+                  </td>
                   <td className="px-4 py-4 text-sm text-gray-600">{i.admin?.name || "-"}</td>
                   <td className="px-4 py-4">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">

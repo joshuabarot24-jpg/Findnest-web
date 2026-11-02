@@ -3,11 +3,26 @@
 // Lists show 5 rows per page (refreshes every 20s).
 import { useState, useMemo, useEffect, useRef } from "react";
 import ConfiscatedPanel from "@/components/ConfiscatedPanel";
-import InventoryPanel from "@/components/InventoryPanel";
 import api from "@/lib/api";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import AuthGate from "@/components/AuthGate";
 import AdminLayout from "@/components/AdminLayout";
+import InventoryPanel from "@/components/InventoryPanel";
+
+interface OwnerResult {
+  id: number;
+  name: string;
+  email: string;
+  school_id: string | null;
+}
+
+// "21:07" becomes "9:07 PM"
+function formatApproxTime(t?: string | null) {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) return t;
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+}
 
 // Keeps only letters, spaces, dots, apostrophes and hyphens
 function filterLettersOnly(value: string) {
@@ -34,6 +49,7 @@ interface FoundItem {
   disposal_notes?: string | null;
   disposed_at?: string | null;
   receipt_confirmed?: boolean;
+  approx_time?: string | null;
   surrender_deadline?: string | null;
 }
 
@@ -43,6 +59,7 @@ interface LostItem {
   category: string;
   location_lost: string;
   status: LostStatus;
+  approx_time?: string | null;
   photo_url: string | null;
   description: string | null;
   date_lost: string | null;
@@ -232,6 +249,35 @@ function ItemManagementContent() {
   const [intakeError, setIntakeError] = useState("");
   const [formStudentName, setFormStudentName] = useState("");
   const [formViolationNotes, setFormViolationNotes] = useState("");
+  const [formColor, setFormColor] = useState("");
+  const [formBrand, setFormBrand] = useState("");
+  const [formTime, setFormTime] = useState("");
+  const [formOwner, setFormOwner] = useState<OwnerResult | null>(null);
+  const [ownerQuery, setOwnerQuery] = useState("");
+  const [ownerResults, setOwnerResults] = useState<OwnerResult[]>([]);
+  const [ownerSearching, setOwnerSearching] = useState(false);
+
+  // Live student lookup while the admin types in the Student / Owner box
+  useEffect(() => {
+    const q = ownerQuery.trim();
+    if (q.length < 2) {
+      setOwnerResults([]);
+      setOwnerSearching(false);
+      return;
+    }
+    setOwnerSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.get("/found-items/students/search", { params: { q } });
+        setOwnerResults(res.data.students || []);
+      } catch {
+        setOwnerResults([]);
+      } finally {
+        setOwnerSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [ownerQuery]);
   const [formLoading, setFormLoading] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -434,6 +480,12 @@ function ItemManagementContent() {
     setFormIntakeType("found_item");
     setFormStudentName("");
     setFormViolationNotes("");
+    setFormColor("");
+    setFormBrand("");
+    setFormTime("");
+    setFormOwner(null);
+    setOwnerQuery("");
+    setOwnerResults([]);
     setFormPhotoUrl(null);
     setFormPhotoPreview(null);
     setFormError("");
@@ -516,6 +568,10 @@ function ItemManagementContent() {
   // Saves a lost report or a found/confiscated/others item
   async function handleAddSubmit() {
     if (formIntakeType === "lost_item") {
+      if (!formOwner) {
+        setFormError("Choose the student who lost the item.");
+        return;
+      }
       if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
         setFormError("Item name, location lost, date lost, and photo are required.");
         return;
@@ -530,6 +586,10 @@ function ItemManagementContent() {
           ai_description: formDescription.trim() || null,
           location_lost: formLocationFound.trim(),
           date_lost: formDateFound,
+          approx_time: formTime || null,
+          primary_color: formColor.trim() || null,
+          brand_model: formBrand.trim() || null,
+          student_id: formOwner?.id,
           photo_url: formPhotoUrl,
         });
         setShowAddModal(false);
@@ -559,6 +619,9 @@ function ItemManagementContent() {
         ai_description: formDescription.trim() || null,
         location_found: formLocationFound.trim(),
         date_found: formDateFound,
+        approx_time: formTime || null,
+        primary_color: formColor.trim() || null,
+        brand_model: formBrand.trim() || null,
         photo_url: formPhotoUrl,
         storage_location: formStorageLocation.trim() || null,
         status: formIntakeType,
@@ -660,12 +723,16 @@ function ItemManagementContent() {
           <h1 className="text-3xl font-black text-[#06321C]">Item Management</h1>
           <p className="text-gray-400 text-sm mt-1">Review, approve and manage all lost and found item reports</p>
         </div>
-        {mainTab === "found" && (
+        {(mainTab === "found" || mainTab === "lost") && (
           <button
-            onClick={() => { resetForm(); setShowAddModal(true); }}
+            onClick={() => {
+              resetForm();
+              if (mainTab === "lost") setFormIntakeType("lost_item");
+              setShowAddModal(true);
+            }}
             className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
           >
-            + Add Item
+            {mainTab === "lost" ? "+ Add Lost Item" : "+ Add Item"}
           </button>
         )}
       </div>
@@ -961,6 +1028,75 @@ function ItemManagementContent() {
                 </div>
               )}
 
+{formIntakeType === "lost_item" && (
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student / Owner</label>
+                  {formOwner ? (
+                    <div className="mt-1 flex items-center justify-between gap-3 px-4 py-3 border border-[#4ADE80] bg-[#E8F5E9] rounded-xl">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-700 truncate">{formOwner.name}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {formOwner.school_id ? `ID ${formOwner.school_id} · ` : ""}{formOwner.email}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => { setFormOwner(null); setOwnerQuery(""); }} className="text-xs font-bold text-red-500 hover:underline shrink-0">
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={ownerQuery}
+                        onChange={(e) => setOwnerQuery(e.target.value)}
+                        placeholder="Search name, email, or student ID..."
+                        className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm"
+                      />
+                      {ownerQuery.trim().length >= 2 && (
+                        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                          {ownerSearching ? (
+                            <p className="text-gray-400 text-xs text-center py-4">Searching...</p>
+                          ) : ownerResults.length === 0 ? (
+                            <p className="text-gray-400 text-xs text-center py-4">No active student found.</p>
+                          ) : (
+                            ownerResults.map((s) => (
+                              <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => { setFormOwner(s); setOwnerResults([]); }}
+                                className="w-full text-left px-4 py-2.5 hover:bg-[#E8F5E9] transition"
+                              >
+                                <p className="text-sm font-bold text-gray-700 truncate">{s.name}</p>
+                                <p className="text-xs text-gray-400 truncate">{s.school_id ? `ID ${s.school_id} · ` : ""}{s.email}</p>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {(formIntakeType === "lost_item" || formIntakeType === "found_item") && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Primary Colors</label>
+                    <input type="text" value={formColor} onChange={(e) => setFormColor(e.target.value)} placeholder="e.g. Black" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Model and Brand</label>
+                    <input type="text" value={formBrand} onChange={(e) => setFormBrand(e.target.value)} placeholder="e.g. Samsung A15" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
+                  </div>
+                </div>
+              )}
+              {formIntakeType !== "others" && (
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    {formIntakeType === "lost_item" ? "Approx. Time Lost" : formIntakeType === "confiscated" ? "Time Confiscated" : "Approx. Time Found"}
+                  </label>
+                  <input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
+                </div>
+              )}
               {formIntakeType === "confiscated" && (
                 <div className="space-y-4">
                   <div>
@@ -1087,6 +1223,9 @@ function ItemManagementContent() {
               <DetailRow label="Storage Location"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.storage_location || "—"}</span></DetailRow>
               <DetailRow label="Date Found"><span className="font-bold text-gray-700 text-right">{viewingFoundItem.date_found || "—"}</span></DetailRow>
               <DetailRow label="Logged"><span className="font-bold text-gray-700 text-xs text-right">{formatDateTime(viewingFoundItem.created_at)}</span></DetailRow>
+            {viewingFoundItem.approx_time ? (
+              <DetailRow label="Approx. Time"><span className="font-bold text-gray-700 text-xs text-right">{formatApproxTime(viewingFoundItem.approx_time)}</span></DetailRow>
+            ) : null}
               <DetailRow label="Status">
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${statusStyles(viewingFoundItem.status).badge}`}>{statusStyles(viewingFoundItem.status).label}</span>
               </DetailRow>
@@ -1195,6 +1334,9 @@ function ItemManagementContent() {
               <DetailRow label="Location Lost"><span className="font-bold text-gray-700 text-right">{viewingLostItem.location_lost}</span></DetailRow>
               <DetailRow label="Date Lost"><span className="font-bold text-gray-700 text-right">{viewingLostItem.date_lost || "—"}</span></DetailRow>
               <DetailRow label="Logged"><span className="font-bold text-gray-700 text-xs text-right">{formatDateTime(viewingLostItem.created_at)}</span></DetailRow>
+            {viewingLostItem.approx_time ? (
+              <DetailRow label="Approx. Time"><span className="font-bold text-gray-700 text-xs text-right">{formatApproxTime(viewingLostItem.approx_time)}</span></DetailRow>
+            ) : null}
               <DetailRow label="Status">
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${statusStyles(viewingLostItem.status).badge}`}>{statusStyles(viewingLostItem.status).label}</span>
               </DetailRow>
