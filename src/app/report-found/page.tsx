@@ -3,6 +3,7 @@
 // API: /upload/image, /upload/analyze-existing, /found-items
 import { useState } from "react";
 import api from "@/lib/api";
+import { uploadErrorInfo } from "@/lib/uploadError";
 import AuthGate from "@/components/AuthGate";
 import StudentLayout from "@/components/StudentLayout";
 
@@ -51,6 +52,7 @@ function ReportFoundContent() {
   const [photoError, setPhotoError] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [photoErrorMessage, setPhotoErrorMessage] = useState("");
+  const [photoErrorTone, setPhotoErrorTone] = useState<"red" | "amber">("red");
   const [submitted, setSubmitted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -116,6 +118,7 @@ function ReportFoundContent() {
 
     setPhotoError(false);
     setPhotoErrorMessage("");
+    setPhotoErrorTone("red");
     const isFirstPhoto = photos.length === 0;
 
     const newEntries: PhotoItem[] = filesToAdd.map((file) => ({
@@ -160,7 +163,7 @@ function ReportFoundContent() {
         }
         console.error("Photo upload failed:", err);
         setPhotos((prev) => prev.filter((_, i2) => i2 !== idx));
-        setPhotoErrorMessage(err.response?.data?.message || "One of your photos failed to upload. Please try again.");
+        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); }
         setPhotoError(true);
       }
     }

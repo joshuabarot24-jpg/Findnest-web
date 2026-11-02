@@ -8,6 +8,7 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import AuthGate from "@/components/AuthGate";
 import AdminLayout from "@/components/AdminLayout";
 import InventoryPanel from "@/components/InventoryPanel";
+import { uploadErrorInfo } from "@/lib/uploadError";
 
 interface OwnerResult {
   id: number;
@@ -245,6 +246,7 @@ function ItemManagementContent() {
   const [formUploading, setFormUploading] = useState(false);
   const [formError, setFormError] = useState("");
   const [intakeError, setIntakeError] = useState("");
+  const [intakeTone, setIntakeTone] = useState<"red" | "amber">("red");
   const [formStudentName, setFormStudentName] = useState("");
   const [formViolationNotes, setFormViolationNotes] = useState("");
   const [formColor, setFormColor] = useState("");
@@ -496,6 +498,7 @@ function ItemManagementContent() {
     if (!file) return;
     uploadCancelledRef.current = false;
     setIntakeError("");
+    setIntakeTone("red");
     setFormPhotoPreview(URL.createObjectURL(file));
     setFormUploading(true);
     setFormPhotoUrl(null);
@@ -526,7 +529,7 @@ function ItemManagementContent() {
       } else if (err.response?.status === 422) {
         console.error("Photo upload failed:", err);
         setFormPhotoPreview(null);
-        setIntakeError(err.response?.data?.message || "This photo could not be used. Please upload a clearer photo of the item.");
+        { const info = uploadErrorInfo(err); setIntakeError(info.message); setIntakeTone(info.tone); }
       } else {
         console.error("Photo upload failed:", err);
         setFormPhotoPreview(null);
@@ -987,7 +990,7 @@ function ItemManagementContent() {
                         <img src={formPhotoPreview} alt="Preview" className="max-h-32 mx-auto rounded-xl" />
                           {formPhotoUrl && <p className="text-green-600 text-xs font-bold mt-2">Uploaded successfully</p>}
                   {intakeError && (
-                    <div role="alert" className="mt-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-xs font-semibold">
+                    <div role="alert" className={`mt-2 border rounded-lg px-3 py-2 text-xs font-semibold ${intakeTone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-700"}`}>
                       {intakeError}
                     </div>
                   )}

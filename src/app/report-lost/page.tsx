@@ -3,6 +3,7 @@
 // API: /profile, /upload/image, /upload/analyze-existing, /lost-items
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { uploadErrorInfo } from "@/lib/uploadError";
 import AuthGate from "@/components/AuthGate";
 import StudentLayout from "@/components/StudentLayout";
 
@@ -51,6 +52,7 @@ function ReportLostContent() {
   const [photoError, setPhotoError] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [photoErrorMessage, setPhotoErrorMessage] = useState("");
+  const [photoErrorTone, setPhotoErrorTone] = useState<"red" | "amber">("red");
   const [submitted, setSubmitted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -131,6 +133,7 @@ function ReportLostContent() {
 
     setPhotoError(false);
     setPhotoErrorMessage("");
+    setPhotoErrorTone("red");
 
     const isFirstPhoto = photos.length === 0;
 
@@ -179,7 +182,7 @@ function ReportLostContent() {
         }
         console.error("Photo upload failed:", err);
         setPhotos((prev) => prev.filter((_, i2) => i2 !== idx));
-        setPhotoErrorMessage(err.response?.data?.message || "One of your photos failed to upload. Please try again.");
+        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); }
         setPhotoError(true);
       }
     }
@@ -353,7 +356,7 @@ function ReportLostContent() {
                         )}
                       </div>
                       {photoError && (
-                        <p className="text-red-500 text-xs font-bold mt-2">
+                        <p className={`${photoErrorTone === "amber" ? "text-amber-700" : "text-red-500"} text-xs font-bold mt-2`}>
                           {photoErrorMessage || "At least one photo is required for better evidence before you can submit your report!"}
                         </p>
                       )}
