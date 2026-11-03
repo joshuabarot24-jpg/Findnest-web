@@ -325,7 +325,7 @@ export default function StudentLayout({
             </div>
           </div>
         </header>
-        <main className="flex-1 flex flex-col px-4 sm:px-6 pb-6 lg:pt-5">{children}</main>
+        <main className={`flex-1 flex flex-col px-4 sm:px-6 pb-6 ${hideHeader ? "lg:pt-5" : "lg:pt-20"}`}>{children}</main>
       </div>
     </div>
   );
