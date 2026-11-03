@@ -217,8 +217,12 @@ export default function StudentLayout({
           <button onClick={() => setOpen(true)} aria-label="Open menu" className="lg:hidden text-[#0E4D34] text-2xl leading-none">&#9776;</button>
           <div className="flex items-center gap-1 h-10">
             <div className="relative h-10 flex items-center" ref={bellRef}>
-              <button onClick={toggleBell} className="relative w-10 h-10 flex items-center justify-center text-[#0E4D34]" aria-label="Notifications">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <button
+                onClick={toggleBell}
+                className="group relative w-10 h-10 rounded-full flex items-center justify-center text-[#0E4D34] cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#E3EEE7] hover:shadow-md hover:scale-110 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4ADE80] motion-reduce:transition-none motion-reduce:transform-none"
+                aria-label="Notifications"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 ease-in-out group-hover:-rotate-12 motion-reduce:transform-none">
                   <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                   <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                 </svg>
@@ -302,9 +306,12 @@ export default function StudentLayout({
             </div>
 
             <div className="relative h-10 flex items-center" ref={menuRef}>
-              <button onClick={() => { setMenu((m) => !m); setBell(false); }} className="flex items-center gap-3">
+              <button
+                onClick={() => { setMenu((m) => !m); setBell(false); }}
+                className="group flex items-center gap-3 rounded-full py-1 pl-4 pr-1 sm:pl-4 cursor-pointer transition-all duration-200 ease-in-out hover:bg-white hover:shadow-md hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4ADE80] motion-reduce:transition-none motion-reduce:transform-none"
+              >
                 <span className="hidden sm:block text-sm font-semibold text-gray-700 max-w-[14rem] truncate leading-none">{name}</span>
-                <span className="w-10 h-10 rounded-full overflow-hidden bg-[#0E4D34] text-white font-bold flex items-center justify-center">
+                <span className="w-10 h-10 rounded-full overflow-hidden bg-[#0E4D34] text-white font-bold flex items-center justify-center shadow-sm transition-transform duration-200 ease-in-out group-hover:scale-105">
                   <StudentAvatar name={name} />
                 </span>
               </button>
