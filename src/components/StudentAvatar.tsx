@@ -33,5 +33,5 @@ export default function StudentAvatar({ name }: { name?: string | null }) {
   if (photo) {
     return <img src={photo} alt="Profile" className="w-full h-full object-cover" />;
   }
-  return <>{name?.trim().charAt(0).toUpperCase() || "?"}</>;
+  return <span className="text-white font-bold">{name?.trim().charAt(0).toUpperCase() || "?"}</span>;
 }

@@ -251,9 +251,9 @@ function ProfileContent() {
         ) : (
           <div className="space-y-5">
             {/* Header card */}
-            <div className="bg-white rounded-2xl border border-[#D9E8DF] shadow-sm p-6">
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="flex flex-col items-center gap-2 shrink-0">
+            <div className="bg-white rounded-2xl border border-[#D9E8DF] shadow-sm px-6 py-8">
+              <div className="flex flex-wrap items-center gap-6 sm:gap-8">
+                <div className="flex flex-col items-center gap-3 shrink-0 p-1">
                   <label
                     onDragOver={(e) => { e.preventDefault(); setPhotoDrag(true); }}
                     onDragLeave={() => setPhotoDrag(false)}
@@ -264,7 +264,7 @@ function ProfileContent() {
                     {user?.profile_photo_url ? (
                       <img src={user.profile_photo_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      user?.name?.charAt(0).toUpperCase() || "?"
+                      <span className="text-white font-black text-4xl leading-none">{user?.name?.charAt(0).toUpperCase() || "?"}</span>
                     )}
                     {photoBusy && (
                       <span className="absolute inset-0 bg-black/50 flex items-center justify-center">
