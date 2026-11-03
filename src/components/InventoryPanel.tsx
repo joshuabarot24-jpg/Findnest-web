@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
 
 const PAGE_SIZE = 5;
-const CATEGORIES = ["Office Supplies", "Cleaning Supplies", "Equipment", "Furniture", "Documents", "Others"];
+const CATEGORIES = ["Office Supplies", "Cleaning Supplies", "Equipment", "Sports & PE Equipment", "Documents", "Others"];
 
 type InvStatus = "in_stock" | "in_use" | "disposed";
 type DateRange = "all" | "today" | "7d" | "10d" | "15d" | "30d";
