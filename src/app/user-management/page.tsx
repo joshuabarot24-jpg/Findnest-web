@@ -515,15 +515,16 @@ function UserManagementContent() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={openRestrictionSettings}
-              className="bg-white border border-gray-200 hover:border-[#1a237e] text-[#1a237e] font-bold px-5 py-3 rounded-2xl transition"
+              className="inline-flex items-center justify-center gap-2 h-11 px-6 whitespace-nowrap bg-white border border-gray-200 hover:border-[#1a237e] text-[#1a237e] font-bold rounded-xl transition"
             >
               Restriction Settings
             </button>
             <button
               onClick={openCreateModal}
-              className="flex items-center gap- bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
+              className="inline-flex items-center justify-center gap-2 h-11 px-6 whitespace-nowrap bg-[#1a237e] hover:bg-[#283593] text-white font-bold rounded-xl transition shadow-lg hover:-translate-y-0.5 transform"
             >
-              <span>+</span>Create New Student
+              <span aria-hidden="true">+</span>
+              <span>Create New Student</span>
             </button>
           </div>
         </div>
