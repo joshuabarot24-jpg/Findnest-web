@@ -1017,19 +1017,7 @@ function ItemManagementContent() {
                     ) : formPhotoPreview ? (
                       <div>
                         <img src={formPhotoPreview} alt="Preview" className="max-h-32 mx-auto rounded-xl" />
-                          {formPhotoUrl && <p className="text-green-600 text-xs font-bold mt-2">Uploaded successfully</p>}
-                  {intakeError && (
-                    <div
-                      ref={intakeErrorRef}
-                      role="alert"
-                      className={`mt-2 border rounded-lg px-3 py-2 text-xs font-semibold flex items-start justify-between gap-3 ${intakeTone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-700"}`}
-                    >
-                      <span>{intakeError}</span>
-                      <button type="button" aria-label="Dismiss" onClick={() => setIntakeError("")} className="font-bold leading-none opacity-70 hover:opacity-100">
-                        &times;
-                      </button>
-                    </div>
-                  )}
+                        {formPhotoUrl && <p className="text-green-600 text-xs font-bold mt-2">Uploaded successfully</p>}
                       </div>
                     ) : (
                       <p className="text-gray-400 text-xs">Click to upload a photo</p>
@@ -1037,6 +1025,18 @@ function ItemManagementContent() {
                   </div>
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={formUploading} className="hidden" />
                 </label>
+                {intakeError && (
+                  <div
+                    ref={intakeErrorRef}
+                    role="alert"
+                    className={`mt-2 border rounded-lg px-3 py-2 text-xs font-semibold flex items-start justify-between gap-3 ${intakeTone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-700"}`}
+                  >
+                    <span>{intakeError}</span>
+                    <button type="button" aria-label="Dismiss" onClick={() => setIntakeError("")} className="font-bold leading-none opacity-70 hover:opacity-100">
+                      &times;
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
