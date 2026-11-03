@@ -757,13 +757,7 @@ function ItemManagementContent() {
           }}
           className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
         >
-          {mainTab === "lost"
-            ? "+ Add Lost Item"
-            : mainTab === "confiscated"
-            ? "+ Add Confiscated Item"
-            : mainTab === "inventory"
-            ? "+ Add Inventory Item"
-            : "+ Add Found Item"}
+          + Add Item
         </button>
       </div>
 
