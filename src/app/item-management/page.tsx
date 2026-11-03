@@ -258,6 +258,14 @@ function ItemManagementContent() {
     }
   }, []);
   const [intakeTone, setIntakeTone] = useState<"red" | "amber">("red");
+  const intakeErrorRef = useRef<HTMLDivElement>(null);
+
+  // Whenever an upload error appears, bring it into view inside the modal
+  useEffect(() => {
+    if (intakeError) {
+      intakeErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [intakeError]);
   const [formStudentName, setFormStudentName] = useState("");
   const [formViolationNotes, setFormViolationNotes] = useState("");
   const [formColor, setFormColor] = useState("");
@@ -506,6 +514,7 @@ function ItemManagementContent() {
   // Uploads the photo and fills the form from the AI result
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     uploadCancelledRef.current = false;
     setIntakeError("");
@@ -537,6 +546,7 @@ function ItemManagementContent() {
       } else if (err.response?.status === 422 && err.response?.data?.prohibited) {
         setFormPhotoPreview(null);
         setIntakeError(err.response.data.message || "This item can only be submitted under the 'Confiscated' intake type.");
+        setIntakeTone("red");
       } else if (err.response?.status === 422) {
         console.error("Photo upload failed:", err);
         setFormPhotoPreview(null);
@@ -1009,8 +1019,15 @@ function ItemManagementContent() {
                         <img src={formPhotoPreview} alt="Preview" className="max-h-32 mx-auto rounded-xl" />
                           {formPhotoUrl && <p className="text-green-600 text-xs font-bold mt-2">Uploaded successfully</p>}
                   {intakeError && (
-                    <div role="alert" className={`mt-2 border rounded-lg px-3 py-2 text-xs font-semibold ${intakeTone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-700"}`}>
-                      {intakeError}
+                    <div
+                      ref={intakeErrorRef}
+                      role="alert"
+                      className={`mt-2 border rounded-lg px-3 py-2 text-xs font-semibold flex items-start justify-between gap-3 ${intakeTone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-700"}`}
+                    >
+                      <span>{intakeError}</span>
+                      <button type="button" aria-label="Dismiss" onClick={() => setIntakeError("")} className="font-bold leading-none opacity-70 hover:opacity-100">
+                        &times;
+                      </button>
                     </div>
                   )}
                       </div>
