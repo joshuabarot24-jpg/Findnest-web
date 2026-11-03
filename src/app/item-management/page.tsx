@@ -537,6 +537,11 @@ function ItemManagementContent() {
       if (res.data.ai_item_name) setFormName(res.data.ai_item_name);
       if (res.data.ai_category) setFormCategory(res.data.ai_category);
       if (res.data.ai_description) setFormDescription(res.data.ai_description);
+      // Colors and brand come back inside ai_details. Only fill them when the AI actually read something
+      const aiColor = res.data.ai_details?.primary_color;
+      const aiBrand = res.data.ai_details?.brand_or_markings;
+      if (aiColor) setFormColor(aiColor);
+      if (aiBrand) setFormBrand(aiBrand);
     } catch (err: any) {
       if (uploadCancelledRef.current) return;
       if (err.response?.status === 422 && err.response?.data?.multiple_items) {
@@ -577,6 +582,8 @@ function ItemManagementContent() {
       if (res.data.ai_item_name) setFormName(res.data.ai_item_name);
       if (res.data.ai_category) setFormCategory(res.data.ai_category);
       if (res.data.ai_description) setFormDescription(res.data.ai_description);
+      if (res.data.ai_details?.primary_color) setFormColor(res.data.ai_details.primary_color);
+      if (res.data.ai_details?.brand_or_markings) setFormBrand(res.data.ai_details.brand_or_markings);
     } catch (err) {
       console.error("Failed to analyze chosen item:", err);
     } finally {
@@ -1094,7 +1101,7 @@ function ItemManagementContent() {
                   )}
                 </div>
               )}
-              {(formIntakeType === "lost_item" || formIntakeType === "found_item") && (
+              {(formIntakeType === "lost_item" || formIntakeType === "found_item" || formIntakeType === "confiscated") && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Primary Colors</label>
