@@ -196,7 +196,7 @@ export default function ItemManagement() {
 }
 
 function ItemManagementContent() {
- const [mainTab, setMainTab] = useState<"found" | "lost" | "aged" | "confiscated" | "inventory">("found");
+ const [mainTab, setMainTab] = useState<"found" | "lost" | "aged" | "waiting" | "confiscated" | "inventory">("found");
 
   const [foundItems, setFoundItems] = useState<FoundItem[]>([]);
   const [lostItems, setLostItems] = useState<LostItem[]>([]);
@@ -253,7 +253,7 @@ function ItemManagementContent() {
   // Opens on the tab named in the address, for example /item-management?tab=aged from a Dashboard alert
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "found" || t === "lost" || t === "aged" || t === "confiscated" || t === "inventory") {
+  if (t === "found" || t === "lost" || t === "aged" || t === "waiting" || t === "confiscated" || t === "inventory") {
       setMainTab(t);
     }
   }, []);
@@ -394,7 +394,7 @@ function ItemManagementContent() {
   // Found items after status filter + search
   const filteredFound = useMemo(() => {
     const byStatus = foundItems.filter(
-      (i) => i.status !== "confiscated" && (foundStatusFilter === "all" || i.status === foundStatusFilter) && passesCategoryAndDate(i.category, i.created_at)
+      (i) => i.status !== "confiscated" && (mainTab === "waiting" || i.receipt_confirmed !== false) && (foundStatusFilter === "all" || i.status === foundStatusFilter) && passesCategoryAndDate(i.category, i.created_at)
     );
     const q = search.toLowerCase().trim();
     if (!q) return byStatus;
@@ -412,7 +412,7 @@ function ItemManagementContent() {
         dateStr.includes(q)
       );
     });
-  }, [foundItems, search, foundStatusFilter, categoryFilter, dateRange]);
+  }, [foundItems, search, foundStatusFilter, categoryFilter, dateRange, mainTab]);
 
   // Lost reports after status filter + search
   const filteredLost = useMemo(() => {
@@ -438,15 +438,19 @@ function ItemManagementContent() {
   }, [lostItems, search, lostStatusFilter, categoryFilter, dateRange]);
 
   // Aged items: flagged by the daily job (10+ days) or waiting for the 30-day disposal record
+  // Reported by a student but not physically received yet
+  const isWaiting = (i: FoundItem) => i.status === "unclaimed" && i.receipt_confirmed === false;
+  const waitingItems = useMemo(() => foundItems.filter(isWaiting), [foundItems]);
   const isAged = (i: FoundItem) =>
-    i.status === "unclaimed" && (!!i.needs_disposal_review || !!i.unclaimed_flagged_at);
+    i.status === "unclaimed" && i.receipt_confirmed !== false && (!!i.needs_disposal_review || !!i.unclaimed_flagged_at);
   const agedItems = useMemo(
     () => foundItems.filter(isAged),
     [foundItems]
   );
   const filteredAged = useMemo(() => filteredFound.filter(isAged), [filteredFound]);
+  const filteredWaiting = useMemo(() => filteredFound.filter(isWaiting), [filteredFound]);
 
-  const activeFiltered = mainTab === "found" ? filteredFound : mainTab === "aged" ? filteredAged : filteredLost;
+  const activeFiltered = mainTab === "found" ? filteredFound : mainTab === "aged" ? filteredAged : mainTab === "waiting" ? filteredWaiting : filteredLost;
   const totalPages = Math.max(1, Math.ceil(activeFiltered.length / PAGE_SIZE));
 
   useEffect(() => {
@@ -465,7 +469,8 @@ function ItemManagementContent() {
   const sortedLost = [...filteredLost].sort(byTime);
   // Aged tab: disposal-review items first, then the rest, newest first inside each group
   const sortedAged = [...filteredAged].sort(byTime);
-  const paginatedFound = (mainTab === "aged" ? sortedAged : sortedFound).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sortedWaiting = [...filteredWaiting].sort(byTime);
+  const paginatedFound = (mainTab === "aged" ? sortedAged : mainTab === "waiting" ? sortedWaiting : sortedFound).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const paginatedLost = sortedLost.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const unclaimedCount = foundItems.filter((i) => i.status === "unclaimed").length;
@@ -476,7 +481,7 @@ function ItemManagementContent() {
   const returnedCount = lostItems.filter((i) => i.status === "returned").length;
 
   const statCards =
-    mainTab === "found" || mainTab === "aged"
+    mainTab === "found" || mainTab === "aged" || mainTab === "waiting"
       ? [
           { label: "Unclaimed Items", value: unclaimedCount, color: "text-[#1a237e]" },
           { label: "Claimed Items", value: claimedCount, color: "text-green-600" },
@@ -792,6 +797,7 @@ function ItemManagementContent() {
           { key: "found", label: "Found Items Reports" },
           { key: "lost", label: "Lost Items Reports" },
           { key: "aged", label: "Aged Items (10+ Days)" },
+          { key: "waiting", label: "Waiting for Surrender" },
           { key: "confiscated", label: "Confiscated Items" },
           { key: "inventory", label: "Others / Inventory" },
         ] as const).map((t) => (
@@ -805,6 +811,11 @@ function ItemManagementContent() {
             }`}
           >
             {t.label}
+            {t.key === "waiting" && waitingItems.length > 0 && (
+              <span className="ml-2 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-[#DC2626] text-white text-xs font-bold align-middle">
+                {waitingItems.length > 99 ? "99+" : waitingItems.length}
+              </span>
+            )}
             {t.key === "aged" && agedItems.length > 0 && (
               <span className="ml-2 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-[#DC2626] text-white text-xs font-bold align-middle">
                 {agedItems.length > 99 ? "99+" : agedItems.length}
@@ -847,10 +858,10 @@ function ItemManagementContent() {
       <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${mainTab === "confiscated" || mainTab === "inventory" ? "hidden" : ""}`}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
           <h2 className="font-black text-gray-700 text-lg">
-            {mainTab === "found" ? "All Found Items" : mainTab === "aged" ? "Aged Items (10+ Days)" : "All Lost Item Reports"}
+            {mainTab === "found" ? "All Found Items" : mainTab === "aged" ? "Aged Items (10+ Days)" : mainTab === "waiting" ? "Waiting for Surrender" : "All Lost Item Reports"}
           </h2>
           <div className="flex items-center gap-2 flex-wrap">
-          {mainTab === "found" || mainTab === "aged" ? (
+          {mainTab === "found" || mainTab === "aged" || mainTab === "waiting" ? (
               <select
                 value={foundStatusFilter}
                 onChange={(e) => { setFoundStatusFilter(e.target.value); setPage(1); }}
@@ -915,7 +926,7 @@ function ItemManagementContent() {
 
         {loading ? (
           <div className="text-center py-16 text-gray-400 text-sm">Loading items...</div>
-        ) : mainTab === "found" || mainTab === "aged" ? (
+        ) : mainTab === "found" || mainTab === "aged" || mainTab === "waiting" ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[60rem]">
               <thead>
