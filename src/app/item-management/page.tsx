@@ -665,6 +665,7 @@ function ItemManagementContent() {
       resetForm();
       setPage(1);
       setToast(`${formName.trim()} was added.`);
+      window.dispatchEvent(new Event("findnest:counts-changed"));
       if (createdFound) setFoundItems((prev) => [createdFound, ...prev]);
       fetchFoundItems();
     } catch (err: any) {
@@ -679,6 +680,7 @@ function ItemManagementContent() {
     try {
       await api.delete(`/found-items/${deletingItem.id}`);
       setToast(`${deletingItem.item_name} was deleted.`);
+      window.dispatchEvent(new Event("findnest:counts-changed"));
       setDeletingItem(null);
       setViewingFoundItem(null);
       fetchFoundItems();

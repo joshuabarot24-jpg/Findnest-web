@@ -195,6 +195,7 @@ function ClaimVerificationContent() {
     try {
       const res = await api.get("/claims");
       setClaims(res.data.claims || []);
+      window.dispatchEvent(new Event("findnest:counts-changed"));
     } catch (err: any) {
       if (err.response?.status === 403) {
         setAccessDenied(true);

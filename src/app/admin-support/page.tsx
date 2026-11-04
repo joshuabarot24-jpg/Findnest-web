@@ -165,6 +165,7 @@ function SupportInboxContent() {
     if (msg.status === "new") {
       try {
         await api.post(`/support/${msg.id}/read`);
+        window.dispatchEvent(new Event("findnest:counts-changed"));
         setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, status: "read" } : m)));
       } catch (err) {
         console.error("Error marking message as read:", err);
@@ -193,6 +194,7 @@ function SupportInboxContent() {
     setReplySending(true);
     try {
       await api.post(`/support/${id}/reply`, { message: replyText.trim() });
+      window.dispatchEvent(new Event("findnest:counts-changed"));
       setReplyText("");
       fetchThread(id);
       setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: "responded" } : m)));
@@ -230,6 +232,7 @@ function SupportInboxContent() {
     setOverrideBusy(true);
     try {
       const res = await api.post(`/support/${id}/resolve-override`, { decision });
+      window.dispatchEvent(new Event("findnest:counts-changed"));
       const updated = res.data.data;
       setMessages((prev) =>
         prev.map((m) =>

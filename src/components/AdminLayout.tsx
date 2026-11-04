@@ -139,10 +139,12 @@ export default function AdminLayout({ active, children }: { active: string; chil
     if (Date.now() - cachedAt > 5000) load();
     const timer = setInterval(load, 10000);
     window.addEventListener("focus", load);
+    window.addEventListener("findnest:counts-changed", load);
     return () => {
       alive = false;
       clearInterval(timer);
       window.removeEventListener("focus", load);
+      window.removeEventListener("findnest:counts-changed", load);
     };
   }, []);
 
