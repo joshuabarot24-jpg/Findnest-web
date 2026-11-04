@@ -223,12 +223,12 @@ export default function InventoryPanel({ addSignal = 0 }: { addSignal?: number }
   }
 
   const inputCls =
-    "w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-sm text-gray-800";
+    "w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-sm text-gray-800";
 
   return (
     <div>
       {toast && (
-        <div className="fixed top-6 right-6 z-[200] bg-[#0D5C3A] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
+        <div className="fixed top-6 right-6 z-[200] bg-[#1a237e] text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
           {toast}
         </div>
       )}
@@ -374,7 +374,7 @@ export default function InventoryPanel({ addSignal = 0 }: { addSignal?: number }
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4" onClick={() => setModalOpen(false)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-4">
-              <h2 className="text-lg font-black text-[#0D5C3A]">{editing ? "Edit Inventory Item" : "Add Inventory Item"}</h2>
+              <h2 className="text-lg font-black text-[#1a237e]">{editing ? "Edit Inventory Item" : "Add Inventory Item"}</h2>
               <button type="button" aria-label="Close" onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
             </div>
 
@@ -418,7 +418,7 @@ export default function InventoryPanel({ addSignal = 0 }: { addSignal?: number }
 
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setModalOpen(false)} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition text-sm">Cancel</button>
-                <button type="button" onClick={handleSave} className="flex-1 bg-[#0D5C3A] hover:bg-[#0A4A2E] text-white font-bold py-2.5 rounded-xl transition text-sm disabled:opacity-50">
+                <button type="button" onClick={handleSave} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-2.5 rounded-xl transition text-sm disabled:opacity-50">
                   {saving ? "Saving..." : editing ? "Save Changes" : "Add Item"}
                 </button>
               </div>
@@ -430,7 +430,7 @@ export default function InventoryPanel({ addSignal = 0 }: { addSignal?: number }
       {deleting && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 px-4" onClick={() => setDeleting(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-black text-[#0D5C3A] mb-2">Delete This Item?</h2>
+            <h2 className="text-lg font-black text-[#1a237e] mb-2">Delete This Item?</h2>
             <p className="text-gray-500 text-sm mb-5">&quot;{deleting.name}&quot; will be removed from the inventory.</p>
             <div className="flex gap-3">
               <button type="button" onClick={() => setDeleting(null)} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition text-sm">Cancel</button>
