@@ -483,8 +483,13 @@ function ReportFoundContent() {
             </div>
 
             <div className="bg-gradient-to-t from-green-300 via-green-100 to-transparent px-6 pt-4 pb-16 flex flex-col items-center gap-3">
+              {submitError && (
+                <div role="alert" className="w-full max-w-xl bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm font-semibold">
+                  {submitError}
+                </div>
+              )}
               <button
-                onClick={() => setShowConfirm(true)}
+                onClick={() => { setSubmitError(""); setShowConfirm(true); }}
                 className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-full shadow-md transition"
               >
                 Click to submit report
