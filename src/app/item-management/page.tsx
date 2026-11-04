@@ -829,7 +829,17 @@ function ItemManagementContent() {
           onDelete={(id) => { const f = foundItems.find((x) => x.id === id); if (f) setDeletingItem(f); }}
         />
       )}
-      {mainTab === "inventory" && <InventoryPanel addSignal={inventoryAddSignal} />}
+      {mainTab === "inventory" && (
+        <InventoryPanel
+          addSignal={inventoryAddSignal}
+          onSwitchIntake={(t) => {
+            resetForm();
+            setFormIntakeType(t);
+            setMainTab(t === "confiscated" ? "confiscated" : "found");
+            setShowAddModal(true);
+          }}
+        />
+      )}
 
       {/* List card: 5 rows per page */}
       <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${mainTab === "confiscated" || mainTab === "inventory" ? "hidden" : ""}`}>

@@ -36,7 +36,13 @@ const manilaDay = (ts: number) => new Date(ts).toLocaleDateString("en-CA", { tim
 const selectCls =
   "px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold";
 
-export default function InventoryPanel({ addSignal = 0 }: { addSignal?: number }) {
+export default function InventoryPanel({
+  addSignal = 0,
+  onSwitchIntake,
+}: {
+  addSignal?: number;
+  onSwitchIntake?: (type: "found_item" | "confiscated") => void;
+}) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -377,6 +383,34 @@ export default function InventoryPanel({ addSignal = 0 }: { addSignal?: number }
               <h2 className="text-lg font-black text-[#1a237e]">{editing ? "Edit Inventory Item" : "Add Inventory Item"}</h2>
               <button type="button" aria-label="Close" onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
             </div>
+
+            {!editing && onSwitchIntake && (
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Intake Type</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setModalOpen(false); onSwitchIntake("found_item"); }}
+                    className="py-2.5 rounded-xl text-xs font-bold border-2 border-gray-200 text-gray-400 hover:border-[#1a237e] hover:text-[#1a237e] transition"
+                  >
+                    Found Item
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setModalOpen(false); onSwitchIntake("confiscated"); }}
+                    className="py-2.5 rounded-xl text-xs font-bold border-2 border-gray-200 text-gray-400 hover:border-[#1a237e] hover:text-[#1a237e] transition"
+                  >
+                    Confiscated Item
+                  </button>
+                  <button
+                    type="button"
+                    className="py-2.5 rounded-xl text-xs font-bold border-2 border-[#1a237e] bg-blue-50 text-[#1a237e] cursor-default"
+                  >
+                    Inventory Item
+                  </button>
+                </div>
+              </div>
+            )}
 
             <fieldset disabled={saving} className="space-y-4 min-w-0 border-0 p-0 m-0">
               <div>
