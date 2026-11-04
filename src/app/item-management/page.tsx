@@ -79,8 +79,9 @@ const PAGE_SIZE = 5;
 
 // Add Item form: the four intake types and their selected colors
 const INTAKE_TYPES = [
-  { key: "found_item", label: "Found Item", active: "border-teal-500 bg-teal-50 text-teal-700" },
-  { key: "confiscated", label: "Confiscated", active: "border-purple-500 bg-purple-50 text-purple-700" },
+  { key: "found_item", label: "Found Item", active: "border-[#1a237e] bg-blue-50 text-[#1a237e]" },
+  { key: "confiscated", label: "Confiscated Item", active: "border-[#1a237e] bg-blue-50 text-[#1a237e]" },
+  { key: "inventory", label: "Inventory Item", active: "border-[#1a237e] bg-blue-50 text-[#1a237e]" },
 ] as const;
 
 const TH = "text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider";
@@ -1006,14 +1007,25 @@ function ItemManagementContent() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Intake Type {!!formPhotoPreview && <span className="text-gray-400 font-normal normal-case">(locked after photo upload)</span>}
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
                   {INTAKE_TYPES.map((t) => (
                     <button
                       key={t.key}
                       type="button"
                       disabled={!!formPhotoPreview}
-                      onClick={() => { setFormIntakeType(t.key); setIntakeError(""); }}
-                      className={`py-3 rounded-xl text-sm font-bold border-2 transition ${formIntakeType === t.key ? t.active : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
+                      onClick={() => {
+                        if (t.key === "inventory") {
+                          // Inventory has its own form: close this one, open the Inventory tab and its modal
+                          setShowAddModal(false);
+                          resetForm();
+                          setMainTab("inventory");
+                          setInventoryAddSignal((n) => n + 1);
+                          return;
+                        }
+                        setFormIntakeType(t.key);
+                        setIntakeError("");
+                      }}
+                      className={`py-3 rounded-xl text-sm font-bold border-2 transition ${(formIntakeType as string) === t.key ? t.active : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       {t.label}
                     </button>
