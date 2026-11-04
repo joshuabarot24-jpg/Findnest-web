@@ -607,7 +607,7 @@ function ItemManagementContent() {
       setFormError("");
       setFormLoading(true);
       try {
-        await api.post("/lost-items", {
+        const lostRes = await api.post("/lost-items", {
           item_name: formName.trim(),
           category: formCategory,
           description: formDescription.trim() || null,
@@ -620,10 +620,14 @@ function ItemManagementContent() {
           student_id: formOwner?.id,
           photo_url: formPhotoUrl,
         });
+        const createdLost = lostRes.data?.report;
         setShowAddModal(false);
         resetForm();
         setPage(1);
         setToast(`${formName.trim()} was logged as a lost report.`);
+        if (createdLost) {
+          setLostItems((prev) => [{ ...createdLost, user: formOwner ? { name: formOwner.name, email: formOwner.email } : createdLost.user }, ...prev]);
+        }
         fetchLostItems();
       } catch (err: any) {
         setFormError(err.response?.data?.message || Object.values(err.response?.data?.errors || {}).flat().join(", ") || "Failed to add report.");
@@ -640,7 +644,7 @@ function ItemManagementContent() {
     setFormError("");
     setFormLoading(true);
     try {
-      await api.post("/found-items", {
+      const foundRes = await api.post("/found-items", {
         item_name: formName.trim(),
         category: formCategory,
         description: formDescription.trim() || null,
@@ -656,10 +660,12 @@ function ItemManagementContent() {
         student_name: formIntakeType === "confiscated" ? formStudentName.trim() || null : null,
         violation_notes: formIntakeType === "confiscated" ? formViolationNotes.trim() || null : null,
       });
+      const createdFound = foundRes.data?.record;
       setShowAddModal(false);
       resetForm();
       setPage(1);
       setToast(`${formName.trim()} was added.`);
+      if (createdFound) setFoundItems((prev) => [createdFound, ...prev]);
       fetchFoundItems();
     } catch (err: any) {
       setFormError(err.response?.data?.message || Object.values(err.response?.data?.errors || {}).flat().join(", ") || "Failed to add item.");
@@ -683,11 +689,22 @@ function ItemManagementContent() {
 
   // Admin confirms a student's found item was physically surrendered
   async function handleConfirmReceipt(item: FoundItem) {
+    if (confirmingReceipt) return;
     setConfirmingReceipt(true);
     try {
-      await api.post(`/found-items/${item.id}/confirm-receipt`);
+      const res = await api.post(`/found-items/${item.id}/confirm-receipt`);
+      // Update the row now, from the record the server returned
+      const confirmed = res.data?.record;
+      setFoundItems((prev) =>
+        prev.map((f) =>
+          f.id === item.id
+            ? { ...f, ...(confirmed || {}), receipt_confirmed: true, surrender_deadline: null }
+            : f
+        )
+      );
       setToast(`Receipt confirmed for ${item.item_name}. Matching is now active.`);
       setViewingFoundItem(null);
+      window.dispatchEvent(new Event("findnest:counts-changed"));
       fetchFoundItems();
     } catch (err: any) {
       setToast(err.response?.data?.message || "Failed to confirm receipt.");
