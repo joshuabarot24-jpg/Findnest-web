@@ -291,7 +291,12 @@ function ClaimStatusContent() {
     setAnswersResult(null);
     setQuestionsLoading(true);
     try {
-      const res = await api.get(`/claims/${claim.id}/questions`);
+      let res = await api.get(`/claims/${claim.id}/questions`);
+      // The questions are made in the background right after the claim. Wait 5 seconds, then re-check every 2 seconds
+      for (let i = 0; i < 5 && (res.data.questions || []).length === 0; i++) {
+        await new Promise((r) => setTimeout(r, i === 0 ? 5000 : 2000));
+        res = await api.get(`/claims/${claim.id}/questions`);
+      }
       const fetchedQuestions: Question[] = res.data.questions || [];
       setQuestions(fetchedQuestions);
 
@@ -664,7 +669,10 @@ function ClaimStatusContent() {
             <p className="text-gray-400 text-sm mb-6">Answer these questions to help confirm you&apos;re the true owner</p>
 
             {questionsLoading ? (
-              <div className="text-center py-10 text-gray-400 text-sm">Loading questions...</div>
+              <div className="text-center py-10 text-gray-400 text-sm">
+                <div className="w-6 h-6 mx-auto mb-3 border-4 border-blue-200 border-t-[#1a237e] rounded-full animate-spin" />
+                Generating secret verification questions...
+              </div>
             ) : answeringClaim?.verification_skipped ? (
               <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 text-center">
                 <p className="text-blue-700 font-bold text-sm mb-1">No Questions Needed</p>
@@ -673,7 +681,7 @@ function ClaimStatusContent() {
                 </p>
               </div>
             ) : questions.length === 0 ? (
-              <div className="text-center py-10 text-gray-400 text-sm">No verification questions were generated for this claim.</div>
+              <div className="text-center py-10 text-gray-400 text-sm">Questions could not be generated. Please contact guidance.</div>
             ) : answersResult ? (
               <div className={`rounded-2xl p-6 text-center ${answersResult.correct >= 2 ? "bg-green-50 border border-green-100" : "bg-yellow-50 border border-yellow-100"}`}>
                 <p className={`text-2xl font-black ${answersResult.correct >= 2 ? "text-green-700" : "text-yellow-700"}`}>
