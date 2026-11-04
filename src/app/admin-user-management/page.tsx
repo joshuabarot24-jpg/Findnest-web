@@ -7,6 +7,7 @@ import AuthGate from "@/components/AuthGate";
 import AdminLayout from "@/components/AdminLayout";
 import StudentActivityModal from "@/components/StudentActivityModal";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import { isOverrideActive, OverridePill, OverridePasswordModal } from "@/components/OverrideUi";
 
 interface SystemUser {
   id: number;
@@ -23,6 +24,7 @@ interface SystemUser {
   flagged_for_review?: boolean;
   flag_reason?: string | null;
   manual_override_granted?: boolean;
+  override_expires_at?: string | null;
   profile_photo_url?: string | null;
 }
 
@@ -88,19 +90,34 @@ function AdminUserManagementContent() {
   const [overrideLoading, setOverrideLoading] = useState(true);
   const [resolvingOverrideId, setResolvingOverrideId] = useState<number | null>(null);
   const [togglingOverride, setTogglingOverride] = useState(false);
+  const [pwTarget, setPwTarget] = useState<{ kind: "toggle"; user: SystemUser } | { kind: "approve"; id: number } | null>(null);
+  const [pwError, setPwError] = useState("");
 
   // Turns the Manual AI Override on or off for one student
   async function handleToggleOverride(user: SystemUser) {
+    // Turning it on needs the admin's password. Turning it off does not
+    if (!isOverrideActive(user)) {
+      setPwError("");
+      setPwTarget({ kind: "toggle", user });
+      return;
+    }
+    await submitToggle(user, false);
+  }
+
+  async function submitToggle(user: SystemUser, turnOn: boolean, password?: string) {
     setTogglingOverride(true);
     try {
       const res = await api.post(`/users/${user.id}/toggle-manual-override`, {
-        manual_override_granted: !user.manual_override_granted,
+        manual_override_granted: turnOn,
+        password,
       });
       setUsers((prev) => prev.map((u) => (u.id === user.id ? res.data.user : u)));
       if (viewingUser?.id === user.id) setViewingUser(res.data.user);
       setToast(res.data.message);
-    } catch (err) {
-      setToast("Failed to update override status.");
+      setPwTarget(null);
+    } catch (err: any) {
+      if (turnOn) setPwError(err.response?.data?.message || "Could not enable the override.");
+      else setToast("Failed to update override status.");
     } finally {
       setTogglingOverride(false);
     }
@@ -120,13 +137,24 @@ function AdminUserManagementContent() {
   };
 
   async function handleResolveOverride(id: number, decision: "approve" | "deny") {
+    if (decision === "approve") {
+      setPwError("");
+      setPwTarget({ kind: "approve", id });
+      return;
+    }
+    await submitResolve(id, decision);
+  }
+
+  async function submitResolve(id: number, decision: "approve" | "deny", password?: string) {
     setResolvingOverrideId(id);
     try {
-      await api.post(`/support/${id}/resolve-override`, { decision });
+      await api.post(`/support/${id}/resolve-override`, { decision, password });
       setToast(`Override request ${decision}d.`);
+      setPwTarget(null);
       fetchOverrideRequests();
-    } catch (err) {
-      setToast("Failed to resolve request.");
+    } catch (err: any) {
+      if (decision === "approve") setPwError(err.response?.data?.message || "Could not approve the request.");
+      else setToast("Failed to resolve request.");
     } finally {
       setResolvingOverrideId(null);
     }
@@ -226,6 +254,20 @@ function AdminUserManagementContent() {
         <h1 className="text-3xl font-black text-[#06321C]">User Management</h1>
         <p className="text-gray-400 text-sm mt-1">View student accounts. Accounts are managed by the Super Admin.</p>
       </div>
+
+      {pwTarget && (
+        <OverridePasswordModal
+          title={pwTarget.kind === "toggle" ? "Enable Manual Override" : "Approve Override Request"}
+          busy={togglingOverride || resolvingOverrideId !== null}
+          error={pwError}
+          onCancel={() => setPwTarget(null)}
+          onConfirm={(pw) =>
+            pwTarget.kind === "toggle"
+              ? submitToggle(pwTarget.user, true, pw)
+              : submitResolve(pwTarget.id, "approve", pw)
+          }
+        />
+      )}
 
       {/* Pending manual override requests */}
       {!overrideLoading && overrideRequests.length > 0 && (
@@ -497,14 +539,25 @@ function AdminUserManagementContent() {
             <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl mb-4">
               <div>
                 <p className="font-bold text-gray-700 text-sm">Manual AI Override</p>
-                <p className="text-gray-400 text-xs">{viewingUser.manual_override_granted ? "Active — AI photo analysis is skipped for this student" : "Off — normal AI analysis applies"}</p>
+                <p className="text-gray-400 text-xs">
+                  {isOverrideActive(viewingUser)
+                    ? "AI photo analysis is skipped for this student"
+                    : viewingUser.manual_override_granted
+                    ? "Manual override expired after 24 hours. Turn it on again with your password if needed."
+                    : "Off — normal AI analysis applies"}
+                </p>
+                {isOverrideActive(viewingUser) && viewingUser.override_expires_at && (
+                  <OverridePill expiresAt={viewingUser.override_expires_at} />
+                )}
               </div>
               <button
                 onClick={() => handleToggleOverride(viewingUser)}
                 disabled={togglingOverride}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-50 ${viewingUser.manual_override_granted ? "bg-[#22C55E]" : "bg-[#D1D5DB]"}`}
+                aria-label={isOverrideActive(viewingUser) ? "Disable override now" : "Enable override"}
+                title={isOverrideActive(viewingUser) ? "Disable Override Now" : "Enable override (24 hours)"}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-50 ${isOverrideActive(viewingUser) ? "bg-[#22C55E]" : "bg-[#D1D5DB]"}`}
               >
-                <span className="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200" style={{ transform: `translateX(${viewingUser.manual_override_granted ? 22 : 2}px)` }} />
+                <span className="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200" style={{ transform: `translateX(${isOverrideActive(viewingUser) ? 22 : 2}px)` }} />
               </button>
             </div>
 

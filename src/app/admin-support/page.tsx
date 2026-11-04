@@ -7,6 +7,7 @@ import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import AdminLayout from "@/components/AdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import { OverridePasswordModal } from "@/components/OverrideUi";
 
 const PAGE_SIZE = 5;
 // The first line the backend saves when the admin starts a conversation
@@ -84,6 +85,8 @@ function SupportInboxContent() {
   const [replyText, setReplyText] = useState("");
   const [replySending, setReplySending] = useState(false);
   const [overrideBusy, setOverrideBusy] = useState(false);
+  const [ovPwId, setOvPwId] = useState<number | null>(null);
+  const [ovPwError, setOvPwError] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
   // New message: student search modal, and the student chosen who has no thread yet
@@ -228,10 +231,20 @@ function SupportInboxContent() {
   };
 
   // Approve or deny a manual AI override request from inside the conversation
-  const handleOverride = async (id: number, decision: "approve" | "deny") => {
+  const handleOverride = (id: number, decision: "approve" | "deny") => {
+    if (decision === "approve") {
+      setOvPwError("");
+      setOvPwId(id);
+      return;
+    }
+    submitOverride(id, decision);
+  };
+
+  const submitOverride = async (id: number, decision: "approve" | "deny", password?: string) => {
     setOverrideBusy(true);
     try {
-      const res = await api.post(`/support/${id}/resolve-override`, { decision });
+      const res = await api.post(`/support/${id}/resolve-override`, { decision, password });
+      setOvPwId(null);
       window.dispatchEvent(new Event("findnest:counts-changed"));
       const updated = res.data.data;
       setMessages((prev) =>
@@ -242,9 +255,10 @@ function SupportInboxContent() {
         )
       );
       setToast(decision === "approve" ? "Override approved." : "Override denied.");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error resolving override:", err);
-      setToast("Failed to resolve the request.");
+      if (decision === "approve") setOvPwError(err.response?.data?.message || "Could not approve the request.");
+      else setToast("Failed to resolve the request.");
     } finally {
       setOverrideBusy(false);
     }
@@ -592,6 +606,16 @@ function SupportInboxContent() {
           </div>
         </div>
       </div>
+
+      {ovPwId !== null && (
+        <OverridePasswordModal
+          title="Approve Override Request"
+          busy={overrideBusy}
+          error={ovPwError}
+          onCancel={() => setOvPwId(null)}
+          onConfirm={(pw) => submitOverride(ovPwId, "approve", pw)}
+        />
+      )}
 
       {/* NEW MESSAGE: student search */}
       {composeOpen && (
