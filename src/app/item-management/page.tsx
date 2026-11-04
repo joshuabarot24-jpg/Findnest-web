@@ -81,7 +81,6 @@ const PAGE_SIZE = 5;
 const INTAKE_TYPES = [
   { key: "found_item", label: "Found Item", active: "border-teal-500 bg-teal-50 text-teal-700" },
   { key: "confiscated", label: "Confiscated", active: "border-purple-500 bg-purple-50 text-purple-700" },
-  { key: "lost_item", label: "Lost Item", active: "border-red-500 bg-red-50 text-red-700" },
 ] as const;
 
 const TH = "text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider";
@@ -775,11 +774,10 @@ function ItemManagementContent() {
               return;
             }
             resetForm();
-            if (mainTab === "lost") setFormIntakeType("lost_item");
             if (mainTab === "confiscated") setFormIntakeType("confiscated");
             setShowAddModal(true);
           }}
-          className="flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform"
+          className={`flex items-center gap-2 bg-[#1a237e] hover:bg-[#283593] text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg hover:-translate-y-0.5 transform ${mainTab === "lost" ? "hidden" : ""}`}
         >
           + Add Item
         </button>
