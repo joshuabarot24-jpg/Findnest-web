@@ -1,6 +1,7 @@
 "use client";
 import { useState, useLayoutEffect, ReactNode } from "react";
 import api from "@/lib/api";
+import ForcePasswordScreen from "@/components/ForcePasswordScreen";
 
 interface AuthGateProps {
   allowedRole: "super_admin" | "admin" | "student";
@@ -13,6 +14,8 @@ export default function AuthGate({ allowedRole, children }: AuthGateProps) {
   const [status, setStatus] = useState<"checking" | "ok">(
     verifiedRoleThisSession === allowedRole ? "ok" : "checking"
   );
+
+  const [mustChange, setMustChange] = useState(false);
 
   function checkAuth() {
     const token = localStorage.getItem("findnest_token");
@@ -42,11 +45,10 @@ export default function AuthGate({ allowedRole, children }: AuthGateProps) {
   // Fails open: if the request errors, the student is not blocked.
   async function enforcePasswordChange() {
     if (allowedRole !== "student") return;
-    if (window.location.pathname.startsWith("/profile")) return;
     try {
       const res = await api.get("/profile");
       if (res.data?.user?.password_is_temporary) {
-        window.location.href = "/profile";
+        setMustChange(true);
       }
     } catch {
       // ignore: never trap a student because of a network error
@@ -103,6 +105,17 @@ export default function AuthGate({ allowedRole, children }: AuthGateProps) {
           <p className="text-gray-400 text-sm font-medium">Loading...</p>
         </div>
       </div>
+    );
+  }
+
+  if (mustChange) {
+    return (
+      <ForcePasswordScreen
+        onDone={() => {
+          setMustChange(false);
+          window.location.href = "/student-home";
+        }}
+      />
     );
   }
 
