@@ -212,7 +212,18 @@ export default function StudentLayout({
         </nav>
       </aside>
 
-      <div className="relative lg:ml-60 min-w-0 min-h-screen flex flex-col">
+      <div className="relative lg:ml-60 min-w-0 min-h-screen flex flex-col overflow-hidden">
+        {/* Campus watermark: right side, desaturated, behind everything */}
+         <div
+          aria-hidden="true"
+          className="pointer-events-none select-none absolute top-0 right-0 z-0 h-[700px] w-1/2 overflow-hidden bg-cover bg-right-top bg-no-repeat grayscale opacity-90 mix-blend-multiply"
+          style={{
+            backgroundImage: "url('/images/campus.jpg')",
+            // Exact ellipse size (100% x 100%) from the top right corner: fully transparent at the left and bottom edges
+            WebkitMaskImage: "radial-gradient(ellipse 100% 100% at 100% 0%, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0) 100%)",
+            maskImage: "radial-gradient(ellipse 100% 100% at 100% 0%, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0) 100%)",
+          }}
+        />
           <header className={`${hideHeader ? "lg:hidden" : ""} flex items-center justify-between lg:justify-end gap-4 px-4 sm:px-6 pt-5 pb-2 lg:absolute lg:top-0 lg:right-0 lg:z-40`}>
           <button onClick={() => setOpen(true)} aria-label="Open menu" className="lg:hidden text-[#0E4D34] text-2xl leading-none">&#9776;</button>
           <div className="flex items-center gap-1 h-10">
@@ -332,7 +343,7 @@ export default function StudentLayout({
             </div>
           </div>
         </header>
-        <main className={`flex-1 flex flex-col px-4 sm:px-6 pb-6 ${hideHeader ? "lg:pt-5" : "lg:pt-20"}`}>{children}</main>
+          <main className={`relative z-10 flex-1 flex flex-col px-4 sm:px-6 pb-6 ${hideHeader ? "lg:pt-5" : "lg:pt-20"}`}>{children}</main>
       </div>
     </div>
   );
