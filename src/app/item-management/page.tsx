@@ -30,7 +30,7 @@ function filterLettersOnly(value: string) {
   return value.replace(/[^A-Za-z\s.'-]/g, "");
 }
 
-type ItemStatus = "unclaimed" | "claimed" | "for_disposal" | "disposed" | "confiscated" | "found_item" | "others";
+type ItemStatus = "unclaimed" | "claimed" | "for_disposal" | "disposed" | "confiscated" | "found_item" | "others" | "waiting_for_surrender" | "unsurrendered_expired";
 type LostStatus = "searching" | "matched" | "returned";
 
 interface FoundItem {
@@ -93,6 +93,8 @@ function statusStyles(status: string) {
     case "unclaimed": return { dot: "bg-blue-500", badge: "bg-blue-50 text-blue-700", label: "Unclaimed" };
     case "confiscated": return { dot: "bg-purple-500", badge: "bg-purple-50 text-purple-700", label: "Confiscated" };
     case "others": return { dot: "bg-gray-500", badge: "bg-gray-100 text-gray-700", label: "Others" };
+    case "waiting_for_surrender": return { dot: "bg-amber-500", badge: "bg-amber-50 text-amber-700", label: "Waiting for Surrender" };
+    case "unsurrendered_expired": return { dot: "bg-gray-400", badge: "bg-gray-100 text-gray-500", label: "Post Discarded" };
     case "found_item": return { dot: "bg-teal-500", badge: "bg-teal-50 text-teal-700", label: "Found Item" };
     case "searching": return { dot: "bg-yellow-500", badge: "bg-yellow-50 text-yellow-700", label: "Searching" };
     case "matched": return { dot: "bg-indigo-500", badge: "bg-indigo-50 text-indigo-700", label: "Matched" };
@@ -439,7 +441,8 @@ function ItemManagementContent() {
 
   // Aged items: flagged by the daily job (10+ days) or waiting for the 30-day disposal record
   // Reported by a student but not physically received yet
-  const isWaiting = (i: FoundItem) => i.status === "unclaimed" && i.receipt_confirmed === false;
+  const isWaiting = (i: FoundItem) =>
+    i.status === "waiting_for_surrender" || (i.status === "unclaimed" && i.receipt_confirmed === false);
   const waitingItems = useMemo(() => foundItems.filter(isWaiting), [foundItems]);
   const isAged = (i: FoundItem) =>
     i.status === "unclaimed" && i.receipt_confirmed !== false && (!!i.needs_disposal_review || !!i.unclaimed_flagged_at);
