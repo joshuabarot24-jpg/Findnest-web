@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "@/lib/api";
 
 const RULES = [
@@ -35,6 +35,28 @@ export default function ForcePasswordScreen({ onDone }: { onDone: () => void }) 
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [code, setCode] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+  const [codeSent, setCodeSent] = useState(false);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  async function sendCode() {
+    if (cooldown > 0) return;
+    setError("");
+    try {
+      await api.post("/profile/send-password-otp");
+      setCodeSent(true);
+      setCooldown(60);
+    } catch (err: any) {
+      if (err.response?.status === 429) setCooldown(Math.ceil(err.response.data?.retry_after || 60));
+      setError(err.response?.data?.message || "Could not send the code. Please try again.");
+    }
+  }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -44,10 +66,11 @@ export default function ForcePasswordScreen({ onDone }: { onDone: () => void }) 
   async function submit() {
     if (!allOk) return setError("Your password does not meet all the rules below.");
     if (pw !== confirm) return setError("The two passwords do not match.");
+    if (!/^\d{6}$/.test(code)) return setError("Enter the 6-digit verification code sent to your email.");
     setError("");
     setBusy(true);
     try {
-      await api.post("/profile/set-new-password", { new_password: pw, new_password_confirmation: confirm });
+      await api.post("/profile/set-new-password", { new_password: pw, new_password_confirmation: confirm, otp_code: code });
       setSuccess(true);
       setTimeout(onDone, 1800);
     } catch (err: any) {
@@ -122,6 +145,28 @@ export default function ForcePasswordScreen({ onDone }: { onDone: () => void }) 
                   <EyeIcon off={showConfirm} />
                 </button>
               </div>
+
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mt-5 mb-1">Email Verification Code</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="000000"
+                  className="flex-1 min-w-0 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none text-lg text-gray-800 tracking-[0.5em] text-center font-bold"
+                />
+                <button
+                  type="button"
+                  onClick={sendCode}
+                  disabled={cooldown > 0}
+                  className="shrink-0 px-3 py-2.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] text-xs font-bold hover:bg-[#E8F5E9] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {cooldown > 0 ? `Send again in ${cooldown}s` : codeSent ? "Resend Code" : "Send Verification Code"}
+                </button>
+              </div>
+              {codeSent && <p className="text-xs text-green-600 font-semibold mt-2">A 6-digit verification code has been sent to your registered email address.</p>}
 
               {error && (
                 <div role="alert" className="mt-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-xs font-semibold">{error}</div>
