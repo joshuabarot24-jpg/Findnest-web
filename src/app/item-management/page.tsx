@@ -215,6 +215,10 @@ function ItemManagementContent() {
   const [viewingFoundItem, setViewingFoundItem] = useState<FoundItem | null>(null);
   const [viewingLostItem, setViewingLostItem] = useState<LostItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<FoundItem | null>(null);
+  const [deleteAck, setDeleteAck] = useState(false);
+  useEffect(() => {
+    setDeleteAck(false);
+  }, [deletingItem]);
   const [documentingDisposal, setDocumentingDisposal] = useState<FoundItem | null>(null);
   const [disposalNotes, setDisposalNotes] = useState("");
   const [disposalSubmitting, setDisposalSubmitting] = useState(false);
@@ -686,7 +690,7 @@ function ItemManagementContent() {
   async function handleDeleteConfirm() {
     if (!deletingItem) return;
     try {
-      await api.delete(`/found-items/${deletingItem.id}`);
+      await api.delete(`/found-items/${deletingItem.id}`, { data: { confirmed: true } });
       setToast(`${deletingItem.item_name} was deleted.`);
       window.dispatchEvent(new Event("findnest:counts-changed"));
       setDeletingItem(null);
@@ -694,6 +698,7 @@ function ItemManagementContent() {
       fetchFoundItems();
     } catch (err) {
       console.error("Error deleting item:", err);
+      setToast((err as any)?.response?.data?.message || "Could not remove the item.");
     }
   }
 
@@ -1445,13 +1450,30 @@ function ItemManagementContent() {
       {deletingItem && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-black text-[#1a237e] mb-2">Delete This Item?</h2>
-            <p className="text-gray-400 text-sm mb-8">
-              {deletingItem.item_name} will be permanently removed. This cannot be undone.
+            <h2 className="text-xl font-black text-[#1a237e] mb-2">Confirm Item Removal</h2>
+            <p className="text-gray-500 text-sm mb-4 text-left leading-relaxed">
+              You are about to remove{" "}
+              <span className="font-black text-[#1a237e] bg-blue-50 px-1.5 py-0.5 rounded">{deletingItem.item_name}</span>{" "}
+              from active Item Management. Please confirm that this deletion complies with guidance inventory policies. While an archived entry will be permanently preserved in the Digital Records for audit compliance, active tracking and public claim matching for this item will be terminated.
             </p>
+            <label className="flex items-start gap-3 text-left text-xs text-gray-600 font-semibold mb-6 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteAck}
+                onChange={(e) => setDeleteAck(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#1a237e]"
+              />
+              <span>I confirm this deletion complies with institutional policies and acknowledge it will be archived in Digital Records.</span>
+            </label>
             <div className="flex gap-3">
               <button onClick={() => setDeletingItem(null)} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
-              <button onClick={handleDeleteConfirm} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-2xl transition">Delete</button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={!deleteAck}
+                className={`flex-1 text-white font-bold py-3 rounded-2xl transition ${deleteAck ? "bg-red-600 hover:bg-red-700 cursor-pointer" : "bg-red-300 cursor-not-allowed"}`}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
