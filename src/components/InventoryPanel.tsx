@@ -174,7 +174,11 @@ export default function InventoryPanel({
       setFormError("Item name must start with a letter and contain at least 3 letters.");
       return;
     }
-    if (location.trim() && !/[A-Za-z]/.test(location)) {
+    if (!location.trim()) {
+      setFormError("Location is required.");
+      return;
+    }
+    if (!/[A-Za-z]/.test(location)) {
       setFormError("Location must be a descriptive location (e.g., 'Shelf 1' or 'Main Office') and cannot be purely numbers.");
       return;
     }
@@ -420,7 +424,7 @@ export default function InventoryPanel({
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Location / Storage Room</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Location / Storage Room <span className="text-red-500">*</span></label>
                 <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Guidance Stockroom, Shelf A" className={inputCls} />
               </div>
               {formError && (
