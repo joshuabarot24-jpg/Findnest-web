@@ -156,9 +156,14 @@ function ClaimStatusContent() {
 
   const handleClaimPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    e.target.value = "";
     if (files.length === 0) return;
+    const tooBig = files.filter((f) => f.size > 5 * 1024 * 1024);
+    if (tooBig.length > 0) {
+      setClaimError("Each photo must be 5 MB or smaller. Please choose a smaller photo.");
+    }
     const remainingSlots = CLAIM_MAX_PHOTOS - claimPhotos.length;
-    const filesToAdd = files.slice(0, remainingSlots);
+    const filesToAdd = files.filter((f) => f.size <= 5 * 1024 * 1024).slice(0, remainingSlots);
     if (filesToAdd.length === 0) return;
 
     const startIndex = claimPhotos.length;
@@ -200,8 +205,8 @@ function ClaimStatusContent() {
 
   const handleSubmitClaim = async () => {
     if (!claimingMatch) return;
-    if (!proofDescription.trim()) {
-      setClaimError("Please describe why you believe this item is yours.");
+    if (claimUploadedUrls.length === 0) {
+      setClaimError("Please add at least one evidence photo.");
       return;
     }
 
@@ -210,7 +215,7 @@ function ClaimStatusContent() {
     try {
       await api.post("/claims", {
         match_id: claimingMatch.id,
-        proof_description: proofDescription.trim(),
+        proof_description: proofDescription.trim() || null,
         proof_photo_url: claimUploadedUrls[0] || null,
         proof_photo_urls: claimUploadedUrls,
       });
@@ -528,28 +533,30 @@ function ClaimStatusContent() {
               &times;
             </button>
 
-            <h2 className="text-xl font-black text-[#0E4D34] mb-1">Submit Claim</h2>
+            <h2 className="text-xl font-black text-[#0E4D34] mb-1">Submit Ownership Proof</h2>
             <p className="text-gray-400 text-sm mb-6">
               For your reported &quot;{claimingMatch.lost_item.item_name}&quot;
             </p>
 
             <div className="bg-[#E3EEE7] border border-[#B9CBBF] rounded-xl p-4 mb-5">
               <p className="text-[#1E3F2E] text-xs leading-relaxed">
-                Describe specific details only the true owner would know (color, brand, scratches, stickers, contents). You will also be asked a few verification questions after submitting.
+                To verify your claim, please upload photos or digital evidence demonstrating your ownership of this item (e.g., photos showing you with the item, receipts, serial numbers, or unique identifying features). You will also be asked a few verification questions after submitting.
               </p>
             </div>
 
-            <label className="block text-sm font-bold text-gray-600 mb-2">Your Description</label>
-            <textarea
+            <label className="block text-sm font-bold text-gray-600 mb-2">Evidence Note (Optional)</label>
+            <input
+              type="text"
               value={proofDescription}
-              onChange={(e) => setProofDescription(e.target.value)}
-              placeholder="Describe why you believe this item belongs to you..."
-              rows={4}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700 resize-none mb-4"
+              onChange={(e) => setProofDescription(e.target.value.slice(0, 100))}
+              maxLength={100}
+              placeholder="e.g., Picture of me with the item taken last month"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700 mb-1"
             />
+            <p className="text-right text-[11px] text-gray-400 mb-4">{proofDescription.length}/100</p>
 
             <label className="block text-sm font-bold text-gray-600 mb-2">
-              Evidence Photos (Optional)
+              Ownership Evidence Photos <span className="text-red-500">*</span>
               <span className="text-gray-400 font-normal text-xs ml-1">(up to {CLAIM_MAX_PHOTOS})</span>
             </label>
 
@@ -558,7 +565,7 @@ function ClaimStatusContent() {
                 {claimPhotos.map((p, idx) => (
                   <div key={idx} className="relative">
                     <div className="w-full aspect-square rounded-xl overflow-hidden bg-gray-100 border-2 border-gray-200">
-                      <img src={p.preview} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={p.preview} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover" title={`Evidence ${idx + 1}`} />
                       {p.uploading && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -583,7 +590,7 @@ function ClaimStatusContent() {
               <label className="block cursor-pointer mb-4">
                 <div className="border-2 border-dashed border-gray-200 hover:border-[#0E4D34] rounded-xl p-4 text-center transition">
                   <p className="text-gray-400 text-xs">
-                    {claimPhotos.length === 0 ? "Click to add evidence photos" : `Add more (${CLAIM_MAX_PHOTOS - claimPhotos.length} left)`}
+                    {claimPhotos.length === 0 ? "Drag and drop ownership evidence photos here, or click to browse" : `Add more (${CLAIM_MAX_PHOTOS - claimPhotos.length} left)`}
                   </p>
                 </div>
                 <input type="file" accept="image/*" multiple onChange={handleClaimPhotoUpload} disabled={claimAnyUploading} className="hidden" />
@@ -594,10 +601,10 @@ function ClaimStatusContent() {
 
             <button
               onClick={handleSubmitClaim}
-              disabled={claimSubmitting || claimAnyUploading}
-              className="w-full bg-[#0E4D34] hover:bg-[#0A3021] text-white font-black py-3.5 rounded-xl transition disabled:opacity-50"
+              disabled={claimSubmitting || claimAnyUploading || claimUploadedUrls.length === 0}
+              className="w-full bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-black py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {claimSubmitting ? "Submitting..." : claimAnyUploading ? "Uploading photos..." : "Submit Claim"}
+              {claimSubmitting ? "Submitting..." : claimAnyUploading ? "Uploading photos..." : "Submit Claim Verification"}
             </button>
           </div>
         </div>

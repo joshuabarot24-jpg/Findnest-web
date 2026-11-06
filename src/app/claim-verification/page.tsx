@@ -627,8 +627,8 @@ function ClaimVerificationContent() {
                   onClick={() => setViewingEvidence(viewingClaim)}
                   className="w-full flex flex-wrap items-center justify-between gap-2 py-2 border-b border-gray-200 hover:bg-blue-50 transition rounded-lg px-2 -mx-2 text-left"
                 >
-                  <span className="text-sm text-gray-600 font-medium">Layer 3 &mdash; Evidence Photo + Description <span className="text-blue-500 text-xs">(click to see evidence)</span></span>
-                  <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">{viewingClaim.proof_description ? "Submitted" : "Not Submitted"}</span>
+                  <span className="text-sm text-gray-600 font-medium">Layer 3 &mdash; Evidence Photos + Note <span className="text-blue-500 text-xs">(click to see evidence)</span></span>
+                  <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">{viewingClaim.proof_description || viewingClaim.proof_photo_url || (viewingClaim.proof_photo_urls && viewingClaim.proof_photo_urls.length > 0) ? "Submitted" : "Not Submitted"}</span>
                 </button>
                 <button
                   onClick={() => setComparingClaim(viewingClaim)}
@@ -833,7 +833,7 @@ function ClaimVerificationContent() {
 
             <p className="text-xs font-bold text-gray-400 uppercase mb-2">Claimant&apos;s Written Description</p>
             <p className="text-gray-700 bg-gray-50 rounded-xl p-4 text-sm leading-relaxed mb-4">
-              {viewingEvidence.proof_description || "No description provided."}
+              {viewingEvidence.proof_description || "No note provided."}
             </p>
 
             <button
