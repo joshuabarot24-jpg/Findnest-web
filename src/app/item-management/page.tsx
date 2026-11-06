@@ -1233,8 +1233,14 @@ function ItemManagementContent() {
 
       {/* View found item */}
       {viewingFoundItem && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
+          onClick={() => setViewingFoundItem(null)}
+        >
+          <div
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button onClick={() => setViewingFoundItem(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-5 flex items-center justify-center">
               {viewingFoundItem.photo_url ? (
@@ -1330,7 +1336,17 @@ function ItemManagementContent() {
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setDeletingItem(viewingFoundItem)} className="flex-1 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-bold py-3 rounded-2xl transition">Delete</button>
-              <button onClick={() => setViewingFoundItem(null)} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition">Close</button>
+              {viewingFoundItem.receipt_confirmed === false ? (
+                <button
+                  onClick={() => handleConfirmReceipt(viewingFoundItem)}
+                  disabled={confirmingReceipt}
+                  className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+                >
+                  {confirmingReceipt ? "Confirming..." : "Confirm Physical Receipt"}
+                </button>
+              ) : (
+                <button onClick={() => setViewingFoundItem(null)} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition">Close</button>
+              )}
             </div>
           </div>
         </div>
