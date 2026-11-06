@@ -64,6 +64,10 @@ export default function InventoryPanel({
   const [formError, setFormError] = useState("");
 
   const [deleting, setDeleting] = useState<InventoryItem | null>(null);
+  const [deleteAck, setDeleteAck] = useState(false);
+  useEffect(() => {
+    setDeleteAck(false);
+  }, [deleting]);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
@@ -220,7 +224,7 @@ export default function InventoryPanel({
     if (!deleting) return;
     setDeleteBusy(true);
     try {
-      await api.delete(`/inventory/${deleting.id}`);
+      await api.delete(`/inventory/${deleting.id}`, { data: { confirmed: true } });
       setItems((prev) => prev.filter((i) => i.id !== deleting.id));
       setDeleting(null);
       setToast("Inventory item deleted.");
@@ -445,12 +449,29 @@ export default function InventoryPanel({
       {deleting && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 px-4" onClick={() => setDeleting(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-black text-[#1a237e] mb-2">Delete This Item?</h2>
-            <p className="text-gray-500 text-sm mb-5">&quot;{deleting.name}&quot; will be removed from the inventory.</p>
+            <h2 className="text-lg font-black text-[#1a237e] mb-3">Confirm Inventory Item Removal</h2>
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-4 text-left text-sm space-y-1">
+              <p><span className="text-gray-400">Item:</span> <span className="font-black text-[#1a237e]">{deleting.name}</span></p>
+              <p><span className="text-gray-400">Category:</span> <span className="font-semibold text-gray-700">{deleting.category}</span></p>
+              <p><span className="text-gray-400">Quantity:</span> <span className="font-semibold text-gray-700">{deleting.quantity}</span></p>
+              <p><span className="text-gray-400">Location:</span> <span className="font-semibold text-gray-700">{deleting.location || "Not set"}</span></p>
+            </div>
+            <p className="text-gray-500 text-sm mb-4 text-left leading-relaxed">
+              You are about to remove this item from the active campus inventory. This action will archive the record into <span className="font-bold">Digital Records</span> for auditing purposes and deduct it from the active stock count.
+            </p>
+            <label className="flex items-start gap-3 text-left text-xs text-gray-600 font-semibold mb-5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteAck}
+                onChange={(e) => setDeleteAck(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#1a237e]"
+              />
+              <span>I confirm that this item is being removed in accordance with campus inventory guidelines.</span>
+            </label>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setDeleting(null)} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition text-sm">Cancel</button>
-              <button type="button" onClick={handleDelete} disabled={deleteBusy} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl transition text-sm disabled:opacity-50">
-                {deleteBusy ? "Deleting..." : "Delete"}
+              <button type="button" onClick={() => setDeleting(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">Cancel</button>
+              <button type="button" onClick={handleDelete} disabled={deleteBusy || !deleteAck} className={`flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition text-sm ${deleteBusy || !deleteAck ? "opacity-50 cursor-not-allowed" : ""}`}>
+                {deleteBusy ? "Deleting..." : "Delete Item"}
               </button>
             </div>
           </div>
