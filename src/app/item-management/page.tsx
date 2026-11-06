@@ -1328,12 +1328,12 @@ function ItemManagementContent() {
               )}
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setDeletingItem(viewingFoundItem)} className="flex-1 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-bold py-3 rounded-2xl transition">Delete</button>
+              <button onClick={() => setDeletingItem(viewingFoundItem)} className="flex-1 inline-flex items-center justify-center h-12 px-6 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 font-semibold text-sm tracking-wide leading-none antialiased rounded-xl transition-colors duration-200">Delete</button>
               {viewingFoundItem.receipt_confirmed === false ? (
                 <button
                   onClick={() => handleConfirmReceipt(viewingFoundItem)}
                   disabled={confirmingReceipt}
-                  className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center h-12 px-6 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 text-white font-semibold text-sm tracking-wide leading-none antialiased rounded-xl shadow-sm transition-colors duration-200 disabled:opacity-50"
                 >
                   {confirmingReceipt ? "Confirming..." : "Confirm Physical Receipt"}
                 </button>
