@@ -278,7 +278,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 lg:grid-cols-[18rem_minmax(0,1fr)] gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-8">
                     {/* Photo upload box */}
                     <div>
                       <div className="rounded-2xl bg-[#D8E6DF] p-5 flex flex-col items-center justify-center text-center min-h-[20rem] h-full">
