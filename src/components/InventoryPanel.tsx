@@ -46,7 +46,6 @@ export default function InventoryPanel({
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | InvStatus>("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange>("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
@@ -100,8 +99,6 @@ export default function InventoryPanel({
     const standard = CATEGORIES.filter((c) => c !== "Others");
 
     const list = items.filter((i) => {
-      if (statusFilter !== "all" && i.status !== statusFilter) return false;
-
       if (categoryFilter === "Others") {
         if (standard.includes(i.category)) return false;
       } else if (categoryFilter !== "all" && i.category !== categoryFilter) {
@@ -131,7 +128,7 @@ export default function InventoryPanel({
       const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       return sortOrder === "oldest" ? diff : -diff;
     });
-  }, [items, search, statusFilter, categoryFilter, dateRange, sortOrder]);
+  }, [items, search, categoryFilter, dateRange, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
