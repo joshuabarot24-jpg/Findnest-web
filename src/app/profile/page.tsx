@@ -52,21 +52,9 @@ function ProfileContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [reason, setReason] = useState("");
-  const [requestLoading, setRequestLoading] = useState(false);
-  const [requestError, setRequestError] = useState("");
-  const [requestSuccess, setRequestSuccess] = useState("");
-
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [photoDrag, setPhotoDrag] = useState(false);
-
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [setPasswordLoading, setSetPasswordLoading] = useState(false);
-  const [setPasswordError, setSetPasswordError] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailInput, setEmailInput] = useState("");
@@ -130,70 +118,6 @@ function ProfileContent() {
       setPhotoError("Could not remove the photo.");
     } finally {
       setPhotoBusy(false);
-    }
-  };
-
-  const handleRequestPasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reason.trim()) {
-      setRequestError("Please tell us why you need a password change.");
-      return;
-    }
-    setRequestError("");
-    setRequestSuccess("");
-    setRequestLoading(true);
-    try {
-      await api.post("/profile/request-password-change", { reason: reason.trim() });
-      setRequestSuccess("Your request has been sent to the Super Admin.");
-      setToast("Password change request sent.");
-      setReason("");
-      fetchProfile();
-    } catch (err: any) {
-      setRequestError(err.response?.data?.message || "Failed to send request.");
-    } finally {
-      setRequestLoading(false);
-    }
-  };
-
-  const handleSetNewPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPassword || !confirmPassword) {
-      setSetPasswordError("Please fill in both fields.");
-      return;
-    }
-    if (
-      newPassword.length < 8 ||
-      !/[A-Z]/.test(newPassword) ||
-      !/[a-z]/.test(newPassword) ||
-      !/[0-9]/.test(newPassword) ||
-      !/[^A-Za-z0-9]/.test(newPassword)
-    ) {
-      setSetPasswordError("Password must be 8+ characters with an uppercase letter, a lowercase letter, a number and a special character.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setSetPasswordError("Passwords do not match.");
-      return;
-    }
-    setSetPasswordError("");
-    setSetPasswordLoading(true);
-    try {
-      await api.post("/profile/set-new-password", {
-        new_password: newPassword,
-        new_password_confirmation: confirmPassword,
-      });
-      setToast("Password changed successfully.");
-      setNewPassword("");
-      setConfirmPassword("");
-      fetchProfile();
-    } catch (err: any) {
-      setSetPasswordError(
-        err.response?.data?.message ||
-          Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
-          "Failed to change password."
-      );
-    } finally {
-      setSetPasswordLoading(false);
     }
   };
 
