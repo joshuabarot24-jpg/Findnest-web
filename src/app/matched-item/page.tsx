@@ -66,8 +66,12 @@ export default function MatchedItemPage() {
 
   const handleClaimPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    e.target.value = "";
     if (files.length === 0) return;
-    const filesToAdd = files.slice(0, CLAIM_MAX_PHOTOS - claimPhotos.length);
+    if (files.some((f) => f.size > 5 * 1024 * 1024)) {
+      setClaimError("Each photo must be 5 MB or smaller. Please choose a smaller photo.");
+    }
+    const filesToAdd = files.filter((f) => f.size <= 5 * 1024 * 1024).slice(0, CLAIM_MAX_PHOTOS - claimPhotos.length);
     if (filesToAdd.length === 0) return;
 
     const startIndex = claimPhotos.length;
@@ -104,8 +108,8 @@ export default function MatchedItemPage() {
 
   const handleSubmitClaim = async () => {
     if (!matchId) return;
-    if (!proofDescription.trim()) {
-      setClaimError("Please describe why you believe this item is yours.");
+    if (claimUploadedUrls.length === 0) {
+      setClaimError("Please add at least one evidence photo.");
       return;
     }
     setClaimError("");
@@ -113,7 +117,7 @@ export default function MatchedItemPage() {
     try {
       await api.post("/claims", {
         match_id: Number(matchId),
-        proof_description: proofDescription.trim(),
+        proof_description: proofDescription.trim() || null,
         proof_photo_url: claimUploadedUrls[0] || null,
         proof_photo_urls: claimUploadedUrls,
       });
@@ -200,20 +204,23 @@ export default function MatchedItemPage() {
               </div>
             ) : (
               <div className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm p-6">
-                <label className="block text-sm font-bold text-gray-700 mb-2">Your Description</label>
-                <p className="text-gray-500 text-xs mb-3">
-                  Describe specific details only the true owner would know. You&apos;ll also answer a few verification questions after submitting.
+                <h2 className="text-lg font-black text-[#0E4D34] mb-1">Submit Ownership Proof</h2>
+                <p className="text-gray-500 text-xs mb-4">
+                  To verify your claim, please upload photos or digital evidence demonstrating your ownership of this item (e.g., photos showing you with the item, receipts, serial numbers, or unique identifying features). You&apos;ll also answer a few verification questions after submitting.
                 </p>
-                <textarea
+                <label className="block text-sm font-bold text-gray-700 mb-2">Evidence Note (Optional)</label>
+                <input
+                  type="text"
                   value={proofDescription}
-                  onChange={(e) => setProofDescription(e.target.value)}
-                  placeholder="Describe why you believe this item belongs to you..."
-                  rows={4}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700 resize-none mb-4"
+                  onChange={(e) => setProofDescription(e.target.value.slice(0, 100))}
+                  maxLength={100}
+                  placeholder="e.g., Picture of me with the item taken last month"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700 mb-1"
                 />
+                <p className="text-right text-[11px] text-gray-400 mb-4">{proofDescription.length}/100</p>
 
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Evidence Photos (Optional)
+                  Ownership Evidence Photos <span className="text-red-500">*</span>
                   <span className="text-gray-400 font-normal text-xs ml-1">(up to {CLAIM_MAX_PHOTOS})</span>
                 </label>
 
@@ -246,7 +253,7 @@ export default function MatchedItemPage() {
                 {claimPhotos.length < CLAIM_MAX_PHOTOS && (
                   <label className="block cursor-pointer mb-4">
                     <div className="border-2 border-dashed border-gray-200 hover:border-[#0E4D34] rounded-xl p-4 text-center transition">
-                      <p className="text-gray-400 text-xs">Click to add evidence photos</p>
+                      <p className="text-gray-400 text-xs">Drag and drop ownership evidence photos here, or click to browse</p>
                     </div>
                     <input type="file" accept="image/*" multiple onChange={handleClaimPhotoUpload} disabled={claimAnyUploading} className="hidden" />
                   </label>
@@ -260,10 +267,10 @@ export default function MatchedItemPage() {
                   </button>
                   <button
                     onClick={handleSubmitClaim}
-                    disabled={claimSubmitting || claimAnyUploading}
-                    className="flex-1 bg-[#0E4D34] hover:bg-[#0A3021] text-white font-black py-3 rounded-full transition disabled:opacity-50"
+                    disabled={claimSubmitting || claimAnyUploading || claimUploadedUrls.length === 0}
+                    className="flex-1 bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-black py-3 rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {claimSubmitting ? "Submitting..." : claimAnyUploading ? "Uploading..." : "Submit Claim"}
+                    {claimSubmitting ? "Submitting..." : claimAnyUploading ? "Uploading..." : "Submit Claim Verification"}
                   </button>
                 </div>
               </div>
