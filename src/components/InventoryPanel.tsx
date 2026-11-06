@@ -173,12 +173,16 @@ export default function InventoryPanel({
 
   async function handleSave() {
     const qty = Number(quantity);
-    if (!name.trim()) {
-      setFormError("Item name is required.");
+    if ((name.match(/[A-Za-z]/g) || []).length < 3) {
+      setFormError("Item name must contain letters and be at least 3 characters long.");
       return;
     }
-    if (!Number.isInteger(qty) || qty < 0) {
-      setFormError("Quantity must be a whole number, 0 or more.");
+    if (location.trim() && !/[A-Za-z]/.test(location)) {
+      setFormError("Location must be a descriptive location (e.g., 'Shelf 1' or 'Main Office') and cannot be purely numbers.");
+      return;
+    }
+    if (!Number.isInteger(qty) || qty < 1) {
+      setFormError("Quantity must be at least 1.");
       return;
     }
     setFormError("");
@@ -189,7 +193,6 @@ export default function InventoryPanel({
       category,
       quantity: qty,
       location: location.trim() || null,
-      status,
     };
     try {
       if (editing) {
@@ -239,12 +242,10 @@ export default function InventoryPanel({
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         {[
           { label: "Total Items", value: counts.total, color: "text-gray-700" },
-          { label: "In Stock", value: counts.in_stock, color: "text-green-600" },
-          { label: "In Use", value: counts.in_use, color: "text-blue-600" },
-          { label: "Disposed", value: counts.disposed, color: "text-gray-400" },
+          { label: "Total Units", value: items.reduce((n, i) => n + i.quantity, 0), color: "text-green-600" },
         ].map((c) => (
           <div key={c.label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
             <p className="text-gray-400 text-xs font-medium">{c.label}</p>
@@ -260,12 +261,6 @@ export default function InventoryPanel({
             <p className="text-gray-400 text-xs mt-0.5">Office stock and supplies. Separate from lost and found, matching, and claims.</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as "all" | InvStatus); setPage(1); }} className={selectCls}>
-              <option value="all">All Statuses</option>
-              <option value="in_stock">In Stock</option>
-              <option value="in_use">In Use</option>
-              <option value="disposed">Disposed</option>
-            </select>
             <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }} className={selectCls}>
               <option value="all">All Categories</option>
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -309,7 +304,6 @@ export default function InventoryPanel({
                   <th className="px-4 py-3">Qty</th>
                   <th className="px-4 py-3">Date Logged</th>
                   <th className="px-4 py-3">Location</th>
-                  <th className="px-4 py-3">Status</th>
                   <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -324,11 +318,6 @@ export default function InventoryPanel({
                     <td className="px-4 py-4 text-sm font-bold text-gray-700">{i.quantity}</td>
                     <td className="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">{formatDate(i.created_at)}</td>
                     <td className="px-4 py-4 text-sm text-gray-600">{i.location || "-"}</td>
-                    <td className="px-4 py-4">
-                      <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full border ${STATUS[i.status].cls}`}>
-                        {STATUS[i.status].label}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => openEdit(i)}
@@ -430,22 +419,13 @@ export default function InventoryPanel({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Quantity</label>
-                  <input type="number" min={0} value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputCls} />
+                  <input type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputCls} />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Location / Storage Room</label>
                 <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Guidance Stockroom, Shelf A" className={inputCls} />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Status</label>
-                <select value={status} onChange={(e) => setStatus(e.target.value as InvStatus)} className={inputCls}>
-                  <option value="in_stock">In Stock</option>
-                  <option value="in_use">In Use</option>
-                  <option value="disposed">Disposed</option>
-                </select>
-              </div>
-
               {formError && (
                 <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-xs font-semibold">{formError}</div>
               )}
