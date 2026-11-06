@@ -170,8 +170,8 @@ export default function InventoryPanel({
 
   async function handleSave() {
     const qty = Number(quantity);
-    if ((name.match(/[A-Za-z]/g) || []).length < 3) {
-      setFormError("Item name must contain letters and be at least 3 characters long.");
+    if (!/^[A-Za-z](?:.*[A-Za-z]){2}/.test(name.trim())) {
+      setFormError("Item name must start with a letter and contain at least 3 letters.");
       return;
     }
     if (location.trim() && !/[A-Za-z]/.test(location)) {
