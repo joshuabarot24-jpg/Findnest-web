@@ -813,7 +813,7 @@ function StudentHomeContent() {
           onClick={closeReport}
         >
           <div
-            className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#F2F8F5] shadow-2xl cursor-default"
+            className="relative w-full max-w-5xl mx-4 md:mx-auto max-h-[90vh] overflow-y-auto rounded-3xl bg-[#F2F8F5] shadow-2xl cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             <button
