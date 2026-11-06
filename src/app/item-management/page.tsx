@@ -1261,13 +1261,6 @@ function ItemManagementContent() {
                     <> Deadline: {formatDateTime(viewingFoundItem.surrender_deadline)}</>
                   )}
                 </p>
-                <button
-                  onClick={() => handleConfirmReceipt(viewingFoundItem)}
-                  disabled={confirmingReceipt}
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
-                >
-                  {confirmingReceipt ? "Confirming..." : "Confirm Physical Receipt"}
-                </button>
               </div>
             )}
 
