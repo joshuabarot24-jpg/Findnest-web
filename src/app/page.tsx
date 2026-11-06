@@ -190,6 +190,15 @@ export default function Home() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
+  // The navbar gets a frosted look once the page is scrolled
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 10);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Forgot password, shown inside the same modal card
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -555,7 +564,7 @@ export default function Home() {
       )}
 
       {/* Floating glass navbar */}
-            <nav className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-screen-2xl flex items-center justify-between px-4 sm:px-6 py-3 rounded-full backdrop-blur-md bg-white/70 shadow-sm border border-white/50">
+      <nav className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-screen-2xl flex items-center justify-between px-4 sm:px-6 rounded-full backdrop-blur-md shadow-sm transition-all duration-300 ease-in-out ${isScrolled ? "py-2 bg-[#F1F7F4]/80 border border-slate-200/50" : "py-3 bg-white/70 border border-white/50"}`}>
         <a href="#top" className="flex items-center gap-2 hover:opacity-80 transition">
           <Image src="/images/findnest-logo.png" alt="FindNest logo" width={36} height={36} className="rounded-lg" />
           <span className="text-xl font-black text-[#0D5C3A] tracking-wide">FINDNEST</span>
@@ -841,7 +850,6 @@ export default function Home() {
               >
                 Facebook
               </a>
-              <span className="text-emerald-100/80 text-sm font-medium">0917 700 4758</span>
               <span className="text-emerald-100/80 text-sm font-medium">sjdmcornerstonecollege.inc@gmail.com</span>
             </div>
 
