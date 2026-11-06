@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import api, { logoutUser } from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import StudentLayout from "@/components/StudentLayout";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface User {
@@ -394,108 +395,12 @@ function ProfileContent() {
               <div className="px-6 pt-6">
                 <h2 className="text-lg font-black text-[#0E4D34]">Change Password</h2>
                 <p className="text-gray-500 text-sm mt-1">
-                  {user?.password_is_temporary
-                    ? "You are using a temporary password. Set your own now."
-                    : user?.password_change_approved
-                    ? "Your request was approved. Set your new password below."
-                    : "You can request a password change, which the Super Admin will review."}
+                  Update your password directly. A 6-digit verification code sent to your registered Gmail address is required to confirm changes.
                 </p>
               </div>
 
               <div className="p-6">
-                {user?.password_is_temporary || user?.password_change_approved ? (
-                  <form onSubmit={handleSetNewPassword} className="space-y-4 max-w-xl">
-                    <div className="bg-[#E3EEE7] border border-[#B9CBBF] rounded-2xl p-4">
-                      <p className="text-[#1E3F2E] text-xs font-semibold">
-                        {user?.password_is_temporary
-                          ? "Your account was created with a temporary password. Set one only you will know. After this, further changes need Super Admin approval."
-                          : "Your Super Admin approved your request. Set a new password only you will know."}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">New Password</label>
-                      <div className="relative">
-                        <input
-                          type={showNewPassword ? "text" : "password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="8+ chars, A-Z, a-z, 0-9, symbol"
-                          maxLength={50}
-                          className="w-full pl-4 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0E4D34] hover:underline"
-                        >
-                          {showNewPassword ? "Hide" : "Show"}
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Confirm New Password</label>
-                      <div className="relative">
-                        <input
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Re-enter new password"
-                          maxLength={50}
-                          className="w-full pl-4 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#0E4D34] hover:underline"
-                        >
-                          {showConfirmPassword ? "Hide" : "Show"}
-                        </button>
-                      </div>
-                    </div>
-                    {setPasswordError && <p className="text-red-500 text-xs font-semibold">{setPasswordError}</p>}
-                    <button
-                      type="submit"
-                      disabled={setPasswordLoading}
-                      className="w-full bg-[#0E4D34] hover:bg-[#0A3021] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50"
-                    >
-                      {setPasswordLoading ? "Saving..." : "Set New Password"}
-                    </button>
-                  </form>
-                ) : user?.password_change_requested ? (
-                  <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-5 text-center max-w-xl">
-                    <p className="text-yellow-700 font-bold text-sm">Request Pending</p>
-                    <p className="text-yellow-600 text-xs mt-1">
-                      Your password change request is awaiting Super Admin approval.
-                      {user.password_change_reason && (
-                        <span className="block mt-2 italic">&quot;{user.password_change_reason}&quot;</span>
-                      )}
-                    </p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleRequestPasswordChange} className="space-y-4 max-w-xl">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                        Why do you need a password change?
-                      </label>
-                      <textarea
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        placeholder="e.g. I forgot my password, or I want to update it for security"
-                        rows={3}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#0E4D34] focus:outline-none transition text-gray-700 resize-none"
-                      />
-                    </div>
-                    {requestError && <p className="text-red-500 text-xs font-semibold">{requestError}</p>}
-                    {requestSuccess && <p className="text-green-600 text-xs font-semibold">{requestSuccess}</p>}
-                    <button
-                      type="submit"
-                      disabled={requestLoading}
-                      className="w-full bg-[#0E4D34] hover:bg-[#0A3021] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50"
-                    >
-                      {requestLoading ? "Sending..." : "Request Password Change"}
-                    </button>
-                  </form>
-                )}
+                <ChangePasswordForm onDone={(m) => setToast(m)} />
               </div>
             </div>
 
