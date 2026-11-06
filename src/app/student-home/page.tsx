@@ -4,6 +4,9 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import StudentLayout from "@/components/StudentLayout";
+import ReportLostForm from "@/components/ReportLostForm";
+import ReportFoundForm from "@/components/ReportFoundForm";
+import { createPortal } from "react-dom";
 import MatchBanner from "@/components/MatchBanner";
 import AuthGate from "@/components/AuthGate";
 import HeroCarousel from "@/components/HeroCarousel";
@@ -145,6 +148,19 @@ export default function StudentHome() {
 }
 
 function StudentHomeContent() {
+  const [isLostOpen, setIsLostOpen] = useState(false);
+  const [isFoundOpen, setIsFoundOpen] = useState(false);
+  const reportOpen = isLostOpen || isFoundOpen;
+  const closeReport = () => { setIsLostOpen(false); setIsFoundOpen(false); };
+
+  useEffect(() => {
+    if (!reportOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeReport(); };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [reportOpen]);
   const [tab, setTab] = useState<"lost" | "found">("lost");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 8;
@@ -293,7 +309,8 @@ function StudentHomeContent() {
   );
 
   return (
-    <StudentLayout active="/student-home">
+<>
+      <StudentLayout active="/student-home">
       <div className="w-full flex-1 flex flex-col pb-20">
         <MatchBanner
           items={matchNotifications}
@@ -316,11 +333,11 @@ function StudentHomeContent() {
             </p>
 
             <div className="flex flex-wrap gap-2 mt-4">
-              <a href="/report-lost" className="flex items-center gap-2 bg-[#E11D48] hover:bg-[#BE123C] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
+              <a href="/report-lost" onClick={(e) => { e.preventDefault(); setIsLostOpen(true); }} className="flex items-center gap-2 bg-[#E11D48] hover:bg-[#BE123C] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v5" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
                 Lost something
               </a>
-              <a href="/report-found" className="flex items-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
+              <a href="/report-found" onClick={(e) => { e.preventDefault(); setIsFoundOpen(true); }} className="flex items-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /><path d="M11 8v6" /><path d="M8 11h6" /></svg>
                 Found Something
               </a>
@@ -789,6 +806,33 @@ function StudentHomeContent() {
           </div>
         </div>
       )}
-    </StudentLayout>
+      </StudentLayout>
+      {reportOpen && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 cursor-pointer"
+          onClick={closeReport}
+        >
+          <div
+            className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#F2F8F5] shadow-2xl cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={closeReport}
+              className="absolute top-3 right-4 z-10 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
+            >
+              &times;
+            </button>
+            {isLostOpen ? (
+              <ReportLostForm embedded onDone={() => { closeReport(); window.location.reload(); }} />
+            ) : (
+              <ReportFoundForm embedded onDone={() => { closeReport(); window.location.reload(); }} />
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
