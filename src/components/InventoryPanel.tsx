@@ -174,8 +174,8 @@ export default function InventoryPanel({
 
   async function handleSave() {
     const qty = Number(quantity);
-    if (!/^[A-Za-z](?:.*[A-Za-z]){2}/.test(name.trim())) {
-      setFormError("Item name must start with a letter and contain at least 3 letters.");
+    if (!/^(?=(?:.*[A-Za-z]){3})[A-Za-z][A-Za-z \-.,&()]*$/.test(name.trim())) {
+      setFormError("Item name can only contain letters (no numbers) and must have at least 3 letters.");
       return;
     }
     if (!location.trim()) {
@@ -409,7 +409,7 @@ export default function InventoryPanel({
             <fieldset disabled={saving} className="space-y-4 min-w-0 border-0 p-0 m-0">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Item Name</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Bond paper, short" className={inputCls} />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value.replace(/[^A-Za-z \-.,&()]/g, ""))} placeholder="e.g. Bond paper, short" className={inputCls} />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Description</label>
