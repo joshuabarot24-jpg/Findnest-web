@@ -90,7 +90,7 @@ export default function SuperAdminLayout({ active, children }: { active: string;
           <a href="/user-management" className="flex items-center gap-3">
             <img src="/images/findnest-logo.png" alt="FindNest" className="w-12 h-12 object-contain shrink-0" />
             <div className="flex flex-col justify-center gap-1">
-              <span className="text-[#E2EFE9] font-black text-xl leading-none tracking-wide">
+              <span className="text-[#E2EFE9] text-[28px] font-normal leading-none" style={{ fontFamily: "var(--font-baloo-tamma), 'Baloo Tamma 2', sans-serif" }}>
                 FIND<span className="text-[#ffd700]">NEST</span>
               </span>
               <span className="text-[#E2EFE9]/70 text-xs leading-tight">IT Coordinator Panel</span>
