@@ -403,7 +403,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
                       </div>
                     )}
 
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="bg-amber-50 border border-amber-200/60 rounded-xl p-4 mb-4">
                       <p className="font-bold text-orange-800 text-sm mb-1">Surrender Reminder!</p>
                       <p className="text-orange-700 text-xs leading-relaxed">
                         You must surrender this item to <strong>Ms. Shelly S. Durban</strong> at the Guidance Office within <strong>2 school days</strong>. Failure to do so will result in automatic post rejection and account flagging.
