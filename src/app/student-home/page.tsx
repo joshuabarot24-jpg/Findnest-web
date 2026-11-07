@@ -813,17 +813,9 @@ function StudentHomeContent() {
           onClick={closeReport}
         >
           <div
-            className="relative w-full max-w-5xl mx-4 md:mx-auto max-h-[90vh] overflow-y-auto rounded-3xl bg-[#F2F8F5] shadow-2xl cursor-default"
+            className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#F2F8F5] shadow-2xl border border-slate-100 p-6 md:p-8 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={closeReport}
-              className="absolute top-3 right-4 z-10 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
-            >
-              &times;
-            </button>
             {isLostOpen ? (
               <ReportLostForm embedded onDone={() => { closeReport(); window.location.reload(); }} />
             ) : (
