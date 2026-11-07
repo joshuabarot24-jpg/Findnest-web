@@ -423,7 +423,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                 </div>
 
                 {/* Footer with soft red gradient */}
-                <div className="bg-transparent px-6 pt-4 pb-16 flex justify-center">
+                <div className="bg-transparent px-6 pt-4 pb-8 flex justify-center">
                   <button
                     type="submit"
                     disabled={anyUploading || uploadedUrls.length === 0}
@@ -486,7 +486,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
               </div>
             </div>
 
-            <div className="bg-transparent px-6 pt-4 pb-16 flex flex-col items-center gap-3">
+            <div className="bg-transparent px-6 pt-4 pb-8 flex flex-col items-center gap-3">
               {submitError && (
                 <div role="alert" className="w-full max-w-xl bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm font-semibold">
                   {submitError}
