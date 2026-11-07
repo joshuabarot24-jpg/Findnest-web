@@ -182,16 +182,16 @@ export default function StudentLayout({
           open ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
-        <div className="flex items-center justify-between px-5 pt-9 pb-6">
+        <div className="flex items-center justify-between px-5 pt-12 pb-6 min-h-[120px]">
           <Link
             href="/student-home"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="flex items-center gap-3"
+            className="flex items-center gap-1.5"
           >
             <img src="/images/findnest-logo.png" alt="FindNest" className="w-12 h-12 object-contain shrink-0" />
-            <div className="flex flex-col justify-center gap-1 font-[family-name:var(--font-inter)]">
+            <div className="flex flex-col justify-center gap-0 font-[family-name:var(--font-inter)]">
               <span className="text-white text-[28px] font-bold leading-none" style={{ fontFamily: "var(--font-baloo-tamma), 'Baloo Tamma 2', sans-serif" }}>FindNest</span>
-              <span className="text-xs font-medium text-slate-200/90 tracking-wide mt-0.5 leading-tight">Student Portal</span>
+              <span className="text-xs font-medium text-slate-200/90 tracking-wide -mt-1 leading-tight">Student Portal</span>
             </div>
           </Link>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="lg:hidden text-white text-2xl leading-none">&times;</button>
