@@ -356,7 +356,7 @@ function LocationAnalyticsContent() {
           <p className="text-4xl font-black text-[#1a237e] mt-1">{totalReports}</p>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <p className="text-gray-400 text-sm font-medium">High Risk Areas</p>
+          <p className="text-gray-400 text-sm font-medium">Most Frequently Reported Areas</p>
           <p className="text-4xl font-black text-red-500 mt-1">{highRiskAreas}</p>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
