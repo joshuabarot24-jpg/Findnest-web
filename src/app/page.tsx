@@ -423,7 +423,7 @@ export default function Home() {
                       <button
                         type="submit"
                         disabled={forgotLoading}
-                        className="w-full bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold py-3.5 rounded-xl transition shadow-lg disabled:opacity-50"
+                        className="w-full bg-[#0F4C3A] hover:bg-[#0C3D2E] active:bg-[#0A3326] text-white font-bold py-3.5 rounded-xl transition-all duration-200 shadow-sm antialiased disabled:opacity-50"
                       >
                         {forgotLoading ? "Sending..." : "Send Reset Link"}
                       </button>
@@ -493,7 +493,7 @@ export default function Home() {
                 <span className="text-sm text-gray-600 font-medium">Remember Me</span>
               </label>
               {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
-              <button type="submit" disabled={loading} className="font-[family-name:var(--font-inter)] w-full bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="font-[family-name:var(--font-inter)] w-full bg-[#0F4C3A] hover:bg-[#0C3D2E] active:bg-[#0A3326] text-white font-bold py-3.5 rounded-xl transition-all duration-200 shadow-sm antialiased disabled:opacity-50">
                 {loading ? "Signing in..." : "Sign In"}
               </button>
               <div className="text-center">
@@ -547,7 +547,7 @@ export default function Home() {
                 ))}
               </div>
               {otpError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{otpError}</div>}
-              <button onClick={handleVerifyOtp} disabled={otpLoading} className="w-full bg-[#DC2626] hover:bg-[#B91C1C] text-white font-black py-3.5 rounded-xl transition shadow-lg disabled:opacity-50">
+              <button onClick={handleVerifyOtp} disabled={otpLoading} className="w-full bg-[#0F4C3A] hover:bg-[#0C3D2E] active:bg-[#0A3326] text-white font-bold py-3.5 rounded-xl transition-all duration-200 shadow-sm antialiased disabled:opacity-50">
                 {otpLoading ? "Verifying..." : "Verify OTP"}
               </button>
               <div className="text-center">

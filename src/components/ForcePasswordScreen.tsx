@@ -161,7 +161,7 @@ export default function ForcePasswordScreen({ onDone }: { onDone: () => void }) 
                   type="button"
                   onClick={sendCode}
                   disabled={cooldown > 0}
-                  className="shrink-0 px-3 py-2.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] text-xs font-bold hover:bg-[#E8F5E9] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 px-3 py-2.5 rounded-xl border-2 border-[#0F4C3A] text-[#0F4C3A] text-xs font-bold hover:bg-[#0F4C3A]/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {cooldown > 0 ? `Send again in ${cooldown}s` : codeSent ? "Resend Code" : "Send Verification Code"}
                 </button>
@@ -176,7 +176,7 @@ export default function ForcePasswordScreen({ onDone }: { onDone: () => void }) 
                 type="button"
                 onClick={submit}
                 disabled={busy}
-                className="w-full mt-5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold py-3 rounded-xl transition disabled:opacity-50"
+                className="w-full mt-5 bg-[#0F4C3A] hover:bg-[#0C3D2E] active:bg-[#0A3326] text-white font-bold py-3.5 rounded-xl transition-all duration-200 shadow-sm antialiased disabled:opacity-50"
               >
                 {busy ? "Saving..." : "Set New Password"}
               </button>

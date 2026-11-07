@@ -230,7 +230,7 @@ export default function StudentLoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 rounded-xl transition shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform text-lg mt-2 disabled:opacity-50"
+                className="w-full bg-[#0F4C3A] hover:bg-[#0C3D2E] active:bg-[#0A3326] text-white font-black py-4 rounded-xl transition shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform text-lg mt-2 disabled:opacity-50"
               >
                 {loading ? "Sending OTP..." : "Sign In"}
               </button>
@@ -290,7 +290,7 @@ export default function StudentLoginPage() {
               <button
                 onClick={handleVerifyOtp}
                 disabled={otpLoading}
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 rounded-xl transition shadow-lg disabled:opacity-50"
+                className="w-full bg-[#0F4C3A] hover:bg-[#0C3D2E] active:bg-[#0A3326] text-white font-black py-4 rounded-xl transition shadow-lg disabled:opacity-50"
               >
                 {otpLoading ? "Verifying..." : "Verify OTP"}
               </button>
