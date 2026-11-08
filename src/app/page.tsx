@@ -192,6 +192,19 @@ export default function Home() {
 
   // The navbar gets a frosted look once the page is scrolled
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Burger menu for narrow or zoomed screens
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("[data-navmenu]")) setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onDown); };
+  }, [menuOpen]);
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 10);
     onScroll();
@@ -579,7 +592,28 @@ export default function Home() {
           >
             LOG IN
           </button>
+          <button
+            type="button"
+            data-navmenu
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            className="md:hidden w-10 h-10 flex items-center justify-center rounded-full text-[#0D5C3A] text-2xl leading-none hover:bg-[#E3EEE7] transition cursor-pointer"
+          >
+            {menuOpen ? "✕" : "☰"}
+          </button>
         </div>
+
+        {menuOpen && (
+          <div
+            data-navmenu
+            className="md:hidden absolute right-0 top-full mt-2 w-60 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/60 p-2"
+          >
+            <a href="#top" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#0D5C3A] hover:bg-[#E3EEE7] font-semibold text-sm tracking-wide transition"><NavIcon name="home" />HOME</a>
+            <a href="#about" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#0D5C3A] hover:bg-[#E3EEE7] font-semibold text-sm tracking-wide transition"><NavIcon name="info" />ABOUT FINDNEST</a>
+            <a href="#how-it-works" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#0D5C3A] hover:bg-[#E3EEE7] font-semibold text-sm tracking-wide transition"><NavIcon name="settings" />HOW IT WORKS</a>
+          </div>
+        )}
       </nav>
 
       {/* Hero */}
