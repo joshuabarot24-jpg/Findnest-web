@@ -26,7 +26,7 @@ const PRIVILEGE_OPTIONS = [
   { key: "claim_verification", label: "Claim Verification" },
   { key: "location_analytics", label: "Location Analytics" },
   { key: "digital_records", label: "Digital Records" },
-  { key: "support_inbox", label: "Support Inbox" },
+  { key: "support_inbox", label: "Support" },
 ];
 
 const NAME_REGEX = /^[A-Za-z\s.'-]*$/;

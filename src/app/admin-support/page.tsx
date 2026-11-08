@@ -1,5 +1,5 @@
 ﻿"use client";
-// Admin > Support Inbox (/admin-support). Gmail-style: list + conversation, search, filters.
+// Admin > Support (/admin-support). Gmail-style: list + conversation, search, filters.
 // API: GET /support, POST /support/{id}/read, GET /support/{id}/thread, POST /support/{id}/reply,
 //      GET /support/students/search, POST /support/compose
 import { useState, useEffect, useMemo } from "react";
@@ -318,7 +318,7 @@ function SupportInboxContent() {
             </div>
             <h1 className="text-xl font-black text-gray-700 mb-2">Access Restricted</h1>
             <p className="text-gray-400 text-sm">
-              Your account does not have permission to view Support Inbox. Contact the Super Admin if you believe this is a mistake.
+              Your account does not have permission to view Support. Contact the Super Admin if you believe this is a mistake.
             </p>
           </div>
         </div>
@@ -336,7 +336,7 @@ function SupportInboxContent() {
 
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-black text-[#06321C]">Support Inbox</h1>
+          <h1 className="text-3xl font-black text-[#06321C]">Support</h1>
           <p className="text-gray-400 text-sm mt-1">Messages from students, and direct messages from the Guidance Office</p>
         </div>
         {counts.new > 0 && (

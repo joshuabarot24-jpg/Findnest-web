@@ -94,7 +94,7 @@ const NAV = [
   { href: "/location-analytics", label: "Location Analytics", icon: "pin" },
   { href: "/admin-user-management", label: "User Management", icon: "users" },
   { href: "/digital-records", label: "Digital Records", icon: "archive" },
-  { href: "/admin-support", label: "Support Inbox", icon: "inbox" },
+  { href: "/admin-support", label: "Support", icon: "inbox" },
 ];
 
 // Shared across page navigations: the sidebar remounts on every page, but this stays
