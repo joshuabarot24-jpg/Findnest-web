@@ -8,6 +8,9 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import AuthGate from "@/components/AuthGate";
 import AdminLayout from "@/components/AdminLayout";
 import InventoryPanel from "@/components/InventoryPanel";
+
+// Must match the categories in InventoryPanel
+const INVENTORY_CATEGORIES = ["Office Supplies", "Cleaning Supplies", "Equipment", "Sports & PE Equipment", "Documents", "Others"];
 import { uploadErrorInfo } from "@/lib/uploadError";
 
 interface OwnerResult {
@@ -255,6 +258,15 @@ function ItemManagementContent() {
   const [formError, setFormError] = useState("");
   const [intakeError, setIntakeError] = useState("");
   const [inventoryAddSignal, setInventoryAddSignal] = useState(0);
+  const [inventoryRefresh, setInventoryRefresh] = useState(0);
+  const [inventoryMode, setInventoryMode] = useState(false);
+  const [invName, setInvName] = useState("");
+  const [invDescription, setInvDescription] = useState("");
+  const [invCategory, setInvCategory] = useState("Office Supplies");
+  const [invQuantity, setInvQuantity] = useState("1");
+  const [invLocation, setInvLocation] = useState("");
+  const [invError, setInvError] = useState("");
+  const [invSaving, setInvSaving] = useState(false);
 
   // Opens on the tab named in the address, for example /item-management?tab=aged from a Dashboard alert
   useEffect(() => {
@@ -500,7 +512,58 @@ function ItemManagementContent() {
           { label: "Returned", value: returnedCount, color: "text-green-600" },
         ];
 
+  function resetInventoryForm() {
+    setInventoryMode(false);
+    setInvName("");
+    setInvDescription("");
+    setInvCategory("Office Supplies");
+    setInvQuantity("1");
+    setInvLocation("");
+    setInvError("");
+    setInvSaving(false);
+  }
+
+  async function handleInventorySave() {
+    const qty = Number(invQuantity);
+    if (!/^(?=(?:.*[A-Za-z]){3})[A-Za-z][A-Za-z \-.,&()]*$/.test(invName.trim())) {
+      setInvError("Item name can only contain letters (no numbers) and must have at least 3 letters.");
+      return;
+    }
+    if (!invLocation.trim()) {
+      setInvError("Location is required.");
+      return;
+    }
+    if (!/[A-Za-z]/.test(invLocation)) {
+      setInvError("Location must be a descriptive location (e.g., 'Shelf 1' or 'Main Office') and cannot be purely numbers.");
+      return;
+    }
+    if (!Number.isInteger(qty) || qty < 1) {
+      setInvError("Quantity must be at least 1.");
+      return;
+    }
+    setInvError("");
+    setInvSaving(true);
+    try {
+      await api.post("/inventory", {
+        name: invName.trim(),
+        description: invDescription.trim() || null,
+        category: invCategory,
+        quantity: qty,
+        location: invLocation.trim(),
+      });
+      setToast("Inventory item added.");
+      setShowAddModal(false);
+      resetInventoryForm();
+      setInventoryRefresh((n) => n + 1);
+    } catch (err: any) {
+      setInvError(err.response?.data?.message || Object.values(err.response?.data?.errors || {}).flat().join(", ") || "Failed to add the inventory item.");
+    } finally {
+      setInvSaving(false);
+    }
+  }
+
   function resetForm() {
+    resetInventoryForm();
     setFormName("");
     setFormCategory(CATEGORY_OPTIONS[0]);
     setFormLocationFound("");
@@ -852,6 +915,7 @@ function ItemManagementContent() {
       )}
       {mainTab === "inventory" && (
         <InventoryPanel
+          key={inventoryRefresh}
           addSignal={inventoryAddSignal}
           onSwitchIntake={(t) => {
             resetForm();
@@ -1049,17 +1113,15 @@ function ItemManagementContent() {
                       disabled={!!formPhotoPreview}
                       onClick={() => {
                         if (t.key === "inventory") {
-                          // Inventory has its own form: close this one, open the Inventory tab and its modal
-                          setShowAddModal(false);
-                          resetForm();
-                          setMainTab("inventory");
-                          setInventoryAddSignal((n) => n + 1);
+                          setInventoryMode(true);
+                          setInvError("");
                           return;
                         }
+                        setInventoryMode(false);
                         setFormIntakeType(t.key);
                         setIntakeError("");
                       }}
-                      className={`py-3 rounded-xl text-sm font-bold border-2 transition ${(formIntakeType as string) === t.key ? t.active : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
+                      className={`py-3 rounded-xl text-sm font-bold border-2 transition ${(inventoryMode ? "inventory" : (formIntakeType as string)) === t.key ? t.active : "border-gray-200 text-gray-400"} ${!!formPhotoPreview ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       {t.label}
                     </button>
@@ -1067,6 +1129,42 @@ function ItemManagementContent() {
                 </div>
               </div>
 
+              {inventoryMode && (
+                <>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      Item Name {!invName.trim() && <span className="text-red-500">*</span>}
+                    </label>
+                    <input type="text" value={invName} onChange={(e) => setInvName(e.target.value.replace(/[^A-Za-z \-.,&()]/g, ""))} placeholder="e.g. Bond paper, short" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Category</label>
+                      <select value={invCategory} onChange={(e) => setInvCategory(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm">
+                        {INVENTORY_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                        Quantity {!invQuantity && <span className="text-red-500">*</span>}
+                      </label>
+                      <input type="number" min={1} value={invQuantity} onChange={(e) => setInvQuantity(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      Location / Storage Room {!invLocation.trim() && <span className="text-red-500">*</span>}
+                    </label>
+                    <input type="text" value={invLocation} onChange={(e) => setInvLocation(e.target.value)} placeholder="e.g. Guidance Stockroom, Shelf A" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Description (Optional)</label>
+                    <textarea value={invDescription} onChange={(e) => setInvDescription(e.target.value)} placeholder="Optional details" rows={2} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm resize-none" />
+                  </div>
+                  {invError && <p className="text-red-500 text-xs font-semibold">{invError}</p>}
+                </>
+              )}
+              <div className={inventoryMode ? "hidden" : "space-y-4"}>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Photo <span className="text-red-500">*</span></label>
                 <label className="mt-1 block cursor-pointer">
@@ -1222,12 +1320,17 @@ function ItemManagementContent() {
               </div>
 
               {formError && <p className="text-red-500 text-xs font-semibold">{formError}</p>}
+              </div>
             </fieldset>
 
             <div className="flex gap-3 mt-8">
               <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
-              <button onClick={handleAddSubmit} disabled={formLoading || formUploading} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50">
-                {formLoading ? "Adding..." : "Add Item"}
+              <button
+                onClick={inventoryMode ? handleInventorySave : handleAddSubmit}
+                disabled={inventoryMode ? invSaving : formLoading || formUploading}
+                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+              >
+                {(inventoryMode ? invSaving : formLoading) ? "Adding..." : "Add Item"}
               </button>
             </div>
           </div>
