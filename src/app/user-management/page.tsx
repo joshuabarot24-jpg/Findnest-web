@@ -118,7 +118,7 @@ function UserManagementContent() {
   const [page, setPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
-  const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school" | "archived" | "restored" | "password_requests" | "restricted">("all");
+  const [studentSubTab, setStudentSubTab] = useState<"all" | "college" | "senior_high_school" | "junior_high_school" | "archived" | "restored" | "restricted">("all");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
@@ -219,7 +219,6 @@ function UserManagementContent() {
     if (studentSubTab === "all") return users.filter((u) => u.is_active);
     if (studentSubTab === "archived") return users.filter((u) => !u.is_active);
     if (studentSubTab === "restored") return users.filter((u) => u.is_active && !!u.restored_at);
-    if (studentSubTab === "password_requests") return users.filter((u) => u.password_change_requested);
     if (studentSubTab === "restricted") return users.filter((u) => u.is_restricted && u.is_active);
     return users.filter((u) => u.education_level === studentSubTab && u.is_active);
   }, [users, studentSubTab]);
@@ -272,7 +271,6 @@ function UserManagementContent() {
 
   const activeCount = users.filter((u) => u.is_active).length;
   const inactiveCount = users.filter((u) => !u.is_active).length;
-  const pendingPasswordCount = users.filter((u) => u.password_change_requested).length;
 
   function resetForm() {
     setConfirmCreatePassword("");
@@ -558,7 +556,6 @@ function UserManagementContent() {
     if (tab === "all") return "All";
     if (tab === "archived") return "Archived";
     if (tab === "restored") return "Restored";
-    if (tab === "password_requests") return "Password Requests";
     if (tab === "restricted") return "Restricted";
     return educationLabel(tab);
   };
@@ -613,16 +610,11 @@ function UserManagementContent() {
             <p className="text-gray-400 text-sm font-medium">Archived Students</p>
             <p className="text-4xl font-black text-red-500 mt-1">{inactiveCount}</p>
           </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <p className="text-gray-400 text-sm font-medium">Password Requests</p>
-            <p className="text-4xl font-black text-orange-500 mt-1">{pendingPasswordCount}</p>
-          </div>
         </div>
 
         {/* Tab buttons */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-          {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "archived", "restored", "password_requests"] as const).map((level) => (
+          {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "archived", "restored"] as const).map((level) => (
             <button
               key={level}
               onClick={() => setStudentSubTab(level)}
@@ -630,8 +622,6 @@ function UserManagementContent() {
                 studentSubTab === level
                   ? level === "archived"
                     ? "bg-red-500 text-white shadow-md"
-                    : level === "password_requests"
-                    ? "bg-orange-500 text-white shadow-md"
                     : level === "restricted"
                     ? "bg-yellow-500 text-white shadow-md"
                     : "bg-[#1a237e] text-white shadow-md"
@@ -647,7 +637,7 @@ function UserManagementContent() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-wrap gap-3">
             <h2 className="font-black text-gray-700 text-lg">
-              {tabLabel(studentSubTab)} {studentSubTab !== "password_requests" && "Students"}
+              {tabLabel(studentSubTab)} Students
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
               <button
@@ -671,7 +661,7 @@ function UserManagementContent() {
                 onChange={(e) => setStudentSubTab(e.target.value as typeof studentSubTab)}
                 className="px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-xs font-semibold"
               >
-                {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "archived", "password_requests"] as const).map((level) => (
+                {(["all", "college", "senior_high_school", "junior_high_school", "restricted", "archived", "restored"] as const).map((level) => (
                   <option key={level} value={level}>{tabLabel(level)}</option>
                 ))}
               </select>
@@ -689,53 +679,6 @@ function UserManagementContent() {
             <div className="text-center py-16 text-gray-400">
               <p className="font-bold">Loading students...</p>
             </div>
-          ) : studentSubTab === "password_requests" ? (
-            paginated.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <p className="font-bold text-lg">No pending password requests</p>
-                <p className="text-sm mt-1">Requests from students will appear here</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {paginated.map((user) => (
-                  <div key={user.id} className="px-6 py-5 flex flex-wrap items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1 min-w-0">
-                      <div className="w-11 h-11 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-xl overflow-hidden flex items-center justify-center text-white font-black text-lg shadow-sm shrink-0">
-                        <AvatarInner user={user} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-700">{user.name}</p>
-                        <p className="text-gray-400 text-xs mt-0.5">{user.email} &middot; {user.lrn || user.school_id || "—"}</p>
-                        <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mt-3">
-                          <p className="text-orange-700 text-xs font-bold uppercase mb-1">Student&apos;s Message</p>
-                          <p className="text-orange-600 text-sm">{user.password_change_reason || "No reason provided."}</p>
-                        </div>
-                        {user.password_change_approved && (
-                          <p className="text-green-600 text-xs font-bold mt-2">✓ Approved — waiting for student to set their new password.</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2 shrink-0">
-                      {!user.password_change_approved && (
-                        <button
-                          onClick={() => handleApprovePasswordChange(user)}
-                          disabled={approvingPassword}
-                          className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition disabled:opacity-50 whitespace-nowrap"
-                        >
-                          {approvingPassword ? "Approving..." : "Approve Request"}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => openEditModal(user)}
-                        className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-4 py-2 rounded-lg transition whitespace-nowrap"
-                      >
-                        Set Password Manually
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[48rem]">
@@ -760,11 +703,6 @@ function UserManagementContent() {
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-bold text-gray-700">{user.name}</p>
-                              {user.password_change_requested && (
-                                <span className="bg-orange-50 text-orange-600 text-[9px] font-bold px-2 py-0.5 rounded-full">
-                                  PASSWORD REQUEST
-                                </span>
-                              )}
                             </div>
                             <p className="text-gray-400 text-xs mt-0.5">
                               ID: {displayId(user.id)}
@@ -837,7 +775,7 @@ function UserManagementContent() {
             </div>
           )}
 
-          {!loading && studentSubTab !== "password_requests" && filtered.length === 0 && (
+          {!loading && filtered.length === 0 && (
             <div className="text-center py-16 text-gray-400">
               <p className="font-bold text-lg">No students found</p>
               <p className="text-sm mt-1">Try searching with a different keyword</p>

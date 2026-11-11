@@ -17,6 +17,7 @@ interface AdminUser {
   email: string;
   role: string;
   is_active: boolean;
+  restored_at?: string | null;
   privileges: string[] | null;
   is_restricted: boolean;
   restriction_reason: string | null;
@@ -80,6 +81,7 @@ function AdminManagementContent() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [mainTab, setMainTab] = useState<"admin" | "super_admin">("admin");
+  const [statusFilter, setStatusFilter] = useState<"all" | "archived" | "restored">("all");
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAssignConfirm, setShowAssignConfirm] = useState(false);
@@ -166,8 +168,11 @@ function AdminManagementContent() {
 
   // Rows for the selected tab (Admins or Super Admins)
   const baseFiltered = useMemo(() => {
-    return users.filter((u) => u.role === mainTab);
-  }, [users, mainTab]);
+    const byRole = users.filter((u) => u.role === mainTab);
+    if (statusFilter === "archived") return byRole.filter((u) => !u.is_active);
+    if (statusFilter === "restored") return byRole.filter((u) => u.is_active && !!u.restored_at);
+    return byRole.filter((u) => u.is_active);
+  }, [users, mainTab, statusFilter]);
 
   const idNumberMap = useMemo(() => {
     const sorted = [...users].sort((a, b) => a.id - b.id);
@@ -493,11 +498,30 @@ function AdminManagementContent() {
           </button>
         </div>
 
+        {/* Status filter */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          {(["all", "archived", "restored"] as const).map((key) => (
+            <button
+              key={key}
+              onClick={() => { setStatusFilter(key); setPage(1); }}
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition ${
+                statusFilter === key
+                  ? key === "archived"
+                    ? "bg-red-500 text-white shadow-md"
+                    : "bg-[#1a237e] text-white shadow-md"
+                  : "bg-white text-gray-500 border border-gray-200 hover:border-[#1a237e] hover:text-[#1a237e]"
+              }`}
+            >
+              {key === "all" ? "All" : key === "archived" ? "Archived" : "Restored"}
+            </button>
+          ))}
+        </div>
+
         {/* Admins list card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5 border-b border-gray-100">
             <h2 className="font-black text-gray-700 text-lg">
-              {mainTab === "admin" ? "All Admins" : "All Super Admins"}
+              {statusFilter === "archived" ? "Archived " : statusFilter === "restored" ? "Restored " : "All "}{mainTab === "admin" ? "Admins" : "Super Admins"}
             </h2>
             <input
               type="text"
