@@ -39,6 +39,7 @@ interface Claim {
     name: string;
     email: string;
     school_id: string | null;
+    lrn?: string | null;
     course: string | null;
     year_level: string | null;
     trust_score: number;
@@ -287,7 +288,7 @@ function ClaimVerificationContent() {
       const dateStr = new Date(c.created_at).toLocaleDateString().toLowerCase();
       return (
         (c.student?.name || "").toLowerCase().includes(q) ||
-        (c.student?.school_id || "").toLowerCase().includes(q) ||
+        (c.student?.lrn || c.student?.school_id || "").toLowerCase().includes(q) ||
         (c.match?.found_record?.item_name || "").toLowerCase().includes(q) ||
         (c.match?.found_record?.category || "").toLowerCase().includes(q) ||
         c.claim_status.toLowerCase().includes(q) ||
@@ -489,7 +490,7 @@ function ClaimVerificationContent() {
                           </div>
                           <div>
                             <p className="font-bold text-gray-700 text-sm">{claim.student?.name || "Unknown"}</p>
-                            <p className="text-gray-400 text-xs">{claim.student?.school_id || claim.student?.email || ""}</p>
+                            <p className="text-gray-400 text-xs">{claim.student?.lrn || claim.student?.school_id || claim.student?.email || ""}</p>
                           </div>
                         </div>
                       </td>
@@ -613,7 +614,7 @@ function ClaimVerificationContent() {
                 </div>
                 <p className="font-black text-gray-700">{viewingClaim.student?.name || "Unknown"}</p>
                 <p className="text-gray-400 text-xs mt-1 break-all">{viewingClaim.student?.email}</p>
-                <p className="text-gray-400 text-xs">{viewingClaim.student?.school_id} &mdash; {viewingClaim.student?.course} {viewingClaim.student?.year_level}</p>
+                <p className="text-gray-400 text-xs">LRN: {viewingClaim.student?.lrn || viewingClaim.student?.school_id || "—"}</p>
                 <div className="mt-3 flex items-center gap-2">
                   <span className="text-xs text-gray-400">Trust Score:</span>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${

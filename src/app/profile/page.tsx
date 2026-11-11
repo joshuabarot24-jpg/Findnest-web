@@ -14,6 +14,11 @@ interface User {
   email: string;
   role: string;
   school_id: string | null;
+  lrn?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  middle_initial?: string | null;
+  suffix?: string | null;
   course: string | null;
   year_level: string | null;
   education_level?: string | null;
@@ -212,7 +217,7 @@ function ProfileContent() {
                   <p className="text-gray-500 text-sm mt-1">{user?.email}</p>
                   <div className="flex flex-wrap items-center gap-3 mt-2">
                     <span className="bg-[#E3EEE7] text-[#0E4D34] text-xs font-bold px-3 py-1 rounded-full capitalize">{user?.role}</span>
-                    {user?.school_id && <span className="text-gray-500 text-xs">ID: {user.school_id}</span>}
+                    {(user?.lrn || user?.school_id) && <span className="text-gray-500 text-xs">LRN: {user?.lrn || user?.school_id}</span>}
                   </div>
                 </div>
               </div>
@@ -238,7 +243,10 @@ function ProfileContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <p className="text-xs font-black text-[#0E4D34] uppercase tracking-wider">Personal Information</p>
-                    <Field label="Full Name">{user?.name}</Field>
+                    <Field label="Last Name">{user?.last_name || "—"}</Field>
+                    <Field label="First Name">{user?.first_name || user?.name || "—"}</Field>
+                    <Field label="M.I.">{user?.middle_initial || "—"}</Field>
+                    <Field label="Suffix">{user?.suffix || "—"}</Field>
                     <div className="p-3 bg-[#F3FAF6] rounded-xl">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Email Address</p>
@@ -286,9 +294,7 @@ function ProfileContent() {
                     <p className="text-xs font-black text-[#0E4D34] uppercase tracking-wider">Academic Information</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field label="Education Level">{(user?.education_level && EDUCATION_LABELS[user.education_level]) || "—"}</Field>
-                      <Field label="School ID">{user?.school_id || "—"}</Field>
-                      <Field label={courseLabel(user?.education_level)}>{user?.course || "—"}</Field>
-                      <Field label="Year Level">{user?.year_level || "—"}</Field>
+                      <Field label="LRN">{user?.lrn || user?.school_id || "—"}</Field>
                     </div>
                   </div>
                 </div>

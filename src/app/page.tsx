@@ -458,13 +458,13 @@ export default function Home() {
               <>
             <div className="text-center mb-6">
               <h2 className="text-xl font-black text-[#0D5C3A]">Welcome Back</h2>
-              <p className="text-[#64748B] text-sm mt-1">Sign in with your email or Student ID</p>
+              <p className="text-[#64748B] text-sm mt-1">Sign in with your email or LRN</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
               <fieldset disabled={loading} className="space-y-4 min-w-0 border-0 p-0 m-0">
               <div>
-                <label className="block text-sm font-semibold text-[#383838] mb-2 font-[family-name:var(--font-kanit)]">Email or Student ID</label>
+                <label className="block text-sm font-semibold text-[#383838] mb-2 font-[family-name:var(--font-kanit)]">Email or LRN</label>
                 <input
                   type="text"
                   value={identifier}

@@ -172,7 +172,7 @@ export default function StudentLoginPage() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-600 mb-2">
-                  Student ID
+                  LRN
                 </label>
                 <div className="relative">
                   <input
