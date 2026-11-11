@@ -64,6 +64,12 @@ const COMMON_DOMAIN_TYPOS: Record<string, string> = {
   "yahoo.co": "yahoo.com",
   "yahoo.cm": "yahoo.com",
   "outlook.co": "outlook.com",
+  "yahoo.con": "yahoo.com",
+  "hotmail.co": "hotmail.com",
+  "hotmail.cm": "hotmail.com",
+  "hotmail.con": "hotmail.com",
+  "outlook.cm": "outlook.com",
+  "outlook.con": "outlook.com",
 };
 
 // Flags common email domain typos (e.g. gmail.con)
