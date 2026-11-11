@@ -169,6 +169,17 @@ function UserManagementContent() {
   const [confirmCreatePassword, setConfirmCreatePassword] = useState("");
   const [showRestrictionSettings, setShowRestrictionSettings] = useState(false);
   const [restrictionDays, setRestrictionDays] = useState("7");
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showCreateConfirm || showCreatePasswordConfirm) return;
+      if (showCreateModal) setShowCreateModal(false);
+      else if (editingUser) setEditingUser(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showCreateModal, editingUser, showCreateConfirm, showCreatePasswordConfirm]);
   const [restrictionThreshold, setRestrictionThreshold] = useState("50");
   const [restrictionSaving, setRestrictionSaving] = useState(false);
   const [restrictionError, setRestrictionError] = useState("");
@@ -387,7 +398,8 @@ function UserManagementContent() {
   async function handleEditSubmit() {
     if (!editingUser) return;
     if (formData.password && formData.password !== confirmEditPassword) {
-      setFormError("Passwords do not match.");
+      setFieldErrors({ confirm: "Passwords do not match." });
+      setFormError("Please fix the highlighted fields.");
       return;
     }
     const errs = collectErrors();
@@ -890,13 +902,13 @@ function UserManagementContent() {
             </button>
             <div className="modal-scroll max-h-[85vh] p-6">
 
-            <h2 className="text-2xl font-black text-[#1a237e] mb-1">Create New Student</h2>
+            <h2 className="text-2xl font-bold text-[#0F4C3A] mb-1">Create New Student</h2>
             <p className="text-gray-400 text-sm mb-4">
               Add a new student account to the system
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-              <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 md:order-[-2]">
+              <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 order-1">
                 <div className="col-span-2 md:col-span-3">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
@@ -912,16 +924,16 @@ function UserManagementContent() {
                   {fieldErr("first_name")}
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I.</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I. (Optional)</label>
                   <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} placeholder="e.g. D" autoComplete="off" className={fieldCls("middle_initial")} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix (Optional)</label>
                   <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="e.g. Jr., III" autoComplete="off" className={fieldCls("suffix")} />
                 </div>
               </div>
 
-              <div className="md:order-[-1]">
+              <div className="order-2 md:col-span-2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -936,7 +948,7 @@ function UserManagementContent() {
                 {fieldErr("email")}
               </div>
 
-              <div>
+              <div className="order-5 md:order-3">
                  <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     Password {!formData.password && <span className="text-red-500">*</span>}
@@ -949,7 +961,7 @@ function UserManagementContent() {
                       setConfirmCreatePassword(pw);
                       setShowCreatePassword(true);
                     }}
-                    className="text-xs font-bold text-[#1a237e] hover:underline"
+                    className="text-xs font-bold text-[#0F4C3A] hover:underline"
                   >
                     Generate
                   </button>
@@ -974,9 +986,9 @@ function UserManagementContent() {
                 {fieldErr("password")}
               </div>
 
-              <div className="md:order-1">
+              <div className="order-6 md:order-5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Confirm Password
+                  Confirm Password {!confirmCreatePassword && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type={showCreatePassword ? "text" : "password"}
@@ -991,7 +1003,7 @@ function UserManagementContent() {
                 )}
               </div>
 
-              <div>
+              <div className="order-4 md:order-6">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Education Level {!formData.education_level && <span className="text-red-500">*</span>}
                 </label>
@@ -1005,7 +1017,7 @@ function UserManagementContent() {
                   ))}
                 </select>
               </div>
-              <div className="md:order-[-1]">
+              <div className="order-3 md:order-4">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1108,7 +1120,7 @@ function UserManagementContent() {
               )}
 
               {formError && (
-                <p className="text-red-500 text-xs font-semibold md:col-span-2 md:order-2">{formError}</p>
+                <p className="text-red-500 text-xs font-semibold md:col-span-2 order-7">{formError}</p>
               )}
             </div>
 
@@ -1243,32 +1255,32 @@ function UserManagementContent() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
+              <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 order-1">
+                <div className="col-span-2 md:col-span-3 order-2">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
                   </label>
                   <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
                   {fieldErr("first_name")}
                 </div>
-                <div>
+                <div className="col-span-2 md:col-span-3 order-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
                   </label>
                   <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Dela Cruz" autoComplete="off" className={fieldCls("last_name")} />
                   {fieldErr("last_name")}
                 </div>
-                <div>
+                <div className="md:col-span-2 order-3">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I. (Optional)</label>
                   <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} placeholder="e.g. D" autoComplete="off" className={fieldCls("middle_initial")} />
                 </div>
-                <div>
+                <div className="md:col-span-2 order-4">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix (Optional)</label>
                   <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="e.g. Jr., III" autoComplete="off" className={fieldCls("suffix")} />
                 </div>
               </div>
 
-              <div className="md:order-[-1]">
+              <div className="order-2 md:col-span-2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1282,7 +1294,7 @@ function UserManagementContent() {
                 {fieldErr("email")}
               </div>
 
-              <div>
+              <div className="order-5 md:order-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     New Password (leave blank to keep current)
@@ -1295,7 +1307,7 @@ function UserManagementContent() {
                       setConfirmEditPassword(pw);
                       setEditPwVisible(true);
                     }}
-                    className="text-xs font-bold text-[#1a237e] hover:underline"
+                    className="text-xs font-bold text-[#0F4C3A] hover:underline"
                   >
                     Generate
                   </button>
@@ -1332,27 +1344,27 @@ function UserManagementContent() {
                 <p className="text-xs text-gray-400 mt-1">Give this password directly to the student.</p>
                 {fieldErr("password")}
               </div>
-              {formData.password && (
-                <div className="md:order-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type={editPwVisible ? "text" : "password"}
-                    value={confirmEditPassword}
-                    onChange={(e) => setConfirmEditPassword(e.target.value)}
-                    autoComplete="new-password"
-                    className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                  />
-                  {confirmEditPassword && formData.password !== confirmEditPassword && (
-                    <p className="text-red-500 text-xs mt-1">Passwords do not match.</p>
-                  )}
-                </div>
-              )}
-
-              <div>
+              <div className="order-6 md:order-5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Education Level
+                  Confirm Password {formData.password && !confirmEditPassword && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  type={editPwVisible ? "text" : "password"}
+                  value={confirmEditPassword}
+                  onChange={(e) => setConfirmEditPassword(e.target.value)}
+                  placeholder="Re-enter the new password"
+                  autoComplete="new-password"
+                  className={fieldCls("confirm")}
+                />
+                {confirmEditPassword && formData.password !== confirmEditPassword && !fieldErrors.confirm && (
+                  <p className="text-xs text-red-500 font-medium mt-1">Passwords do not match.</p>
+                )}
+                {fieldErr("confirm")}
+              </div>
+
+              <div className="order-4 md:order-6">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Education Level {!formData.education_level && <span className="text-red-500">*</span>}
                 </label>
                 <select
                   value={formData.education_level}
@@ -1364,7 +1376,7 @@ function UserManagementContent() {
                   ))}
                 </select>
               </div>
-              <div className="md:order-[-1]">
+              <div className="order-3 md:order-4">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1465,7 +1477,7 @@ function UserManagementContent() {
               )}
 
               {formError && (
-                <p className="text-red-500 text-xs font-semibold md:col-span-2 md:order-2">{formError}</p>
+                <p className="text-red-500 text-xs font-semibold md:col-span-2 order-7">{formError}</p>
               )}
             </div>
 
@@ -1678,7 +1690,7 @@ function UserManagementContent() {
                   <button
                     type="button"
                     onClick={() => setRestorePassword(generatePassword())}
-                    className="text-xs font-bold text-[#1a237e] hover:underline"
+                    className="text-xs font-bold text-[#0F4C3A] hover:underline"
                   >
                     Generate
                   </button>
