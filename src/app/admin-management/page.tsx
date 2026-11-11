@@ -10,6 +10,10 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 interface AdminUser {
   id: number;
   name: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  middle_initial?: string | null;
+  suffix?: string | null;
   email: string;
   role: string;
   is_active: boolean;
@@ -100,6 +104,10 @@ function AdminManagementContent() {
 
   const [formData, setFormData] = useState({
     name: "",
+    first_name: "",
+    last_name: "",
+    middle_initial: "",
+    suffix: "",
     email: "",
     password: "",
     role: "admin",
@@ -108,6 +116,21 @@ function AdminManagementContent() {
     restriction_reason: "",
     restricted_until: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fieldCls = (k: string) =>
+    `w-full mt-1 px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm ${
+      fieldErrors[k] ? "border-red-500 bg-red-50/20" : "border-gray-200"
+    }`;
+  const fieldErr = (k: string) =>
+    fieldErrors[k] ? <p className="text-xs text-red-500 font-medium mt-1">{fieldErrors[k]}</p> : null;
+
+  // Keeps the saved full name in step with the split name fields: First M. Last Suffix
+  function setNamePart(patch: Partial<{ first_name: string; last_name: string; middle_initial: string; suffix: string }>) {
+    const next = { ...formData, ...patch };
+    const mi = next.middle_initial.trim().replace(/\.$/, "");
+    const full = [next.first_name.trim(), mi ? mi + "." : "", next.last_name.trim(), next.suffix.trim()].filter(Boolean).join(" ");
+    setFormData({ ...next, name: full });
+  }
   useEffect(() => {
     if (!formData.password) setEditPwVisible(false);
   }, [formData.password]);
@@ -190,6 +213,10 @@ function AdminManagementContent() {
     setConfirmAssignPassword("");
     setFormData({
       name: "",
+      first_name: "",
+      last_name: "",
+      middle_initial: "",
+      suffix: "",
       email: "",
       password: "",
       role: mainTab,
@@ -210,6 +237,10 @@ function AdminManagementContent() {
   function openEditModal(admin: AdminUser) {
     setFormData({
       name: admin.name,
+      first_name: admin.first_name || "",
+      last_name: admin.last_name || "",
+      middle_initial: admin.middle_initial || "",
+      suffix: admin.suffix || "",
       email: admin.email,
       password: "",
       role: admin.role,
@@ -219,6 +250,7 @@ function AdminManagementContent() {
       restricted_until: admin.restricted_until || "",
     });
     setFormError("");
+    setFieldErrors({});
     setEditTab("credentials");
     setEditingAdmin(admin);
   }
@@ -234,8 +266,13 @@ function AdminManagementContent() {
 
   // Returns an error message, or null when the form is valid
   function validateAssignForm(): string | null {
-    if (!formData.name.trim()) return "Personnel name is required.";
-    if (!NAME_REGEX.test(formData.name)) return "Personnel name must contain letters only.";
+    const nameErrs: Record<string, string> = {};
+    if (!formData.last_name.trim()) nameErrs.last_name = "Last Name is required.";
+    else if (!NAME_REGEX.test(formData.last_name)) nameErrs.last_name = "Last Name must contain letters only.";
+    if (!formData.first_name.trim()) nameErrs.first_name = "First Name is required.";
+    else if (!NAME_REGEX.test(formData.first_name)) nameErrs.first_name = "First Name must contain letters only.";
+    setFieldErrors(nameErrs);
+    if (Object.keys(nameErrs).length) return "Please fix the highlighted fields.";
     if (!EMAIL_REGEX.test(formData.email.trim())) return "Please enter a complete, valid email address.";
     const typoWarning = checkEmailDomainTypo(formData.email.trim());
     if (typoWarning) return typoWarning;
@@ -267,10 +304,13 @@ function AdminManagementContent() {
       fetchUsers();
     } catch (err: any) {
       setShowAssignConfirm(false);
+      const apiErrors = err.response?.data?.errors || {};
+      const mapped: Record<string, string> = {};
+      Object.keys(apiErrors).forEach((k) => { mapped[k] = String(apiErrors[k][0]); });
+      setFieldErrors(mapped);
       setFormError(
         err.response?.data?.message ||
-          Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
-          "Failed to assign admin"
+          (Object.keys(mapped).length ? "Please fix the highlighted fields." : "Failed to assign admin")
       );
     } finally {
       setFormLoading(false);
@@ -279,8 +319,12 @@ function AdminManagementContent() {
 
   async function handleEditSubmit() {
     if (!editingAdmin) return;
-    if (!formData.name.trim() || !NAME_REGEX.test(formData.name)) {
-      setFormError("Personnel name must contain letters only.");
+    if (!formData.first_name.trim() || !formData.last_name.trim() || !NAME_REGEX.test(formData.first_name) || !NAME_REGEX.test(formData.last_name)) {
+      setFieldErrors({
+        ...(formData.last_name.trim() ? {} : { last_name: "Last Name is required." }),
+        ...(formData.first_name.trim() ? {} : { first_name: "First Name is required." }),
+      });
+      setFormError("Please fix the highlighted fields.");
       return;
     }
     if (formData.password && formData.password !== confirmEditPassword) {
@@ -626,16 +670,29 @@ function AdminManagementContent() {
             <p className="text-gray-400 text-sm mb-6">Grant a personnel account admin panel access</p>
 
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Personnel Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: filterLettersOnly(e.target.value) })}
-                  placeholder="e.g. Juan Dela Cruz"
-                  autoComplete="off"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
+                  </label>
+                  <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Dela Cruz" autoComplete="off" className={fieldCls("last_name")} />
+                  {fieldErr("last_name")}
+                </div>
+                <div className="col-span-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                  </label>
+                  <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
+                  {fieldErr("first_name")}
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I.</label>
+                  <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} placeholder="e.g. D" autoComplete="off" className={fieldCls("middle_initial")} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix</label>
+                  <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="e.g. Jr., III" autoComplete="off" className={fieldCls("suffix")} />
+                </div>
               </div>
 
               <div>
@@ -759,7 +816,7 @@ function AdminManagementContent() {
 
             <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5 text-sm mb-6">
               <div className="flex justify-between gap-2">
-                <span className="text-gray-400 font-medium">Personnel Name</span>
+                <span className="text-gray-400 font-medium">Name</span>
                 <span className="font-bold text-gray-700 text-right">{formData.name}</span>
               </div>
               <div className="flex justify-between gap-2">
@@ -845,15 +902,29 @@ function AdminManagementContent() {
 
             {editTab === "credentials" && (
               <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Personnel Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: filterLettersOnly(e.target.value) })}
-                    autoComplete="off"
-                    className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
+                    </label>
+                    <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} autoComplete="off" className={fieldCls("last_name")} />
+                    {fieldErr("last_name")}
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                    </label>
+                    <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} autoComplete="off" className={fieldCls("first_name")} />
+                    {fieldErr("first_name")}
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I.</label>
+                    <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} autoComplete="off" className={fieldCls("middle_initial")} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix</label>
+                    <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="Jr., III" autoComplete="off" className={fieldCls("suffix")} />
+                  </div>
                 </div>
 
                 <div>
