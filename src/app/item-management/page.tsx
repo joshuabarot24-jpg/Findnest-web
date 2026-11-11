@@ -1021,8 +1021,11 @@ function ItemManagementContent() {
       
       {/* Add Item */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
+          onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }}
+        >
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Add Item</h2>
             <p className="text-gray-400 text-sm mb-6">Record an item that was physically received by the office</p>
