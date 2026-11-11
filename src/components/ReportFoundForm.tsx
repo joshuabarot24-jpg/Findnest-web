@@ -2,6 +2,7 @@
 // Student > Report Found (/report-found). Form, review, confirmation and success steps.
 // API: /upload/image, /upload/analyze-existing, /found-items
 import { useState } from "react";
+import { timeOptions } from "@/lib/reportTime";
 import api from "@/lib/api";
 import { uploadErrorInfo } from "@/lib/uploadError";
 import StudentLayout from "@/components/StudentLayout";
@@ -204,6 +205,10 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
       setSubmitError("Approximate time is required.");
       return;
     }
+    if (!timeOptions(date).some((o) => o.value === time)) {
+      setSubmitError("Choose a time between 6:00 AM and 7:00 PM that is not in the future.");
+      return;
+    }
     if (!primaryColor.trim()) {
       setSubmitError("Primary colors is required.");
       return;
@@ -375,12 +380,18 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
 
                       <div>
                         <Label>Date Found {!date && <span className="text-red-500">*</span>}</Label>
-                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={getManilaDate(21)} max={getManilaDate(0)} className={FIELD} required />
+                        <input type="date" value={date} onChange={(e) => { setDate(e.target.value); if (time && !timeOptions(e.target.value).some((o) => o.value === time)) setTime(""); }} min={getManilaDate(21)} max={getManilaDate(0)} className={FIELD} required />
                         <p className="text-gray-400 text-[11px] mt-1">Today or up to 3 weeks ago.</p>
                       </div>
                       <div>
                         <Label>Approx. Time Found {!time && <span className="text-red-500">*</span>}</Label>
-                        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD} />
+                        <select value={time} onChange={(e) => setTime(e.target.value)} className={FIELD}>
+                          <option value="">Select time</option>
+                          {timeOptions(date).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                        {date && timeOptions(date).length === 0 && (
+                          <p className="text-xs text-red-500 font-medium mt-1">No time is available yet today. Choose an earlier date.</p>
+                        )}
                       </div>
 
                       <div className="sm:col-span-2">
