@@ -15,6 +15,11 @@ interface SystemUser {
   email: string;
   role: string;
   school_id: string | null;
+  lrn?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  middle_initial?: string | null;
+  suffix?: string | null;
   course: string | null;
   year_level: string | null;
   education_level: string | null;
@@ -133,6 +138,11 @@ function UserManagementContent() {
 
   const [formData, setFormData] = useState({
     name: "",
+    first_name: "",
+    last_name: "",
+    middle_initial: "",
+    suffix: "",
+    lrn: "",
     email: "",
     password: "",
     role: "student",
@@ -142,6 +152,13 @@ function UserManagementContent() {
     education_level: "college",
   });
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fieldCls = (k: string) =>
+    `w-full mt-1 px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm ${
+      fieldErrors[k] ? "border-red-500 bg-red-50/20" : "border-gray-200"
+    }`;
+  const fieldErr = (k: string) =>
+    fieldErrors[k] ? <p className="text-xs text-red-500 font-medium mt-1">{fieldErrors[k]}</p> : null;
   const [formLoading, setFormLoading] = useState(false);
   const [confirmEditPassword, setConfirmEditPassword] = useState("");
   const [showCreatePasswordConfirm, setShowCreatePasswordConfirm] = useState(false);
@@ -216,10 +233,10 @@ function UserManagementContent() {
       result = baseFiltered.filter(
         (u) =>
           u.name.toLowerCase().includes(q) ||
+          (u.first_name || "").toLowerCase().includes(q) ||
+          (u.last_name || "").toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q) ||
-          (u.school_id || "").toLowerCase().includes(q) ||
-          (u.course || "").toLowerCase().includes(q) ||
-          (u.year_level || "").toLowerCase().includes(q) ||
+          (u.lrn || u.school_id || "").toLowerCase().includes(q) ||
           educationLabel(u.education_level).toLowerCase().includes(q) ||
           displayId(u.id).toLowerCase().includes(q)
       );
@@ -250,6 +267,11 @@ function UserManagementContent() {
     setConfirmCreatePassword("");
     setFormData({
       name: "",
+      first_name: "",
+      last_name: "",
+      middle_initial: "",
+      suffix: "",
+      lrn: "",
       email: "",
       password: "",
       role: "student",
@@ -261,14 +283,27 @@ function UserManagementContent() {
     setFormError("");
   }
 
+  // Keeps the saved full name in step with the split name fields
+  function setNamePart(patch: Partial<{ first_name: string; last_name: string; middle_initial: string; suffix: string }>) {
+    const next = { ...formData, ...patch };
+    const full = [next.first_name, next.last_name, next.suffix].map((s) => s.trim()).filter(Boolean).join(" ");
+    setFormData({ ...next, name: full });
+  }
+
   function openCreateModal() {
     resetForm();
+    setFieldErrors({});
     setShowCreateModal(true);
   }
 
   function openEditModal(user: SystemUser) {
     setFormData({
       name: user.name,
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      middle_initial: user.middle_initial || "",
+      suffix: user.suffix || "",
+      lrn: user.lrn || user.school_id || "",
       email: user.email,
       password: "",
       role: user.role,
@@ -280,30 +315,43 @@ function UserManagementContent() {
     setFormError("");
     setConfirmEditPassword("");
     setEditPasswordLocked(false);
+    setFieldErrors({});
     setEditingUser(user);
   }
 
-  // Returns an error message, or null when the form is valid
-  function validateForm(): string | null {
-    if (!formData.name.trim()) return "Full name is required.";
-    if (!NAME_REGEX.test(formData.name)) return "Full name must contain letters only.";
-    if (!EMAIL_REGEX.test(formData.email.trim())) return "Please enter a complete, valid email address.";
-    const typoWarning = checkEmailDomainTypo(formData.email.trim());
-    if (typoWarning) return typoWarning;
-    if (!formData.password && !editingUser) return "Password is required.";
-    if (formData.password && formData.password.length < 8) return "Password must be at least 8 characters.";
-    if (!editingUser && formData.password !== confirmCreatePassword) return "Passwords do not match.";
-    if (formData.school_id && !DIGITS_REGEX.test(formData.school_id)) return "School ID must contain numbers only.";
-    if (formData.education_level === "junior_high_school" && formData.course && !NAME_REGEX.test(formData.course)) {
-      return "Section must contain letters only.";
+  // One message per field that has a problem
+  function collectErrors(): Record<string, string> {
+    const e: Record<string, string> = {};
+    if (!formData.first_name.trim()) e.first_name = "First Name is required.";
+    else if (!NAME_REGEX.test(formData.first_name)) e.first_name = "First Name must contain letters only.";
+    if (!formData.last_name.trim()) e.last_name = "Last Name is required.";
+    else if (!NAME_REGEX.test(formData.last_name)) e.last_name = "Last Name must contain letters only.";
+    if (!formData.lrn.trim()) e.lrn = "LRN is required.";
+    else if (!DIGITS_REGEX.test(formData.lrn)) e.lrn = "Please enter a valid LRN (numbers only).";
+    if (!formData.email.trim()) e.email = "Email Address is required.";
+    else if (!EMAIL_REGEX.test(formData.email.trim())) e.email = "Please enter a complete, valid email address.";
+    else {
+      const typoWarning = checkEmailDomainTypo(formData.email.trim());
+      if (typoWarning) e.email = typoWarning;
     }
-    return null;
+    if (!formData.education_level) e.education_level = "Education Level is required.";
+    if (!editingUser && !formData.password) e.password = "Password is required.";
+    else if (formData.password && formData.password.length < 8) e.password = "Password must be at least 8 characters.";
+    else if (!editingUser && formData.password !== confirmCreatePassword) e.password = "Passwords do not match.";
+    return e;
+  }
+
+  // Returns the first error message, or null when the form is valid
+  function validateForm(): string | null {
+    const errs = collectErrors();
+    return Object.values(errs)[0] || null;
   }
 
   function handleReviewCreate() {
-    const validationError = validateForm();
-    if (validationError) {
-      setFormError(validationError);
+    const errs = collectErrors();
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      setFormError("Please fix the highlighted fields.");
       return;
     }
     setFormError("");
@@ -322,10 +370,13 @@ function UserManagementContent() {
       fetchUsers();
     } catch (err: any) {
       setShowCreateConfirm(false);
+      const apiErrors = err.response?.data?.errors || {};
+      const mapped: Record<string, string> = {};
+      Object.keys(apiErrors).forEach((k) => { mapped[k === "school_id" ? "lrn" : k] = String(apiErrors[k][0]); });
+      setFieldErrors(mapped);
       setFormError(
         err.response?.data?.message ||
-          Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
-          "Failed to create user"
+          (Object.keys(mapped).length ? "Please fix the highlighted fields." : "Failed to create user")
       );
     } finally {
       setFormLoading(false);
@@ -338,9 +389,10 @@ function UserManagementContent() {
       setFormError("Passwords do not match.");
       return;
     }
-    const validationError = validateForm();
-    if (validationError) {
-      setFormError(validationError);
+    const errs = collectErrors();
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      setFormError("Please fix the highlighted fields.");
       return;
     }
     setFormError("");
@@ -356,10 +408,13 @@ function UserManagementContent() {
       resetForm();
       fetchUsers();
     } catch (err: any) {
+      const apiErrors = err.response?.data?.errors || {};
+      const mapped: Record<string, string> = {};
+      Object.keys(apiErrors).forEach((k) => { mapped[k === "school_id" ? "lrn" : k] = String(apiErrors[k][0]); });
+      setFieldErrors(mapped);
       setFormError(
         err.response?.data?.message ||
-          Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
-          "Failed to update user"
+          (Object.keys(mapped).length ? "Please fix the highlighted fields." : "Failed to update user")
       );
     } finally {
       setFormLoading(false);
@@ -637,7 +692,7 @@ function UserManagementContent() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-700">{user.name}</p>
-                        <p className="text-gray-400 text-xs mt-0.5">{user.email} &middot; {user.school_id || "—"}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">{user.email} &middot; {user.lrn || user.school_id || "—"}</p>
                         <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mt-3">
                           <p className="text-orange-700 text-xs font-bold uppercase mb-1">Student&apos;s Message</p>
                           <p className="text-orange-600 text-sm">{user.password_change_reason || "No reason provided."}</p>
@@ -675,7 +730,7 @@ function UserManagementContent() {
                   <tr className="bg-gray-50 border-b border-gray-100">
                     <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">User</th>
                     <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Level</th>
-                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">School ID</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">LRN</th>
                     <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Email</th>
                     <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
                     <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
@@ -710,7 +765,7 @@ function UserManagementContent() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-gray-600 text-sm font-semibold">{user.school_id || "—"}</p>
+                        <p className="text-gray-600 text-sm font-semibold">{user.lrn || user.school_id || "—"}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-gray-500 text-sm">{user.email}</p>
@@ -834,23 +889,34 @@ function UserManagementContent() {
             </p>
 
             <div className="space-y-2.5">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: filterLettersOnly(e.target.value) })}
-                  placeholder="e.g. Juan Dela Cruz"
-                  autoComplete="off"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                />
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                  </label>
+                  <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
+                  {fieldErr("first_name")}
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
+                  </label>
+                  <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Dela Cruz" autoComplete="off" className={fieldCls("last_name")} />
+                  {fieldErr("last_name")}
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I. (Optional)</label>
+                  <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} placeholder="e.g. D" autoComplete="off" className={fieldCls("middle_initial")} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix (Optional)</label>
+                  <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="e.g. Jr., III" autoComplete="off" className={fieldCls("suffix")} />
+                </div>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Email
+                  Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="email"
@@ -858,14 +924,15 @@ function UserManagementContent() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="e.g. juan.delacruz@sjdmcci.edu.ph"
                   autoComplete="off"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  className={fieldCls("email")}
                 />
+                {fieldErr("email")}
               </div>
 
               <div>
                  <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Password
+                    Password {!formData.password && <span className="text-red-500">*</span>}
                   </label>
                   <button
                     type="button"
@@ -897,6 +964,7 @@ function UserManagementContent() {
                     {showCreatePassword ? "HIDE" : "SHOW"}
                   </button>
                 </div>
+                {fieldErr("password")}
               </div>
 
               <div>
@@ -918,7 +986,7 @@ function UserManagementContent() {
 
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Education Level
+                  Education Level {!formData.education_level && <span className="text-red-500">*</span>}
                 </label>
                 <select
                   value={formData.education_level}
@@ -932,20 +1000,21 @@ function UserManagementContent() {
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  School ID
+                  LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={formData.school_id}
-                  onChange={(e) => setFormData({ ...formData, school_id: filterDigitsOnly(e.target.value) })}
+                  value={formData.lrn}
+                  onChange={(e) => setFormData({ ...formData, lrn: filterDigitsOnly(e.target.value) })}
                   placeholder="e.g. 202210043"
                   autoComplete="off"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  className={fieldCls("lrn")}
                 />
+                {fieldErr("lrn")}
               </div>
 
-              {formData.education_level === "college" && (
+              {false && formData.education_level === "college" && (
                 <>
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Course</label>
@@ -973,7 +1042,7 @@ function UserManagementContent() {
                 </>
               )}
 
-              {formData.education_level === "senior_high_school" && (
+              {false && formData.education_level === "senior_high_school" && (
                 <>
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Strand</label>
@@ -1003,7 +1072,7 @@ function UserManagementContent() {
                 </>
               )}
 
-              {formData.education_level === "junior_high_school" && (
+              {false && formData.education_level === "junior_high_school" && (
                 <>
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Section</label>
@@ -1036,16 +1105,16 @@ function UserManagementContent() {
               )}
             </div>
 
-            <div className="flex gap-3 mt-5">
+            <div className="flex justify-end items-center gap-3 pt-4 mt-5 border-t border-slate-100">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReviewCreate}
-                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
+                className="px-6 py-2.5 rounded-xl bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all"
               >
                 Review & Create
               </button>
@@ -1095,7 +1164,7 @@ function UserManagementContent() {
 
             <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5 text-sm mb-6">
               <div className="flex justify-between gap-2">
-                <span className="text-gray-400 font-medium">Full Name</span>
+                <span className="text-gray-400 font-medium">Name</span>
                 <span className="font-bold text-gray-700 text-right">{formData.name}</span>
               </div>
               <div className="flex justify-between gap-2">
@@ -1111,20 +1180,8 @@ function UserManagementContent() {
                 <span className="font-bold text-gray-700 text-right">{educationLabel(formData.education_level)}</span>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-gray-400 font-medium">School ID</span>
-                <span className="font-bold text-gray-700 text-right">{formData.school_id || "—"}</span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-gray-400 font-medium">
-                  {formData.education_level === "college" ? "Course" : formData.education_level === "senior_high_school" ? "Strand" : "Section"}
-                </span>
-                <span className="font-bold text-gray-700 text-right">{formData.course || "—"}</span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-gray-400 font-medium">
-                  {formData.education_level === "college" ? "Year Level" : "Grade Level"}
-                </span>
-                <span className="font-bold text-gray-700 text-right">{formData.year_level || "—"}</span>
+                <span className="text-gray-400 font-medium">LRN</span>
+                <span className="font-bold text-gray-700 text-right">{formData.lrn || "—"}</span>
               </div>
             </div>
 
@@ -1151,7 +1208,7 @@ function UserManagementContent() {
 
       {editingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl mx-4 p-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setEditingUser(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
@@ -1162,43 +1219,54 @@ function UserManagementContent() {
             <div className="w-20 h-20 mb-3 bg-gradient-to-br from-[#1a237e] to-[#1565c0] rounded-full overflow-hidden flex items-center justify-center text-white font-black text-3xl shadow-lg ring-4 ring-white">
               <AvatarInner user={editingUser} />
             </div>
-            <h2 className="text-2xl font-black text-[#1a237e] mb-1">Edit Student</h2>
+            <h2 className="text-2xl font-bold text-[#0F4C3A] mb-1">Edit Student Account</h2>
             <p className="text-gray-400 text-sm mb-4">
               Update {editingUser.name}&apos;s account details
             </p>
 
-            <div className="bg-blue-50 rounded-2xl p-4 mb-5 flex items-center gap-4">
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase">Trust Score</p>
-                <p className="text-2xl font-black text-[#1a237e]">{editingUser.trust_score}</p>
-              </div>
+            <div className="bg-emerald-50 border border-emerald-200/60 p-3 rounded-xl flex items-center justify-between text-emerald-700 font-bold mb-5">
+              <p className="text-xs uppercase">Trust Score</p>
+              <p className="text-2xl font-black">{editingUser.trust_score}</p>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: filterLettersOnly(e.target.value) })}
-                  autoComplete="off"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                  </label>
+                  <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} autoComplete="off" className={fieldCls("first_name")} />
+                  {fieldErr("first_name")}
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
+                  </label>
+                  <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} autoComplete="off" className={fieldCls("last_name")} />
+                  {fieldErr("last_name")}
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I.</label>
+                  <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} autoComplete="off" className={fieldCls("middle_initial")} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix</label>
+                  <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="Jr., III" autoComplete="off" className={fieldCls("suffix")} />
+                </div>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Email
+                  Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   autoComplete="off"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  className={fieldCls("email")}
                 />
+                {fieldErr("email")}
               </div>
 
               <div>
@@ -1249,6 +1317,7 @@ function UserManagementContent() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">Give this password directly to the student.</p>
+                {fieldErr("password")}
               </div>
               {formData.password && (
                 <div>
@@ -1284,19 +1353,20 @@ function UserManagementContent() {
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  School ID
+                  LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={formData.school_id}
-                  onChange={(e) => setFormData({ ...formData, school_id: filterDigitsOnly(e.target.value) })}
+                  value={formData.lrn}
+                  onChange={(e) => setFormData({ ...formData, lrn: filterDigitsOnly(e.target.value) })}
                   autoComplete="off"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  className={fieldCls("lrn")}
                 />
+                {fieldErr("lrn")}
               </div>
 
-              {formData.education_level === "college" && (
+              {false && formData.education_level === "college" && (
                 <>
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Course</label>
@@ -1324,7 +1394,7 @@ function UserManagementContent() {
                 </>
               )}
 
-              {formData.education_level === "senior_high_school" && (
+              {false && formData.education_level === "senior_high_school" && (
                 <>
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Strand</label>
@@ -1354,7 +1424,7 @@ function UserManagementContent() {
                 </>
               )}
 
-              {formData.education_level === "junior_high_school" && (
+              {false && formData.education_level === "junior_high_school" && (
                 <>
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Section</label>
@@ -1386,17 +1456,18 @@ function UserManagementContent() {
               )}
             </div>
 
-            <div className="flex gap-3 mt-8">
+            {formError && <p className="text-xs text-red-500 font-semibold mt-5">{formError}</p>}
+            <div className="flex justify-end items-center gap-3 pt-4 mt-6 border-t border-slate-100">
               <button
                 onClick={() => setEditingUser(null)}
-                className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition"
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleEditSubmit}
                 disabled={formLoading}
-                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+                className="px-6 py-2.5 rounded-xl bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50"
               >
                 {formLoading ? "Saving..." : "Save Changes"}
               </button>
