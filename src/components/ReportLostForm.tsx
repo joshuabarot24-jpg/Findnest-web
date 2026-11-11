@@ -362,11 +362,11 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                     {/* Fields */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 content-between">
                       <div>
-                        <Label>Item Name {itemNameAiFilled && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}</Label>
+                        <Label>Item Name {!itemName.trim() && <span className="text-red-500">*</span>} {itemNameAiFilled && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}</Label>
                         <input type="text" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g. Red iPhone with clear case" className={FIELD} required />
                       </div>
                       <div>
-                        <Label>Category {uploadedUrls.length > 0 && !manualOverrideGranted && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}</Label>
+                        <Label>Category {uploadedUrls.length === 0 && <span className="text-red-500">*</span>} {uploadedUrls.length > 0 && !manualOverrideGranted && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}</Label>
                         <select value={category} onChange={(e) => setCategory(e.target.value)} className={FIELD}>
                           {categories.map((cat) => (
                             <option key={cat}>{cat}</option>
@@ -401,7 +401,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                       </div>
 
                       <div className="sm:col-span-2">
-                        <Label>Last Seen Location</Label>
+                        <Label>Last Seen Location {!location.trim() && <span className="text-red-500">*</span>}</Label>
                         <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Science Lab, Canteen, Room 402" className={FIELD} required />
                       </div>
 
