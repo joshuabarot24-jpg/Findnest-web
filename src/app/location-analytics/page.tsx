@@ -35,6 +35,7 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 const START_YEAR = 2025;
+const MIN_DATE = `${START_YEAR}-01-01`;
 
 const selectCls =
   "px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-xs font-semibold bg-white";
@@ -177,6 +178,7 @@ function LocationAnalyticsContent() {
   const [range, setRange] = useState<RangeType>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [rangeError, setRangeError] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -256,6 +258,27 @@ function LocationAnalyticsContent() {
     return () => document.removeEventListener("mousedown", close);
   }, []);
 
+  function pickStart(v: string) {
+    if (v && (v < MIN_DATE || v > todayStr)) {
+      setStartDate("");
+      setRangeError("Choose a date between January 1, 2025 and today.");
+      return;
+    }
+    setRangeError("");
+    setStartDate(v);
+    if (v && endDate && endDate < v) setEndDate("");
+  }
+
+  function pickEnd(v: string) {
+    if (v && (v < (startDate || MIN_DATE) || v > todayStr)) {
+      setEndDate("");
+      setRangeError(startDate ? "The end date must be between the start date and today." : "Choose a date between January 1, 2025 and today.");
+      return;
+    }
+    setRangeError("");
+    setEndDate(v);
+  }
+
   function onYear(v: string) {
     setYear(v);
     setRange("all");
@@ -281,6 +304,7 @@ function LocationAnalyticsContent() {
       setEndDate("");
     }
     setPickerOpen(v === "custom");
+    setRangeError("");
   }
 
   const period = (() => {
@@ -414,20 +438,21 @@ function LocationAnalyticsContent() {
                   <input
                     type="date"
                     value={startDate}
-                    max={endDate || todayStr}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    min={MIN_DATE} max={endDate || todayStr}
+                    onChange={(e) => pickStart(e.target.value)}
                     className="w-full mb-3 px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-[#4ADE80]"
                   />
                   <label className="block text-[11px] font-bold text-gray-400 mb-1">End date</label>
                   <input
                     type="date"
                     value={endDate}
-                    min={startDate || undefined}
+                    min={startDate || MIN_DATE}
                     max={todayStr}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => pickEnd(e.target.value)}
                     className="w-full mb-3 px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-[#4ADE80]"
                   />
-                  {!(startDate && endDate) && <p className="text-[11px] text-gray-400 mb-3">Choose both dates to apply the range.</p>}
+                  {rangeError && <p className="text-xs text-red-500 font-medium mb-2">{rangeError}</p>}
+                  {!(startDate && endDate) && <p className="text-[11px] text-gray-400 mb-3">Choose both dates to apply the range. Dates run from January 1, 2025 up to today.</p>}
                   <div className="flex gap-2">
                     <button type="button" onClick={() => onRange("all")} className="flex-1 border border-gray-200 text-gray-500 text-xs font-bold py-2 rounded-xl hover:bg-gray-50 transition">
                       Clear
