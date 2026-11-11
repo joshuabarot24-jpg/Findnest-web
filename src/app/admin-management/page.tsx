@@ -282,15 +282,18 @@ function AdminManagementContent() {
     else if (!NAME_REGEX.test(formData.last_name)) nameErrs.last_name = "Last Name must contain letters only.";
     if (!formData.first_name.trim()) nameErrs.first_name = "First Name is required.";
     else if (!NAME_REGEX.test(formData.first_name)) nameErrs.first_name = "First Name must contain letters only.";
+    if (!formData.email.trim()) nameErrs.email = "Email Address is required.";
+    else if (!EMAIL_REGEX.test(formData.email.trim())) nameErrs.email = "Please enter a complete, valid email address.";
+    else {
+      const typoWarning = checkEmailDomainTypo(formData.email.trim());
+      if (typoWarning) nameErrs.email = typoWarning;
+    }
+    if (!formData.password.trim()) nameErrs.password = "Password is required.";
+    else if (formData.password.length < 8) nameErrs.password = "Password must be at least 8 characters.";
+    if (!confirmAssignPassword) nameErrs.confirm = "Confirm Password is required.";
+    else if (formData.password !== confirmAssignPassword) nameErrs.confirm = "Passwords do not match.";
     setFieldErrors(nameErrs);
-    if (Object.keys(nameErrs).length) return "Please fix the highlighted fields.";
-    if (!EMAIL_REGEX.test(formData.email.trim())) return "Please enter a complete, valid email address.";
-    const typoWarning = checkEmailDomainTypo(formData.email.trim());
-    if (typoWarning) return typoWarning;
-    if (!formData.password.trim()) return "Password is required.";
-    if (formData.password.length < 8) return "Password must be at least 8 characters.";
-    if (formData.password !== confirmAssignPassword) return "Passwords do not match.";
-    return null;
+    return Object.keys(nameErrs).length ? "Please fix the highlighted fields." : null;
   }
 
   function handleReviewAssign() {
@@ -738,8 +741,9 @@ function AdminManagementContent() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="e.g. juan.delacruz@gmail.com"
                   autoComplete="off"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  className={fieldCls("email")}
                 />
+                {fieldErr("email")}
               </div>
 
               <div>
@@ -751,7 +755,7 @@ function AdminManagementContent() {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="Minimum 8 characters"
                     autoComplete="new-password"
-                    className="w-full mt-1 px-4 py-3 pr-16 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                    className={`w-full mt-1 px-4 py-3 pr-16 border rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm ${fieldErrors.password ? "border-red-500 bg-red-50/20" : "border-gray-200"}`}
                   />
                   <button
                     type="button"
@@ -761,6 +765,7 @@ function AdminManagementContent() {
                     {showAssignPassword ? "HIDE" : "SHOW"}
                   </button>
                 </div>
+                {fieldErr("password")}
               </div>
 
               <div>
@@ -771,11 +776,12 @@ function AdminManagementContent() {
                   onChange={(e) => setConfirmAssignPassword(e.target.value)}
                   placeholder="Re-enter the password"
                   autoComplete="new-password"
-                  className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                  className={fieldCls("confirm")}
                 />
-                {confirmAssignPassword && formData.password !== confirmAssignPassword && (
-                  <p className="text-red-500 text-xs mt-1">Passwords do not match.</p>
+                {confirmAssignPassword && formData.password !== confirmAssignPassword && !fieldErrors.confirm && (
+                  <p className="text-xs text-red-500 font-medium mt-1">Passwords do not match.</p>
                 )}
+                {fieldErr("confirm")}
               </div>
 
               <div>
@@ -969,8 +975,9 @@ function AdminManagementContent() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     autoComplete="off"
-                    className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
+                    className={fieldCls("email")}
                   />
+                  {fieldErr("email")}
                 </div>
 
                 <div>
