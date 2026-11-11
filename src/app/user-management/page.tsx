@@ -907,7 +907,7 @@ function UserManagementContent() {
               Add a new student account to the system
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-x-4 gap-y-3">
               <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 order-1">
                 <div className="col-span-2 md:col-span-3">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -1254,7 +1254,7 @@ function UserManagementContent() {
               <p className="text-2xl font-black">{editingUser.trust_score}</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-x-4 gap-y-3">
               <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 order-1">
                 <div className="col-span-2 md:col-span-3 order-2">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -1297,7 +1297,7 @@ function UserManagementContent() {
               <div className="order-5 md:order-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    New Password (leave blank to keep current)
+                    New Password
                   </label>
                   <button
                     type="button"
@@ -1341,7 +1341,7 @@ function UserManagementContent() {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Give this password directly to the student.</p>
+                <p className="text-xs text-gray-400 mt-1">Leave blank to keep the current password. Give a new password directly to the student.</p>
                 {fieldErr("password")}
               </div>
               <div className="order-6 md:order-5">
