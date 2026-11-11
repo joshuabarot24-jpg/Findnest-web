@@ -328,7 +328,14 @@ function ItemManagementContent() {
 
   // Locks page scroll while a popup is open
   useEffect(() => {
-    const anyModalOpen = showAddModal || !!viewingFoundItem || !!viewingLostItem || !!deletingItem;
+  const anyModalOpen = showAddModal || !!viewingFoundItem || !!viewingLostItem || !!deletingItem;
+
+  useEffect(() => {
+    if (!deletingItem) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDeletingItem(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [deletingItem]);
     if (anyModalOpen) {
       const scrollY = window.scrollY;
       document.body.style.position = "fixed";
@@ -1563,29 +1570,42 @@ function ItemManagementContent() {
 
       {/* Delete found item */}
       {deletingItem && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-black text-[#1a237e] mb-2">Confirm Item Removal</h2>
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
+          onClick={() => setDeletingItem(null)}
+        >
+          <div
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 text-center max-h-[90vh] overflow-y-auto cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-red-50 p-3 rounded-2xl text-red-600 mb-3 w-fit mx-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 text-center mb-2">Confirm Item Removal</h2>
+            <p className="text-gray-500 text-sm text-left leading-relaxed">You are about to remove this item from active Item Management:</p>
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 my-3 text-center text-slate-800 font-bold text-sm break-words">
+              {deletingItem.item_name}
+            </div>
             <p className="text-gray-500 text-sm mb-4 text-left leading-relaxed">
-              You are about to remove{" "}
-              <span className="font-black text-[#1a237e] bg-blue-50 px-1.5 py-0.5 rounded">{deletingItem.item_name}</span>{" "}
-              from active Item Management. Please confirm that this deletion complies with guidance inventory policies. While an archived entry will be permanently preserved in the Digital Records for audit compliance, active tracking and public claim matching for this item will be terminated.
+              Please confirm that this deletion complies with guidance inventory policies. While an archived entry will be permanently preserved in the Digital Records for audit compliance, active tracking and public claim matching for this item will be terminated.
             </p>
-            <label className="flex items-start gap-3 text-left text-xs text-gray-600 font-semibold mb-6 cursor-pointer">
+            <label className="flex items-start gap-3 text-left bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 my-4 cursor-pointer">
               <input
                 type="checkbox"
                 checked={deleteAck}
                 onChange={(e) => setDeleteAck(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#1a237e]"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-red-600"
               />
-              <span>I confirm this deletion complies with institutional policies and acknowledge it will be archived in Digital Records.</span>
+              <span className="text-xs text-slate-600 leading-relaxed font-medium">I confirm this deletion complies with institutional policies and acknowledge it will be archived in Digital Records.</span>
             </label>
-            <div className="flex gap-3">
-              <button onClick={() => setDeletingItem(null)} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
+            <div className="flex justify-end items-center gap-3">
+              <button onClick={() => setDeletingItem(null)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">Cancel</button>
               <button
                 onClick={handleDeleteConfirm}
                 disabled={!deleteAck}
-                className={`flex-1 text-white font-bold py-3 rounded-2xl transition ${deleteAck ? "bg-red-600 hover:bg-red-700 cursor-pointer" : "bg-red-300 cursor-not-allowed"}`}
+                className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600"
               >
                 Delete
               </button>

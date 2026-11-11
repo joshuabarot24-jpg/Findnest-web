@@ -459,9 +459,14 @@ export default function InventoryPanel({
       {deleting && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4" onClick={() => setDeleting(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-black text-[#1a237e] mb-3">Confirm Inventory Item Removal</h2>
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-4 text-left text-sm space-y-1">
-              <p><span className="text-gray-400">Item:</span> <span className="font-black text-[#1a237e]">{deleting.name}</span></p>
+            <div className="bg-red-50 p-3 rounded-2xl text-red-600 mb-3 w-fit mx-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 text-center mb-3">Confirm Inventory Item Removal</h2>
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 mb-4 text-left text-sm space-y-1">
+              <p><span className="text-gray-400">Item:</span> <span className="font-bold text-slate-800 break-words">{deleting.name}</span></p>
               <p><span className="text-gray-400">Category:</span> <span className="font-semibold text-gray-700">{deleting.category}</span></p>
               <p><span className="text-gray-400">Quantity:</span> <span className="font-semibold text-gray-700">{deleting.quantity}</span></p>
               <p><span className="text-gray-400">Location:</span> <span className="font-semibold text-gray-700">{deleting.location || "Not set"}</span></p>
@@ -469,18 +474,18 @@ export default function InventoryPanel({
             <p className="text-gray-500 text-sm mb-4 text-left leading-relaxed">
               You are about to remove this item from the active campus inventory. This action will archive the record into <span className="font-bold">Digital Records</span> for auditing purposes and deduct it from the active stock count.
             </p>
-            <label className="flex items-start gap-3 text-left text-xs text-gray-600 font-semibold mb-5 cursor-pointer">
+            <label className="flex items-start gap-3 text-left bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 mb-5 text-xs text-slate-600 font-medium cursor-pointer">
               <input
                 type="checkbox"
                 checked={deleteAck}
                 onChange={(e) => setDeleteAck(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#1a237e]"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-red-600"
               />
               <span>I confirm that this item is being removed in accordance with campus inventory guidelines.</span>
             </label>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setDeleting(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">Cancel</button>
-              <button type="button" onClick={handleDelete} disabled={deleteBusy || !deleteAck} className={`flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition text-sm ${deleteBusy || !deleteAck ? "opacity-50 cursor-not-allowed" : ""}`}>
+              <button type="button" onClick={() => setDeleting(null)} className="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium py-2.5 rounded-xl transition-all text-sm">Cancel</button>
+              <button type="button" onClick={handleDelete} disabled={deleteBusy || !deleteAck} className={`flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl shadow-sm transition-all text-sm ${deleteBusy || !deleteAck ? "opacity-40 cursor-not-allowed" : ""}`}>
                 {deleteBusy ? "Deleting..." : "Delete Item"}
               </button>
             </div>
