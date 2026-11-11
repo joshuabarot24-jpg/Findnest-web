@@ -1118,7 +1118,7 @@ function ItemManagementContent() {
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-gray-700 truncate">{formOwner.name}</p>
                         <p className="text-xs text-gray-500 truncate">
-                          {formOwner.school_id ? `ID ${formOwner.school_id} · ` : ""}{formOwner.email}
+                          {formOwner.school_id ? `LRN ${formOwner.school_id} · ` : ""}{formOwner.email}
                         </p>
                       </div>
                       <button type="button" onClick={() => { setFormOwner(null); setOwnerQuery(""); }} className="text-xs font-bold text-red-500 hover:underline shrink-0">
@@ -1149,7 +1149,7 @@ function ItemManagementContent() {
                                 className="w-full text-left px-4 py-2.5 hover:bg-[#E8F5E9] transition"
                               >
                                 <p className="text-sm font-bold text-gray-700 truncate">{s.name}</p>
-                                <p className="text-xs text-gray-400 truncate">{s.school_id ? `ID ${s.school_id} · ` : ""}{s.email}</p>
+                                <p className="text-xs text-gray-400 truncate">{s.school_id ? `LRN ${s.school_id} · ` : ""}{s.email}</p>
                               </button>
                             ))
                           )}

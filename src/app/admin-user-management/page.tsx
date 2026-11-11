@@ -206,8 +206,6 @@ function AdminUserManagementContent() {
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         (u.school_id || "").toLowerCase().includes(q) ||
-        (u.course || "").toLowerCase().includes(q) ||
-        (u.year_level || "").toLowerCase().includes(q) ||
         (u.education_level || "").toLowerCase().includes(q) ||
         educationLabel(u.education_level).toLowerCase().includes(q) ||
         statusLabel.includes(q)
@@ -382,7 +380,7 @@ function AdminUserManagementContent() {
             <table className="w-full min-w-[46rem]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {["Student", "Level", "School ID", "Trust Score", "Status", "Actions"].map((h) => (
+                  {["Student", "Level", "LRN", "Trust Score", "Status", "Actions"].map((h) => (
                     <th key={h} className={TH}>{h}</th>
                   ))}
                 </tr>
@@ -513,7 +511,7 @@ function AdminUserManagementContent() {
               <DetailRow label="Full Name"><span className="font-bold text-gray-700 text-right">{viewingUser.name}</span></DetailRow>
               <DetailRow label="Email"><span className="font-bold text-gray-700 text-right break-all">{viewingUser.email}</span></DetailRow>
               <DetailRow label="Education Level"><span className="font-bold text-gray-700 text-right">{educationLabel(viewingUser.education_level)}</span></DetailRow>
-              <DetailRow label="School ID"><span className="font-bold text-gray-700 text-right">{viewingUser.school_id || "—"}</span></DetailRow>
+              <DetailRow label="LRN"><span className="font-bold text-gray-700 text-right">{viewingUser.school_id || "—"}</span></DetailRow>
               <DetailRow label={viewingUser.education_level === "senior_high_school" ? "Strand" : viewingUser.education_level === "college" ? "Course" : "Section"}>
                 <span className="font-bold text-gray-700 text-right">{viewingUser.course || "—"}</span>
               </DetailRow>

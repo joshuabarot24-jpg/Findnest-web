@@ -709,7 +709,7 @@ function DigitalRecordsContent() {
                         <div className="min-w-0">
                           <p className="font-black text-gray-700">{itemName}</p>
                           <p className="text-gray-400 text-xs mt-0.5">
-                            {claim.student?.name} &middot; {claim.student?.school_id} &middot; Trust Score: {claim.student?.trust_score}
+                            {claim.student?.name} &middot; LRN {claim.student?.school_id || "—"} &middot; Trust Score: {claim.student?.trust_score}
                           </p>
                           {claim.appeal_submitted_at && (
                             <p className="text-gray-400 text-xs mt-0.5">Appealed {formatTime(claim.appeal_submitted_at)}</p>

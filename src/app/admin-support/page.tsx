@@ -572,7 +572,7 @@ function SupportInboxContent() {
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-700">{newStudent.name}</p>
                     <p className="text-gray-400 text-xs truncate">
-                      {newStudent.email}{newStudent.school_id ? ` · ID ${newStudent.school_id}` : ""}
+                      {newStudent.email}{newStudent.school_id ? ` · LRN ${newStudent.school_id}` : ""}
                     </p>
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#0D5C3A]">NEW CONVERSATION</span>
@@ -667,7 +667,7 @@ function SupportInboxContent() {
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-gray-700 truncate">{s.name}</p>
                       <p className="text-gray-400 text-xs truncate">
-                        {s.school_id ? `ID ${s.school_id} · ` : ""}{s.email}
+                        {s.school_id ? `LRN ${s.school_id} · ` : ""}{s.email}
                       </p>
                     </div>
                   </button>

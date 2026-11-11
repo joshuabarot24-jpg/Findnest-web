@@ -705,7 +705,7 @@ function SuperAdminRecordsContent() {
                         <div key={c.id} className="px-6 py-4 flex flex-wrap items-center justify-between gap-2">
                           <div>
                             <p className="font-bold text-gray-700 text-sm">{itemName}</p>
-                            <p className="text-gray-400 text-xs mt-0.5">{c.student?.name} &middot; {c.student?.school_id}</p>
+                            <p className="text-gray-400 text-xs mt-0.5">{c.student?.name} &middot; LRN {c.student?.school_id || "—"}</p>
                           </div>
                           <div className="text-right">
                             <span className="bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-lg">Returned</span>
@@ -730,7 +730,7 @@ function SuperAdminRecordsContent() {
                         <div key={c.id} className="px-6 py-4 flex flex-wrap items-center justify-between gap-2">
                           <div>
                             <p className="font-bold text-gray-700 text-sm">{itemName}</p>
-                            <p className="text-gray-400 text-xs mt-0.5">{c.student?.name} &middot; {c.student?.school_id}</p>
+                            <p className="text-gray-400 text-xs mt-0.5">{c.student?.name} &middot; LRN {c.student?.school_id || "—"}</p>
                             {c.admin_notes && <p className="text-red-500 text-xs mt-1">Reason: {c.admin_notes}</p>}
                           </div>
                           <div className="text-right">
@@ -753,7 +753,7 @@ function SuperAdminRecordsContent() {
                     <div key={u.id} className="px-6 py-4 flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-bold text-gray-700 text-sm">{u.name}</p>
-                        <p className="text-gray-400 text-xs mt-0.5">{u.email} &middot; {u.school_id || "—"}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">{u.email} &middot; LRN {u.school_id || "—"}</p>
                       </div>
                       <div className="text-right">
                         <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg capitalize">{u.role.replace("_", " ")}</span>
