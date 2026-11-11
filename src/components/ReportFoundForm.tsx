@@ -196,6 +196,14 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
       setPhotoError(true);
       return;
     }
+    if (!primaryColor.trim()) {
+      setSubmitError("Primary colors is required.");
+      return;
+    }
+    if (!brandModel.trim()) {
+      setSubmitError("Model and brand is required. Type None if the item has no brand.");
+      return;
+    }
     if (!description.trim()) {
       setSubmitError("Description is required. Please add details manually since our AI could not auto-fill it.");
       return;
@@ -354,7 +362,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
                       </div>
                       <div>
                         <Label>Model and Brand {brandModel ? <span className="text-green-600 font-normal">(auto-detected, editable)</span> : <span className="text-red-500">*</span>}</Label>
-                        <input type="text" value={brandModel} onChange={(e) => setBrandModel(e.target.value)} placeholder="e.g. Apple iPhone 15" className={FIELD} />
+                        <input type="text" value={brandModel} onChange={(e) => setBrandModel(e.target.value)} placeholder="e.g. Apple iPhone 15, or None" className={FIELD} />
                       </div>
 
                       <div>
@@ -373,7 +381,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
                       </div>
 
                       <div className="sm:col-span-2">
-                        <Label>Item Description {aiFilled ? <span className="text-green-600 font-normal">(auto-filled by AI, editable)</span> : <span className="text-red-500">*</span>}</Label>
+                        <Label>Item Description {!description.trim() && <span className="text-red-500">*</span>} {aiFilled && description.trim() ? <span className="text-green-600 font-normal">(auto-filled by AI, editable)</span> : null}</Label>
                         <textarea
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
