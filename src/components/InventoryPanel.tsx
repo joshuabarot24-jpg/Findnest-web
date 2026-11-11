@@ -82,6 +82,17 @@ export default function InventoryPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addSignal]);
 
+  // Esc closes the inventory window and its delete confirmation
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (deleting) setDeleting(null);
+      else if (modalOpen) setModalOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [modalOpen, deleting]);
+
   const fetchItems = async () => {
     try {
       const res = await api.get("/inventory");
@@ -371,12 +382,11 @@ export default function InventoryPanel({
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4" onClick={() => setModalOpen(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-4">
-              <h2 className="text-lg font-black text-[#1a237e]">{editing ? "Edit Inventory Item" : "Add Inventory Item"}</h2>
-              <button type="button" aria-label="Close" onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
-            </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md" onClick={() => setModalOpen(false)}>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <button type="button" aria-label="Close" onClick={() => setModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+            <h2 className="text-2xl font-black text-[#1a237e] mb-1">{editing ? "Edit Inventory Item" : "Add Item"}</h2>
+            <p className="text-gray-400 text-sm mb-6">{editing ? "Update this item's details" : "Record an office supply or equipment item kept in the stockroom"}</p>
 
             {!editing && onSwitchIntake && (
               <div className="mb-4">
@@ -385,20 +395,20 @@ export default function InventoryPanel({
                   <button
                     type="button"
                     onClick={() => { setModalOpen(false); onSwitchIntake("found_item"); }}
-                    className="py-2.5 rounded-xl text-xs font-bold border-2 border-gray-200 text-gray-400 hover:border-[#1a237e] hover:text-[#1a237e] transition"
+                    className="py-3 rounded-xl text-sm font-bold border-2 border-gray-200 text-gray-400 hover:border-[#1a237e] hover:text-[#1a237e] transition"
                   >
                     Found Item
                   </button>
                   <button
                     type="button"
                     onClick={() => { setModalOpen(false); onSwitchIntake("confiscated"); }}
-                    className="py-2.5 rounded-xl text-xs font-bold border-2 border-gray-200 text-gray-400 hover:border-[#1a237e] hover:text-[#1a237e] transition"
+                    className="py-3 rounded-xl text-sm font-bold border-2 border-gray-200 text-gray-400 hover:border-[#1a237e] hover:text-[#1a237e] transition"
                   >
                     Confiscated Item
                   </button>
                   <button
                     type="button"
-                    className="py-2.5 rounded-xl text-xs font-bold border-2 border-[#1a237e] bg-blue-50 text-[#1a237e] cursor-default"
+                    className="py-3 rounded-xl text-sm font-bold border-2 border-[#1a237e] bg-blue-50 text-[#1a237e] cursor-default"
                   >
                     Inventory Item
                   </button>
@@ -436,8 +446,8 @@ export default function InventoryPanel({
               )}
 
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={() => setModalOpen(false)} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition text-sm">Cancel</button>
-                <button type="button" onClick={handleSave} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-2.5 rounded-xl transition text-sm disabled:opacity-50">
+                <button type="button" onClick={() => setModalOpen(false)} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
+                <button type="button" onClick={handleSave} className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50">
                   {saving ? "Saving..." : editing ? "Save Changes" : "Add Item"}
                 </button>
               </div>
@@ -447,7 +457,7 @@ export default function InventoryPanel({
       )}
 
       {deleting && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 px-4" onClick={() => setDeleting(null)}>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4" onClick={() => setDeleting(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-black text-[#1a237e] mb-3">Confirm Inventory Item Removal</h2>
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-4 text-left text-sm space-y-1">
