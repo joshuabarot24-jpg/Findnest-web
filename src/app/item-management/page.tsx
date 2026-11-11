@@ -326,16 +326,17 @@ function ItemManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Locks page scroll while a popup is open
-  useEffect(() => {
-  const anyModalOpen = showAddModal || !!viewingFoundItem || !!viewingLostItem || !!deletingItem;
-
+  // Esc closes the removal window
   useEffect(() => {
     if (!deletingItem) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDeletingItem(null); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [deletingItem]);
+
+  // Locks page scroll while a popup is open
+  useEffect(() => {
+    const anyModalOpen = showAddModal || !!viewingFoundItem || !!viewingLostItem || !!deletingItem;
     if (anyModalOpen) {
       const scrollY = window.scrollY;
       document.body.style.position = "fixed";
