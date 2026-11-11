@@ -350,7 +350,7 @@ export default function Home() {
     try {
       const response = await api.post("/auth/student/verify-otp", { school_id: identifier.trim(), otp: otpCode });
       setAuth(response.data.token, response.data.user);
-      window.location.href = "/student-home";
+      redirectByRole(response.data.user.role);
     } catch (err: any) {
       setOtpError(err.response?.data?.message || "Invalid OTP code");
       setOtp(["", "", "", "", "", ""]);

@@ -879,7 +879,7 @@ function UserManagementContent() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="e.g. juan.delacruz@sjdmcci.edu.ph"
+                  placeholder="e.g. juan.delacruz@gmail.com"
                   autoComplete="off"
                   className={fieldCls("email")}
                 />

@@ -728,7 +728,7 @@ function AdminManagementContent() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="e.g. juan.delacruz@sjdmcci.edu.ph"
+                  placeholder="e.g. juan.delacruz@gmail.com"
                   autoComplete="off"
                   className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm"
                 />

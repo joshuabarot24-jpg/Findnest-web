@@ -57,6 +57,10 @@ export default function AdminLoginPage() {
           email: username,
           password: password,
         });
+        if (response.data.requires_otp) {
+          setError("This account needs an email code. Please sign in from the main login page.");
+          return;
+        }
         setAuth(response.data.token, response.data.user);
         window.location.href = "/dashboard";
       } catch (err: any) {
