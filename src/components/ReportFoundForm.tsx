@@ -42,7 +42,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
     return d.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
   }
 
-  const [date, setDate] = useState(() => getManilaDate(0));
+  const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [photoError, setPhotoError] = useState(false);
@@ -194,6 +194,14 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
     e.preventDefault();
     if (uploadedUrls.length === 0) {
       setPhotoError(true);
+      return;
+    }
+    if (!date) {
+      setSubmitError("Date found is required.");
+      return;
+    }
+    if (!time) {
+      setSubmitError("Approximate time is required.");
       return;
     }
     if (!primaryColor.trim()) {
@@ -366,12 +374,12 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
                       </div>
 
                       <div>
-                        <Label>Date Found</Label>
+                        <Label>Date Found {!date && <span className="text-red-500">*</span>}</Label>
                         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={getManilaDate(21)} max={getManilaDate(0)} className={FIELD} required />
                         <p className="text-gray-400 text-[11px] mt-1">Today or up to 3 weeks ago.</p>
                       </div>
                       <div>
-                        <Label>Approx. Time Found</Label>
+                        <Label>Approx. Time Found {!time && <span className="text-red-500">*</span>}</Label>
                         <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD} />
                       </div>
 
