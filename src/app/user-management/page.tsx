@@ -286,7 +286,8 @@ function UserManagementContent() {
   // Keeps the saved full name in step with the split name fields
   function setNamePart(patch: Partial<{ first_name: string; last_name: string; middle_initial: string; suffix: string }>) {
     const next = { ...formData, ...patch };
-    const full = [next.first_name, next.last_name, next.suffix].map((s) => s.trim()).filter(Boolean).join(" ");
+    const mi = next.middle_initial.trim().replace(/\.$/, "");
+    const full = [next.first_name.trim(), mi ? mi + "." : "", next.last_name.trim(), next.suffix.trim()].filter(Boolean).join(" ");
     setFormData({ ...next, name: full });
   }
 
@@ -873,8 +874,14 @@ function UserManagementContent() {
 
       
       {showCreateModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl md:max-w-3xl mx-4 overflow-hidden cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setShowCreateModal(false)}
               className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
@@ -888,33 +895,33 @@ function UserManagementContent() {
               Add a new student account to the system
             </p>
 
-            <div className="space-y-2.5">
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
-                  </label>
-                  <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
-                  {fieldErr("first_name")}
-                </div>
-                <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+              <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 md:order-[-2]">
+                <div className="col-span-2 md:col-span-3">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
                   </label>
                   <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Dela Cruz" autoComplete="off" className={fieldCls("last_name")} />
                   {fieldErr("last_name")}
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I. (Optional)</label>
+                <div className="col-span-2 md:col-span-3">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                  </label>
+                  <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
+                  {fieldErr("first_name")}
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I.</label>
                   <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} placeholder="e.g. D" autoComplete="off" className={fieldCls("middle_initial")} />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix (Optional)</label>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix</label>
                   <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="e.g. Jr., III" autoComplete="off" className={fieldCls("suffix")} />
                 </div>
               </div>
 
-              <div>
+              <div className="md:order-[-1]">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -967,7 +974,7 @@ function UserManagementContent() {
                 {fieldErr("password")}
               </div>
 
-              <div>
+              <div className="md:order-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Confirm Password
                 </label>
@@ -998,7 +1005,7 @@ function UserManagementContent() {
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="md:order-[-1]">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1101,7 +1108,7 @@ function UserManagementContent() {
               )}
 
               {formError && (
-                <p className="text-red-500 text-xs font-semibold">{formError}</p>
+                <p className="text-red-500 text-xs font-semibold md:col-span-2 md:order-2">{formError}</p>
               )}
             </div>
 
@@ -1207,8 +1214,14 @@ function UserManagementContent() {
       )}
 
       {editingUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
-          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl mx-4 p-8 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
+          onClick={() => setEditingUser(null)}
+        >
+          <div
+            className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl md:max-w-3xl mx-4 p-8 max-h-[90vh] overflow-y-auto cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setEditingUser(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none"
@@ -1229,33 +1242,33 @@ function UserManagementContent() {
               <p className="text-2xl font-black">{editingUser.trust_score}</p>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
                   </label>
-                  <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} autoComplete="off" className={fieldCls("first_name")} />
+                  <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
                   {fieldErr("first_name")}
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
                   </label>
-                  <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} autoComplete="off" className={fieldCls("last_name")} />
+                  <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Dela Cruz" autoComplete="off" className={fieldCls("last_name")} />
                   {fieldErr("last_name")}
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I.</label>
-                  <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} autoComplete="off" className={fieldCls("middle_initial")} />
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">M.I. (Optional)</label>
+                  <input type="text" value={formData.middle_initial} onChange={(e) => setNamePart({ middle_initial: filterLettersOnly(e.target.value).slice(0, 2) })} placeholder="e.g. D" autoComplete="off" className={fieldCls("middle_initial")} />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix</label>
-                  <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="Jr., III" autoComplete="off" className={fieldCls("suffix")} />
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Suffix (Optional)</label>
+                  <input type="text" value={formData.suffix} onChange={(e) => setNamePart({ suffix: e.target.value.replace(/[^A-Za-z.]/g, "").slice(0, 6) })} placeholder="e.g. Jr., III" autoComplete="off" className={fieldCls("suffix")} />
                 </div>
               </div>
 
-              <div>
+              <div className="md:order-[-1]">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1320,7 +1333,7 @@ function UserManagementContent() {
                 {fieldErr("password")}
               </div>
               {formData.password && (
-                <div>
+                <div className="md:order-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     Confirm New Password
                   </label>
@@ -1351,7 +1364,7 @@ function UserManagementContent() {
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="md:order-[-1]">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1452,7 +1465,7 @@ function UserManagementContent() {
               )}
 
               {formError && (
-                <p className="text-red-500 text-xs font-semibold">{formError}</p>
+                <p className="text-red-500 text-xs font-semibold md:col-span-2 md:order-2">{formError}</p>
               )}
             </div>
 
