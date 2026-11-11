@@ -450,11 +450,18 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                 </div>
 
                 {/* Footer with soft red gradient */}
-                <div className="bg-transparent px-6 pt-4 pb-8 flex justify-center">
+                <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-100 mt-6 mx-6 pb-6">
+                  <button
+                    type="button"
+                    onClick={() => (embedded ? onDone?.() : (window.location.href = "/student-home"))}
+                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all"
+                  >
+                    Cancel
+                  </button>
                   <button
                     type="submit"
                     disabled={anyUploading || uploadedUrls.length === 0}
-                    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-8 rounded-full shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {anyUploading ? "Waiting for photo analysis..." : "Click to submit report"}
                   </button>
