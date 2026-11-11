@@ -248,7 +248,7 @@ export default function InventoryPanel({
   }
 
   const inputCls =
-    "w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-sm text-gray-800";
+    "w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm";
 
   return (
     <div>
