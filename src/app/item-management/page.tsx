@@ -688,8 +688,8 @@ function ItemManagementContent() {
         setFormError("Choose a time between 6:00 AM and 7:00 PM that is not in the future.");
         return;
       }
-      if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
-        setFormError("Item name, location lost, date lost, and photo are required.");
+      if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl || !formTime || !formColor.trim() || !formBrand.trim()) {
+        setFormError("Please fill in every field marked with a red asterisk, including the time and the photo.");
         return;
       }
       setFormError("");
@@ -729,8 +729,8 @@ function ItemManagementContent() {
         setFormError("Choose a time between 6:00 AM and 7:00 PM that is not in the future.");
         return;
       }
-      if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl) {
-      setFormError("Item name, location found, date found, and photo are required.");
+      if (!formName.trim() || !formLocationFound.trim() || !formDateFound || !formPhotoUrl || !formTime || !formColor.trim() || !formBrand.trim() || (formIntakeType === "confiscated" && (!formStudentName.trim() || !formViolationNotes.trim()))) {
+      setFormError("Please fill in every field marked with a red asterisk, including the time and the photo.");
       return;
     }
     setFormError("");
@@ -1217,12 +1217,12 @@ function ItemManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Item Name</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Item Name {!formName.trim() && <span className="text-red-500">*</span>}</label>
                 <input type="text" value={formName} onChange={(e) => setFormName(filterLettersOnly(e.target.value))} placeholder="e.g. Grey Backpack" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Category</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Category {!formPhotoPreview && <span className="text-red-500">*</span>}</label>
                 <select value={formCategory} onChange={(e) => setFormCategory(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm">
                   {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -1230,7 +1230,7 @@ function ItemManagementContent() {
 
               {formIntakeType === "lost_item" && (
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student / Owner</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student / Owner {!formOwner && <span className="text-red-500">*</span>}</label>
                   {formOwner ? (
                     <div className="mt-1 flex items-center justify-between gap-3 px-4 py-3 border border-[#4ADE80] bg-[#E8F5E9] rounded-xl">
                       <div className="min-w-0">
@@ -1280,21 +1280,21 @@ function ItemManagementContent() {
               {(formIntakeType === "lost_item" || formIntakeType === "found_item" || formIntakeType === "confiscated") && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Primary Colors</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Primary Colors {!formColor.trim() && <span className="text-red-500">*</span>}</label>
                     <input type="text" value={formColor} onChange={(e) => setFormColor(e.target.value)} placeholder="e.g. Black" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Model and Brand</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Model and Brand {!formBrand.trim() && <span className="text-red-500">*</span>}</label>
                     <input type="text" value={formBrand} onChange={(e) => setFormBrand(e.target.value)} placeholder="e.g. Samsung A15" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
                   </div>
                 </div>
               )}
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  {formIntakeType === "lost_item" ? "Approx. Time Lost" : formIntakeType === "confiscated" ? "Time Confiscated" : "Approx. Time Found"}
+                  {formIntakeType === "lost_item" ? "Approx. Time Lost" : formIntakeType === "confiscated" ? "Time Confiscated" : "Approx. Time Found"} {!formTime && <span className="text-red-500">*</span>}
                 </label>
                 <select value={formTime} onChange={(e) => setFormTime(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm">
-                    <option value="">Select time (optional)</option>
+                    <option value="">Select time</option>
                     {timeOptions(formDateFound).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                   {formDateFound && timeOptions(formDateFound).length === 0 && (
@@ -1304,7 +1304,7 @@ function ItemManagementContent() {
               {formIntakeType === "confiscated" && (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student Name (if known)</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student Name {!formStudentName.trim() && <span className="text-red-500">*</span>}</label>
                     <input type="text" value={formStudentName} onChange={(e) => setFormStudentName(e.target.value)} placeholder="Optional" className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
                   </div>
                   <div>
@@ -1314,12 +1314,12 @@ function ItemManagementContent() {
                 </div>
               )}
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"}</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Location Lost" : "Location Found"} {!formLocationFound.trim() && <span className="text-red-500">*</span>}</label>
                 <input type="text" value={formLocationFound} onChange={(e) => setFormLocationFound(e.target.value)} placeholder={formIntakeType === "lost_item" ? "e.g. Room 305" : "e.g. Near the canteen"} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm" />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"}</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">{formIntakeType === "lost_item" ? "Date Lost" : "Date Found"} {!formDateFound && <span className="text-red-500">*</span>}</label>
                 <input
                   type="date"
                   value={formDateFound}
