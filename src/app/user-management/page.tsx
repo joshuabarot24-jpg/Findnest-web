@@ -8,6 +8,7 @@ import SuperAdminLayout from "@/components/SuperAdminLayout";
 import StudentActivityModal from "@/components/StudentActivityModal";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { generatePassword } from "@/lib/generatePassword";
+import { PasswordChecklist, passwordValid } from "@/lib/passwordRules";
 
 interface SystemUser {
   id: number;
@@ -352,9 +353,20 @@ function UserManagementContent() {
     }
     if (!formData.education_level) e.education_level = "Education Level is required.";
     if (!editingUser && !formData.password) e.password = "Password is required.";
-    else if (formData.password && formData.password.length < 8) e.password = "Password must be at least 8 characters.";
+    else if (formData.password && !passwordValid(formData.password)) e.password = "Password must meet all the requirements below.";
     else if (!editingUser && formData.password !== confirmCreatePassword) e.password = "Passwords do not match.";
     return e;
+  }
+
+  // True only when every field is valid (the buttons stay dimmed until then)
+  function isFormValid(): boolean {
+    if (Object.keys(collectErrors()).length > 0) return false;
+    if (editingUser) {
+      if (formData.password && (!passwordValid(formData.password) || formData.password !== confirmEditPassword)) return false;
+    } else if (!passwordValid(formData.password) || formData.password !== confirmCreatePassword) {
+      return false;
+    }
+    return true;
   }
 
   // Returns the first error message, or null when the form is valid
@@ -930,6 +942,7 @@ function UserManagementContent() {
                   </button>
                 </div>
                 {fieldErr("password")}
+                <PasswordChecklist password={formData.password} optional={!!editingUser} />
               </div>
 
               <div className="order-6 md:order-none md:col-start-1 md:row-start-4 [&_label]:block">
@@ -1070,6 +1083,7 @@ function UserManagementContent() {
               )}
             </div>
 
+            {!isFormValid() && <p className="text-xs text-gray-400 mt-4 text-right">Fill in every required field and meet all the password requirements to continue.</p>}
             <div className="flex justify-end items-center gap-3 pt-4 mt-5 border-t border-slate-100">
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -1079,6 +1093,8 @@ function UserManagementContent() {
               </button>
               <button
                 onClick={handleReviewCreate}
+                disabled={!isFormValid()}
+                style={!isFormValid() ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
                 className="px-6 py-2.5 rounded-xl bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all"
               >
                 Review & Create
@@ -1289,6 +1305,7 @@ function UserManagementContent() {
                 </div>
                 <p className="text-xs text-gray-400 mt-1">Leave blank to keep the current password. Give a new password directly to the student.</p>
                 {fieldErr("password")}
+                <PasswordChecklist password={formData.password} optional={!!editingUser} />
               </div>
               <div className="order-6 md:order-none md:col-start-1 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -1428,6 +1445,7 @@ function UserManagementContent() {
             </div>
 
             {formError && <p className="text-xs text-red-500 font-semibold mt-5">{formError}</p>}
+            {!isFormValid() && <p className="text-xs text-gray-400 mt-4 text-right">Fill in every required field and meet all the password requirements to continue.</p>}
             <div className="flex justify-end items-center gap-3 pt-4 mt-6 border-t border-slate-100">
               <button
                 onClick={() => setEditingUser(null)}
@@ -1437,7 +1455,8 @@ function UserManagementContent() {
               </button>
               <button
                 onClick={handleEditSubmit}
-                disabled={formLoading}
+                disabled={formLoading || !isFormValid()}
+                style={!isFormValid() ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
                 className="px-6 py-2.5 rounded-xl bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50"
               >
                 {formLoading ? "Saving..." : "Save Changes"}

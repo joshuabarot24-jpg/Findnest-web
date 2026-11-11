@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import SuperAdminLayout from "@/components/SuperAdminLayout";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import { PasswordChecklist, passwordValid } from "@/lib/passwordRules";
 
 interface AdminUser {
   id: number;
@@ -289,11 +290,29 @@ function AdminManagementContent() {
       if (typoWarning) nameErrs.email = typoWarning;
     }
     if (!formData.password.trim()) nameErrs.password = "Password is required.";
-    else if (formData.password.length < 8) nameErrs.password = "Password must be at least 8 characters.";
+    else if (!passwordValid(formData.password)) nameErrs.password = "Password must meet all the requirements below.";
     if (!confirmAssignPassword) nameErrs.confirm = "Confirm Password is required.";
     else if (formData.password !== confirmAssignPassword) nameErrs.confirm = "Passwords do not match.";
     setFieldErrors(nameErrs);
     return Object.keys(nameErrs).length ? "Please fix the highlighted fields." : null;
+  }
+
+  // True only when every field is valid (the buttons stay dimmed until then)
+  function isAssignValid(): boolean {
+    return (
+      !!formData.first_name.trim() && !!formData.last_name.trim() &&
+      NAME_REGEX.test(formData.first_name) && NAME_REGEX.test(formData.last_name) &&
+      EMAIL_REGEX.test(formData.email.trim()) && !checkEmailDomainTypo(formData.email.trim()) &&
+      passwordValid(formData.password) && formData.password === confirmAssignPassword
+    );
+  }
+
+  function isEditAdminValid(): boolean {
+    if (!formData.first_name.trim() || !formData.last_name.trim()) return false;
+    if (!NAME_REGEX.test(formData.first_name) || !NAME_REGEX.test(formData.last_name)) return false;
+    if (!EMAIL_REGEX.test(formData.email.trim())) return false;
+    if (formData.password && (!passwordValid(formData.password) || formData.password !== confirmEditPassword)) return false;
+    return true;
   }
 
   function handleReviewAssign() {
@@ -766,6 +785,7 @@ function AdminManagementContent() {
                   </button>
                 </div>
                 {fieldErr("password")}
+                <PasswordChecklist password={formData.password} />
               </div>
 
               <div>
@@ -808,6 +828,8 @@ function AdminManagementContent() {
               </button>
               <button
                 onClick={handleReviewAssign}
+                disabled={!isAssignValid()}
+                style={!isAssignValid() ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
                 className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
               >
                 Review & Assign
@@ -1013,6 +1035,7 @@ function AdminManagementContent() {
                     </button>
                   </div>
                 </div>
+                <PasswordChecklist password={formData.password} optional />
                 {formData.password && (
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -1125,7 +1148,8 @@ function AdminManagementContent() {
               </button>
               <button
                 onClick={handleEditSubmit}
-                disabled={formLoading}
+                disabled={formLoading || !isEditAdminValid()}
+                style={!isEditAdminValid() ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
                 className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
               >
                 {formLoading ? "Saving..." : "Save Changes"}
