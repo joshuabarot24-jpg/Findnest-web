@@ -908,7 +908,7 @@ function UserManagementContent() {
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-x-4 gap-y-3">
-              <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 order-1">
+              <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 md:col-start-1 md:row-start-1 order-1">
                 <div className="col-span-2 md:col-span-3">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
@@ -933,7 +933,7 @@ function UserManagementContent() {
                 </div>
               </div>
 
-              <div className="order-2 md:col-span-2">
+              <div className="order-2 md:col-span-2 md:col-start-1 md:row-start-2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -948,7 +948,7 @@ function UserManagementContent() {
                 {fieldErr("email")}
               </div>
 
-              <div className="order-5 md:order-3">
+              <div className="order-5 md:order-none md:col-start-1 md:row-start-3 [&_label]:block">
                  <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     Password {!formData.password && <span className="text-red-500">*</span>}
@@ -986,7 +986,7 @@ function UserManagementContent() {
                 {fieldErr("password")}
               </div>
 
-              <div className="order-6 md:order-5">
+              <div className="order-6 md:order-none md:col-start-1 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Confirm Password {!confirmCreatePassword && <span className="text-red-500">*</span>}
                 </label>
@@ -1003,7 +1003,7 @@ function UserManagementContent() {
                 )}
               </div>
 
-              <div className="order-4 md:order-6">
+              <div className="order-4 md:order-none md:col-start-2 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Education Level {!formData.education_level && <span className="text-red-500">*</span>}
                 </label>
@@ -1017,7 +1017,7 @@ function UserManagementContent() {
                   ))}
                 </select>
               </div>
-              <div className="order-3 md:order-4">
+              <div className="order-3 md:order-none md:col-start-2 md:row-start-3 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1120,7 +1120,7 @@ function UserManagementContent() {
               )}
 
               {formError && (
-                <p className="text-red-500 text-xs font-semibold md:col-span-2 order-7">{formError}</p>
+                <p className="text-red-500 text-xs font-semibold md:col-span-2 md:col-start-1 md:row-start-5 order-7">{formError}</p>
               )}
             </div>
 
@@ -1255,7 +1255,7 @@ function UserManagementContent() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-x-4 gap-y-3">
-              <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 order-1">
+              <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 md:col-start-1 md:row-start-1 order-1">
                 <div className="col-span-2 md:col-span-3 order-2">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
@@ -1280,7 +1280,7 @@ function UserManagementContent() {
                 </div>
               </div>
 
-              <div className="order-2 md:col-span-2">
+              <div className="order-2 md:col-span-2 md:col-start-1 md:row-start-2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1294,7 +1294,7 @@ function UserManagementContent() {
                 {fieldErr("email")}
               </div>
 
-              <div className="order-5 md:order-3">
+              <div className="order-5 md:order-none md:col-start-1 md:row-start-3 [&_label]:block">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                     New Password
@@ -1344,7 +1344,7 @@ function UserManagementContent() {
                 <p className="text-xs text-gray-400 mt-1">Leave blank to keep the current password. Give a new password directly to the student.</p>
                 {fieldErr("password")}
               </div>
-              <div className="order-6 md:order-5">
+              <div className="order-6 md:order-none md:col-start-1 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Confirm Password {formData.password && !confirmEditPassword && <span className="text-red-500">*</span>}
                 </label>
@@ -1362,7 +1362,7 @@ function UserManagementContent() {
                 {fieldErr("confirm")}
               </div>
 
-              <div className="order-4 md:order-6">
+              <div className="order-4 md:order-none md:col-start-2 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Education Level {!formData.education_level && <span className="text-red-500">*</span>}
                 </label>
@@ -1376,7 +1376,7 @@ function UserManagementContent() {
                   ))}
                 </select>
               </div>
-              <div className="order-3 md:order-4">
+              <div className="order-3 md:order-none md:col-start-2 md:row-start-3 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
                 </label>
@@ -1477,7 +1477,7 @@ function UserManagementContent() {
               )}
 
               {formError && (
-                <p className="text-red-500 text-xs font-semibold md:col-span-2 order-7">{formError}</p>
+                <p className="text-red-500 text-xs font-semibold md:col-span-2 md:col-start-1 md:row-start-5 order-7">{formError}</p>
               )}
             </div>
 
