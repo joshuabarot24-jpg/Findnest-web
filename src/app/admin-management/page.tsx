@@ -731,7 +731,7 @@ function AdminManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -743,7 +743,7 @@ function AdminManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Password</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Password {!formData.password && <span className="text-red-500">*</span>}</label>
                 <div className="relative">
                   <input
                     type={showAssignPassword ? "text" : "password"}
@@ -764,7 +764,7 @@ function AdminManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Confirm Password</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Confirm Password {!confirmAssignPassword && <span className="text-red-500">*</span>}</label>
                 <input
                   type={showAssignPassword ? "text" : "password"}
                   value={confirmAssignPassword}
@@ -963,7 +963,7 @@ function AdminManagementContent() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}</label>
                   <input
                     type="email"
                     value={formData.email}
