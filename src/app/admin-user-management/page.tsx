@@ -512,12 +512,6 @@ function AdminUserManagementContent() {
               <DetailRow label="Email"><span className="font-bold text-gray-700 text-right break-all">{viewingUser.email}</span></DetailRow>
               <DetailRow label="Education Level"><span className="font-bold text-gray-700 text-right">{educationLabel(viewingUser.education_level)}</span></DetailRow>
               <DetailRow label="LRN"><span className="font-bold text-gray-700 text-right">{viewingUser.school_id || "—"}</span></DetailRow>
-              <DetailRow label={viewingUser.education_level === "senior_high_school" ? "Strand" : viewingUser.education_level === "college" ? "Course" : "Section"}>
-                <span className="font-bold text-gray-700 text-right">{viewingUser.course || "—"}</span>
-              </DetailRow>
-              <DetailRow label={viewingUser.education_level === "college" ? "Year Level" : "Grade Level"}>
-                <span className="font-bold text-gray-700 text-right">{viewingUser.year_level || "—"}</span>
-              </DetailRow>
               <DetailRow label="Status">
                 <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
                   !viewingUser.is_active ? "bg-gray-100 text-gray-600" : viewingUser.is_restricted ? "bg-orange-50 text-orange-600" : "bg-green-50 text-green-700"
