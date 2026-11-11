@@ -185,6 +185,7 @@ function LocationAnalyticsContent() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: Math.max(1, currentYear - START_YEAR + 1) }, (_, i) => currentYear - i);
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const currentMonth = Number(todayStr.slice(5, 7));
 
   // What the server is asked for. Year and month are used only when no range is chosen
   const params = useMemo(() => {
@@ -281,6 +282,7 @@ function LocationAnalyticsContent() {
 
   function onYear(v: string) {
     setYear(v);
+    if ((v === String(currentYear) || v === "all") && month !== "all" && Number(month) > currentMonth) setMonth("all");
     setRange("all");
     setPickerOpen(false);
     if (v === "all") setMonth("all");
@@ -407,7 +409,9 @@ function LocationAnalyticsContent() {
               </select>
               <select value={month} onChange={(e) => onMonth(e.target.value)} className={selectCls} aria-label="Month">
                 <option value="all">All Months</option>
-                {MONTH_NAMES.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
+                {MONTH_NAMES.map((m, i) => ({ m, i }))
+                  .filter(({ i }) => !(year === "all" || year === String(currentYear)) || i + 1 <= currentMonth)
+                  .map(({ m, i }) => <option key={m} value={String(i + 1)}>{m}</option>)}
               </select>
               <select value={range} onChange={(e) => onRange(e.target.value as RangeType)} className={selectCls} aria-label="Date range">
                 <option value="all">All Time</option>
