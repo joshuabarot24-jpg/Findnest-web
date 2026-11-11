@@ -344,10 +344,13 @@ function AdminManagementContent() {
       resetForm();
       fetchUsers();
     } catch (err: any) {
+      const apiErrors = err.response?.data?.errors || {};
+      const mapped: Record<string, string> = {};
+      Object.keys(apiErrors).forEach((k) => { mapped[k] = String(apiErrors[k][0]); });
+      setFieldErrors(mapped);
       setFormError(
         err.response?.data?.message ||
-          Object.values(err.response?.data?.errors || {}).flat().join(", ") ||
-          "Failed to update admin"
+          (Object.keys(mapped).length ? "Please fix the highlighted fields." : "Failed to update admin")
       );
     } finally {
       setFormLoading(false);
