@@ -51,6 +51,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
   const [dragOver, setDragOver] = useState(false);
   const [photoErrorMessage, setPhotoErrorMessage] = useState("");
   const [photoErrorTone, setPhotoErrorTone] = useState<"red" | "amber">("red");
+  const [photoProhibited, setPhotoProhibited] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -132,6 +133,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
     setPhotoError(false);
     setPhotoErrorMessage("");
     setPhotoErrorTone("red");
+    setPhotoProhibited(false);
 
     const isFirstPhoto = photos.length === 0;
 
@@ -180,7 +182,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
         }
         console.error("Photo upload failed:", err);
         setPhotos((prev) => prev.filter((_, i2) => i2 !== idx));
-        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); }
+        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); setPhotoProhibited(!!info.prohibited); }
         setPhotoError(true);
       }
     }
@@ -329,8 +331,8 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
 
                   <div className="grid grid-cols-1 md:grid-cols-[5fr_7fr] gap-8">
                     {/* Photo upload box */}
-                    <div>
-                      <div className="rounded-2xl bg-[#D8E6DF] p-5 flex flex-col items-center justify-center text-center min-h-[20rem] h-full">
+                    <div className="flex flex-col min-w-0 h-full">
+                      <div className="rounded-2xl bg-[#D8E6DF] p-5 flex flex-col items-center justify-center text-center min-h-[20rem] flex-1">
                         {photos.length > 0 ? (
                           <div className="relative w-full">
                             <div className="w-full rounded-xl overflow-hidden bg-white/60 flex items-center justify-center">
@@ -359,7 +361,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                             onDragLeave={() => setDragOver(false)}
                             onDrop={handleDrop}
                             className={`w-full h-full cursor-pointer rounded-xl border-2 border-dashed p-4 flex flex-col items-center justify-center transition ${
-                              photoError ? "border-red-400 bg-red-50/60" : dragOver ? "border-[#0E4D34] bg-white/50" : "border-transparent"
+                              photoProhibited ? "border-red-500 border-dashed bg-red-50/20" : photoError ? "border-red-400 bg-red-50/60" : dragOver ? "border-[#0E4D34] bg-white/50" : "border-transparent"
                             }`}
                           >
                             <div className="w-16 h-16 rounded-2xl bg-gray-300/70 flex items-center justify-center text-gray-500 mb-3">
@@ -374,9 +376,18 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                         )}
                       </div>
                       {photoError && (
-                        <p className={`${photoErrorTone === "amber" ? "text-amber-700" : "text-red-500"} text-xs font-bold mt-2`}>
-                          {photoErrorMessage || "At least one photo is required for better evidence before you can submit your report!"}
-                        </p>
+                        <div
+                          role="alert"
+                          className={`flex items-start gap-3 border rounded-2xl p-4 mt-3 mb-0 shrink-0 ${photoErrorTone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50/90 border-red-200 text-red-700"}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                          <div className="min-w-0">
+                            {photoProhibited && <p className="text-xs font-bold uppercase tracking-wide mb-1">Prohibited Item Detected</p>}
+                            <p className="text-xs font-normal leading-relaxed break-words">
+                              {photoErrorMessage || "At least one photo is required for better evidence before you can submit your report!"}
+                            </p>
+                          </div>
+                        </div>
                       )}
                     </div>
 
@@ -461,7 +472,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                   <button
                     type="submit"
                     disabled={anyUploading || uploadedUrls.length === 0}
-                    className="px-6 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm shadow-sm transition-all disabled:bg-red-300 disabled:hover:bg-red-300 disabled:cursor-not-allowed"
                   >
                     {anyUploading ? "Waiting for photo analysis..." : "Click to submit report"}
                   </button>

@@ -50,6 +50,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
   const [dragOver, setDragOver] = useState(false);
   const [photoErrorMessage, setPhotoErrorMessage] = useState("");
   const [photoErrorTone, setPhotoErrorTone] = useState<"red" | "amber">("red");
+  const [photoProhibited, setPhotoProhibited] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -116,6 +117,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
     setPhotoError(false);
     setPhotoErrorMessage("");
     setPhotoErrorTone("red");
+    setPhotoProhibited(false);
     const isFirstPhoto = photos.length === 0;
 
     const newEntries: PhotoItem[] = filesToAdd.map((file) => ({
@@ -160,7 +162,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
         }
         console.error("Photo upload failed:", err);
         setPhotos((prev) => prev.filter((_, i2) => i2 !== idx));
-        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); }
+        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); setPhotoProhibited(!!info.prohibited); }
         setPhotoError(true);
       }
     }
@@ -331,7 +333,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
                             onDragLeave={() => setDragOver(false)}
                             onDrop={handleDrop}
                             className={`w-full h-full cursor-pointer rounded-xl border-2 border-dashed p-4 flex flex-col items-center justify-center transition ${
-                              photoError ? "border-red-400 bg-red-50/60" : dragOver ? "border-[#0E4D34] bg-white/50" : "border-transparent"
+                              photoProhibited ? "border-red-500 border-dashed bg-red-50/20" : photoError ? "border-red-400 bg-red-50/60" : dragOver ? "border-[#0E4D34] bg-white/50" : "border-transparent"
                             }`}
                           >
                             <div className="w-16 h-16 rounded-2xl bg-gray-300/70 flex items-center justify-center text-gray-500 mb-3">
@@ -417,9 +419,12 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
                     {photoError && (
                       <div role="alert" className={`flex items-start gap-3 border rounded-lg p-4 ${photoErrorTone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-700"}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
-                        <p className="text-sm font-semibold leading-snug">
-                          {photoErrorMessage || "At least one photo is required before you can submit this report."}
-                        </p>
+                        <div className="min-w-0">
+                          {photoProhibited && <p className="text-sm font-bold mb-0.5">Prohibited Item Detected</p>}
+                          <p className="text-sm font-semibold leading-snug break-words">
+                            {photoErrorMessage || "At least one photo is required before you can submit this report."}
+                          </p>
+                        </div>
                       </div>
                     )}
 
