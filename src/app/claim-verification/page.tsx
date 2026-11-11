@@ -26,6 +26,7 @@ interface Claim {
   proof_photo_urls: string[] | null;
   photo_similarity_score: number | null;
   competing_claims_count?: number;
+  queued_claims?: Claim[];
   admin_notes: string | null;
   verification_skipped?: boolean;
   verification_skip_reason?: string | null;
@@ -176,6 +177,7 @@ function ClaimVerificationContent() {
   const [dateRange, setDateRange] = useState<"all" | "today" | "7d" | "10d" | "15d" | "30d">("all");
   const [page, setPage] = useState(1);
   const [viewingClaim, setViewingClaim] = useState<Claim | null>(null);
+  const [claimantList, setClaimantList] = useState<Claim[]>([]);
   const [rejectingClaim, setRejectingClaim] = useState<Claim | null>(null);
   const [rejectNotes, setRejectNotes] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
@@ -238,6 +240,19 @@ function ClaimVerificationContent() {
       document.body.style.right = "";
       document.body.style.overflow = "";
     };
+    }, [viewingClaim, rejectingClaim, comparingClaim, viewingEvidence]);
+
+  // Esc closes the top-most pop-up first
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (rejectingClaim) { setRejectingClaim(null); setRejectNotes(""); }
+      else if (viewingEvidence) setViewingEvidence(null);
+      else if (comparingClaim) setComparingClaim(null);
+      else if (viewingClaim) setViewingClaim(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [viewingClaim, rejectingClaim, comparingClaim, viewingEvidence]);
 
   // Status filter, then category + date range (Manila time), then search
@@ -518,7 +533,7 @@ function ClaimVerificationContent() {
                       </td>
                       <td className="px-6 py-4">
                         <button
-                          onClick={() => setViewingClaim(claim)}
+                          onClick={() => { setViewingClaim(claim); setClaimantList([claim, ...(claim.queued_claims || [])]); }}
                           className="bg-blue-50 hover:bg-[#1a237e] hover:text-white text-[#1a237e] text-xs font-bold px-3 py-1.5 rounded-lg transition"
                         >
                           Review
@@ -545,11 +560,45 @@ function ClaimVerificationContent() {
       
       {/* Claim review */}
       {viewingClaim && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
+          onClick={() => setViewingClaim(null)}
+        >
+          <div
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4 p-6 sm:p-8 max-h-[90vh] overflow-y-auto cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button onClick={() => setViewingClaim(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
 
-            <h2 className="text-2xl font-black text-[#1a237e] mb-1">Claim Review</h2>
+                        <div className="flex flex-wrap items-center gap-3 mb-1 pr-8">
+              <h2 className="text-2xl font-black text-[#1a237e]">Claim Review</h2>
+              {claimantList.length > 1 && (() => {
+                const idx = Math.max(0, claimantList.findIndex((c) => c.id === viewingClaim.id));
+                return (
+                  <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-200 rounded-full px-2 py-1">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() => setViewingClaim(claimantList[idx - 1])}
+                      aria-label="Previous claimant"
+                      className="w-7 h-7 rounded-full text-orange-700 font-black hover:bg-orange-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    >
+                      &lsaquo;
+                    </button>
+                    <span className="text-xs font-bold text-orange-700 px-1">Claimant {idx + 1} of {claimantList.length}</span>
+                    <button
+                      type="button"
+                      disabled={idx === claimantList.length - 1}
+                      onClick={() => setViewingClaim(claimantList[idx + 1])}
+                      aria-label="Next claimant"
+                      className="w-7 h-7 rounded-full text-orange-700 font-black hover:bg-orange-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    >
+                      &rsaquo;
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
             <p className="text-gray-400 text-sm mb-6">Claim #{String(viewingClaim.id).padStart(4, "0")} &mdash; submitted {new Date(viewingClaim.created_at).toLocaleString()}</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -591,7 +640,7 @@ function ClaimVerificationContent() {
                 {viewingClaim.claim_status === "pending" && (viewingClaim.competing_claims_count ?? 1) > 1 && (
                   <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl p-2.5">
                     <p className="text-orange-700 text-xs font-bold">
-                      ⚠ {(viewingClaim.competing_claims_count ?? 1) - 1} other student{(viewingClaim.competing_claims_count ?? 1) - 1 !== 1 ? "s are" : " is"} also waiting for this item. If you reject this claim, the next one will be reviewed automatically.
+                      ⚠ {(viewingClaim.competing_claims_count ?? 1) - 1} other student{(viewingClaim.competing_claims_count ?? 1) - 1 !== 1 ? "s are" : " is"} also waiting for this item. Use the arrows at the top to compare claimants. Approving one claim closes the others.
                     </p>
                   </div>
                 )}
