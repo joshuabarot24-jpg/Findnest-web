@@ -321,7 +321,8 @@ function AdminManagementContent() {
       setFieldErrors(mapped);
       setFormError(
         err.response?.data?.message ||
-          (Object.keys(mapped).length ? "Please fix the highlighted fields." : "Failed to assign admin")
+          Object.values(mapped)[0] ||
+          "Failed to assign admin"
       );
     } finally {
       setFormLoading(false);
@@ -361,7 +362,8 @@ function AdminManagementContent() {
       setFieldErrors(mapped);
       setFormError(
         err.response?.data?.message ||
-          (Object.keys(mapped).length ? "Please fix the highlighted fields." : "Failed to update admin")
+          Object.values(mapped)[0] ||
+          "Failed to update admin"
       );
     } finally {
       setFormLoading(false);

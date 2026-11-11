@@ -392,7 +392,8 @@ function UserManagementContent() {
       setFieldErrors(mapped);
       setFormError(
         err.response?.data?.message ||
-          (Object.keys(mapped).length ? "Please fix the highlighted fields." : "Failed to create user")
+        Object.values(mapped)[0] ||
+          "Failed to create user"
       );
     } finally {
       setFormLoading(false);
@@ -431,7 +432,8 @@ function UserManagementContent() {
       setFieldErrors(mapped);
       setFormError(
         err.response?.data?.message ||
-          (Object.keys(mapped).length ? "Please fix the highlighted fields." : "Failed to update user")
+         Object.values(mapped)[0] ||
+          "Failed to update user"
       );
     } finally {
       setFormLoading(false);
