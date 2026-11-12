@@ -151,7 +151,8 @@ function StudentHomeContent() {
   const [isLostOpen, setIsLostOpen] = useState(false);
   const [isFoundOpen, setIsFoundOpen] = useState(false);
   const reportOpen = isLostOpen || isFoundOpen;
-  const closeReport = () => { setIsLostOpen(false); setIsFoundOpen(false); };
+  const [refreshTick, setRefreshTick] = useState(0);
+  const closeReport = () => { setIsLostOpen(false); setIsFoundOpen(false); setRefreshTick((n) => n + 1); };
 
   useEffect(() => {
     if (!reportOpen) return;
@@ -310,7 +311,7 @@ function StudentHomeContent() {
 
     const interval = setInterval(fetchNotifications, 20000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTick]);
 
     // Skeleton card shown while a list loads
   const SkeletonCard = (
@@ -825,9 +826,9 @@ function StudentHomeContent() {
             onClick={(e) => e.stopPropagation()}
           >
             {isLostOpen ? (
-              <ReportLostForm embedded onDone={() => { closeReport(); window.location.reload(); }} />
+              <ReportLostForm embedded onDone={closeReport} />
             ) : (
-              <ReportFoundForm embedded onDone={() => { closeReport(); window.location.reload(); }} />
+              <ReportFoundForm embedded onDone={closeReport} />
             )}
           </div>
         </div>,
