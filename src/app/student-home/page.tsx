@@ -864,15 +864,15 @@ const [reportMinimized, setReportMinimized] = useState(false);
           className={`fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 ${reportMinimized ? "hidden" : ""}`}
           onClick={() => {}}
         >
-          <div
-            className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#F2F8F5] shadow-2xl border border-slate-100 p-6 md:p-8 cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {isLostOpen ? (
-              <ReportLostForm embedded onDone={closeReport} />
-            ) : (
-              <>{reportWindowButtons}<ReportFoundForm embedded onDone={requestClose} onDirtyChange={setReportDirty} /></>
-            )}
+          <div className="relative w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+            {reportWindowButtons}
+            <div className="max-h-[90vh] overflow-y-auto rounded-3xl bg-[#F2F8F5] shadow-2xl border border-slate-100 p-6 md:p-8 cursor-default">
+              {isLostOpen ? (
+                <ReportLostForm embedded onDone={requestClose} onDirtyChange={setReportDirty} />
+              ) : (
+                <ReportFoundForm embedded onDone={requestClose} onDirtyChange={setReportDirty} />
+              )}
+            </div>
           </div>
         </div>,
         document.body
