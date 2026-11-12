@@ -2,7 +2,7 @@
 // Admin > Support (/admin-support). Gmail-style: list + conversation, search, filters.
 // API: GET /support, POST /support/{id}/read, GET /support/{id}/thread, POST /support/{id}/reply,
 //      GET /support/students/search, POST /support/compose
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import api from "@/lib/api";
 import AuthGate from "@/components/AuthGate";
 import AdminLayout from "@/components/AdminLayout";
@@ -21,6 +21,20 @@ interface SupportMessage {
   message: string;
   status: string;
   created_at: string;
+  is_override_request?: boolean;
+  override_status?: string | null;
+  lrn?: string | null;
+  education_level?: string | null;
+  trust_score?: number | null;
+}
+
+interface StreamItem {
+  key: string;
+  kind: "message" | "reply" | "system";
+  message_id?: number;
+  sender?: "student" | "admin";
+  text: string;
+  at: string;
   is_override_request?: boolean;
   override_status?: string | null;
 }
@@ -81,6 +95,12 @@ function SupportInboxContent() {
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [replies, setReplies] = useState<SupportReplyItem[]>([]);
+  const [stream, setStream] = useState<StreamItem[]>([]);
+  const streamRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = streamRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [stream]);
   const [threadLoading, setThreadLoading] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [replySending, setReplySending] = useState(false);
@@ -105,7 +125,7 @@ function SupportInboxContent() {
   // Loads every support message (newest first)
   const fetchMessages = async () => {
     try {
-      const response = await api.get("/support");
+      const response = await api.get("/support/threads");
       setMessages(response.data.messages || []);
     } catch (err: any) {
       if (err.response?.status === 403) {
@@ -122,6 +142,12 @@ function SupportInboxContent() {
     fetchMessages();
   }, []);
   useAutoRefresh(fetchMessages);
+
+  // The open conversation reloads quietly whenever the list refreshes
+  useEffect(() => {
+    if (selectedId) fetchThread(selectedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   // Live student lookup while the modal is open
   useEffect(() => {
@@ -149,8 +175,8 @@ function SupportInboxContent() {
   const fetchThread = async (id: number) => {
     setThreadLoading(true);
     try {
-      const response = await api.get(`/support/${id}/thread`);
-      setReplies(response.data.replies || []);
+      const response = await api.get(`/support/${id}/conversation`);
+      setStream(response.data.items || []);
     } catch (err) {
       console.error("Error fetching thread:", err);
     } finally {
@@ -164,6 +190,7 @@ function SupportInboxContent() {
     setSelectedId(msg.id);
     setReplyText("");
     setReplies([]);
+    setStream([]);
     fetchThread(msg.id);
     if (msg.status === "new") {
       try {
@@ -255,6 +282,8 @@ function SupportInboxContent() {
         )
       );
       setToast(decision === "approve" ? "Override approved." : "Override denied.");
+      fetchMessages();
+      if (selectedId) fetchThread(selectedId);
     } catch (err: any) {
       console.error("Error resolving override:", err);
       if (decision === "approve") setOvPwError(err.response?.data?.message || "Could not approve the request.");
@@ -482,65 +511,61 @@ function SupportInboxContent() {
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-700">{selected.name}</p>
                     <p className="text-gray-400 text-xs truncate">{selected.email}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {selected.lrn && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">LRN {selected.lrn}</span>}
+                      {selected.education_level && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">{selected.education_level.replace(/_/g, " ")}</span>}
+                      {selected.trust_score != null && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Trust Score {selected.trust_score}</span>}
+                    </div>
                   </div>
                   <span className="text-gray-400 text-xs">{formatTime(selected.created_at)}</span>
                 </div>
 
-                <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
-                  {selected.is_override_request && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                      <p className="text-amber-800 text-xs font-bold">Manual AI override request</p>
-                      <p className="text-amber-700 text-xs mt-0.5">
-                        The student says their photo is unclear and asks to fill in the details manually.
-                      </p>
-                      {selected.override_status === "pending" ? (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <button
-                            onClick={() => handleOverride(selected.id, "approve")}
-                            disabled={overrideBusy}
-                            className="bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleOverride(selected.id, "deny")}
-                            disabled={overrideBusy}
-                            className="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
-                          >
-                            Deny
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-amber-800 text-xs font-bold mt-2 capitalize">Status: {selected.override_status || "resolved"}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {selected.message === STARTED_TEXT ? (
-                    <p className="text-center text-gray-400 text-xs">{STARTED_TEXT}</p>
-                  ) : (
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{selected.message}</p>
-                    </div>
-                  )}
-
-                  {threadLoading ? (
+                <div ref={streamRef} className="p-5 flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
+                  {threadLoading && stream.length === 0 ? (
                     <p className="text-gray-400 text-xs">Loading conversation...</p>
                   ) : (
-                    replies.map((r) => (
-                      <div
-                        key={r.id}
-                        className={`rounded-xl p-4 ${r.sender_type === "admin" ? "bg-[#E8F5E9] sm:ml-8" : "bg-gray-50 sm:mr-8"}`}
-                      >
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">
-                          {r.sender_type === "admin" ? "Guidance Office" : selected.name} &middot; {formatTime(r.created_at)}
-                        </p>
-                        <p className="text-gray-700 text-sm whitespace-pre-wrap">{r.message}</p>
-                      </div>
-                    ))
+                    stream.map((item) =>
+                      item.kind === "system" ? (
+                        <p key={item.key} className="text-center text-gray-400 text-xs">{item.text}</p>
+                      ) : item.kind === "message" && item.is_override_request ? (
+                        <div key={item.key} className="self-start max-w-[85%] bg-amber-50/80 border border-amber-200 rounded-2xl p-4">
+                          <p className="text-amber-800 text-xs font-bold">Manual AI override request</p>
+                          <p className="text-amber-700 text-xs mt-1 whitespace-pre-wrap break-words">{item.text}</p>
+                          <p className="text-[11px] text-amber-700/70 mt-1">{formatTime(item.at)}</p>
+                          {item.override_status === "pending" ? (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <button
+                                onClick={() => handleOverride(item.message_id as number, "approve")}
+                                disabled={overrideBusy}
+                                className="bg-green-50 hover:bg-green-500 hover:text-white text-green-600 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                              >
+                                Approve (24h)
+                              </button>
+                              <button
+                                onClick={() => handleOverride(item.message_id as number, "deny")}
+                                disabled={overrideBusy}
+                                className="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                              >
+                                Deny
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-amber-800 text-xs font-bold mt-2 capitalize">Status: {item.override_status || "resolved"}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div key={item.key} className={`max-w-[75%] flex flex-col ${item.sender === "admin" ? "self-end items-end" : "self-start items-start"}`}>
+                          <p className="text-[11px] text-gray-500 mb-1">
+                            {item.sender === "admin" ? "Guidance Office" : selected.name} &middot; {formatTime(item.at)}
+                          </p>
+                          <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap break-words ${item.sender === "admin" ? "bg-[#0F4C3A] text-white rounded-tr-sm" : "bg-slate-100 text-slate-800 rounded-tl-sm"}`}>
+                            {item.text}
+                          </div>
+                        </div>
+                      )
+                    )
                   )}
                 </div>
-
                 <div className="p-4 border-t border-gray-100 flex flex-wrap gap-2">
                   <input
                     type="text"
