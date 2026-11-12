@@ -145,6 +145,16 @@ const STEPS: {
   },
 ];
 
+// Remember me: tokens of the browsers that passed the email code, saved per login (LRN or email)
+const DEVICE_KEY = "findnest_device_tokens";
+function loadDeviceTokens(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(DEVICE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
 export default function Home() {
   const [step, setStep] = useState<ModalStep>("closed");
 
@@ -274,6 +284,7 @@ export default function Home() {
       } else {
         localStorage.removeItem("findnest_login_draft");
         localStorage.removeItem("findnest_remember_me");
+      localStorage.removeItem(DEVICE_KEY);
       }
     } catch (err) {
       console.error("Failed to save login draft:", err);
@@ -306,7 +317,12 @@ export default function Home() {
     setError("");
     setLoading(true);
     try {
-      const response = await api.post("/auth/login", { identifier: identifier.trim(), password });
+      const tokens = rememberMe ? loadDeviceTokens() : {};
+      const response = await api.post("/auth/login", {
+        identifier: identifier.trim(),
+        password,
+        device_token: tokens[identifier.trim().toLowerCase()] || null,
+      });
       if (response.data.requires_otp) {
         setMaskedEmail(response.data.email);
         if (response.data.school_id) setIdentifier(response.data.school_id);
@@ -348,7 +364,16 @@ export default function Home() {
     setOtpError("");
     setOtpLoading(true);
     try {
-      const response = await api.post("/auth/student/verify-otp", { school_id: identifier.trim(), otp: otpCode });
+      const response = await api.post("/auth/student/verify-otp", { school_id: identifier.trim(), otp: otpCode, remember_me: rememberMe });
+      // Remember me: keep this browser's token, so the next login skips the email code
+      if (rememberMe && response.data.device_token) {
+        const tokens = loadDeviceTokens();
+        const u = response.data.user || {};
+        [identifier.trim(), u.email, u.school_id]
+          .filter(Boolean)
+          .forEach((k: any) => { tokens[String(k).toLowerCase()] = response.data.device_token; });
+        localStorage.setItem(DEVICE_KEY, JSON.stringify(tokens));
+      }
       setAuth(response.data.token, response.data.user);
       redirectByRole(response.data.user.role);
     } catch (err: any) {
@@ -503,7 +528,7 @@ export default function Home() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 accent-[#0D5C3A] cursor-pointer"
                 />
-                <span className="text-sm text-gray-600 font-medium">Remember Me</span>
+                <span className="text-sm text-gray-600 font-medium">Remember Me <span className="text-xs text-gray-400 font-normal">(your own device only)</span></span>
               </label>
               {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">{error}</div>}
               <button type="submit" disabled={loading} className="font-[family-name:var(--font-inter)] w-full bg-[#0F4C3A] hover:bg-[#0C3D2E] active:bg-[#0A3326] text-white font-bold py-3.5 rounded-xl transition-all duration-200 shadow-sm antialiased disabled:opacity-50">
