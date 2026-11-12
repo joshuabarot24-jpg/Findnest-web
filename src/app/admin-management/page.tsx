@@ -622,7 +622,7 @@ function AdminManagementContent() {
                           >
                             {admin.is_active ? "Edit" : "View"}
                           </button>
-                          {admin.is_active && (
+                          {admin.is_active && admin.role !== "super_admin" && (
                             <button
                               onClick={() => setRestrictingAdmin(admin)}
                               className={
