@@ -2,6 +2,7 @@ export interface UploadErrorInfo {
   message: string;
   tone: "red" | "amber";
   prohibited?: boolean;
+  overridable?: boolean;
 }
 
 // Turns a failed upload request into the text and color for the inline box
@@ -13,12 +14,13 @@ export function uploadErrorInfo(err: any): UploadErrorInfo {
     return { tone: "red", message: "The upload took too long or the connection dropped. Please check your connection and try again." };
   }
   if (code === "IMAGE_QUALITY_LOW") {
-    return { tone: "amber", message: data?.message || "Image quality is too low or blurry. Please upload a clear photo of the item." };
+    return { tone: "amber", overridable: true, message: data?.message || "Image quality is too low or blurry. Please upload a clear photo of the item." };
   }
   if (code === "AI_CONTENT_RESTRICTED") {
     return {
       tone: "red",
       prohibited: data?.prohibited === true,
+      overridable: true,
       message: data?.message || "Upload rejected: this image contains explicit, restricted, or prohibited items that violate campus content guidelines.",
     };
   }
