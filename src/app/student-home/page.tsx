@@ -166,9 +166,9 @@ const [reportMinimized, setReportMinimized] = useState(false);
     if (kind === "lost") setIsLostOpen(true); else setIsFoundOpen(true);
   };
   const reportWindowButtons = (
-    <div className="sticky top-0 z-10 flex justify-end gap-1 -mt-2 -mr-2 mb-1">
-      <button type="button" aria-label="Minimize" onClick={() => setReportMinimized(true)} className="w-9 h-9 rounded-full text-gray-500 hover:bg-white hover:text-gray-800 transition text-xl font-bold leading-none">&ndash;</button>
-      <button type="button" aria-label="Close" onClick={requestClose} className="w-9 h-9 rounded-full text-gray-500 hover:bg-white hover:text-gray-800 transition text-2xl font-bold leading-none">&times;</button>
+    <div className="absolute top-5 right-6 z-50 flex items-center gap-2.5">
+      <button type="button" aria-label="Minimize" onClick={() => setReportMinimized(true)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors text-xl font-bold leading-none">&ndash;</button>
+      <button type="button" aria-label="Close" onClick={requestClose} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors text-xl font-bold leading-none">&times;</button>
     </div>
   );
 
@@ -840,7 +840,7 @@ const [reportMinimized, setReportMinimized] = useState(false);
           onClick={() => setReportMinimized(false)}
           className="fixed bottom-4 right-4 z-[200] flex items-center gap-2 bg-[#0E4D34] hover:bg-[#0C3D2E] text-white text-sm font-bold px-5 py-3 rounded-full shadow-xl transition"
         >
-          {isLostOpen ? "Lost" : "Found"} report in progress &middot; Resume
+          {`${isLostOpen ? "Lost" : "Found"} report in progress · Resume`}
         </button>
       )}
       {confirmDiscard && typeof document !== "undefined" && createPortal(

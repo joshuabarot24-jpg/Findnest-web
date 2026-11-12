@@ -322,7 +322,7 @@ export default function ReportLostForm({ embedded = false, onDone, onDirtyChange
     <label className="block text-xs font-bold text-gray-600 mb-1.5">{children}</label>
   );
 
-  const CloseX = (
+  const CloseX = embedded ? null : (
     <button
       type="button"
       onClick={() => (embedded ? onDone?.() : (window.location.href = "/student-home"))}

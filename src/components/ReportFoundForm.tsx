@@ -310,7 +310,7 @@ export default function ReportFoundForm({ embedded = false, onDone, onDirtyChang
     <label className="block text-xs font-bold text-slate-900 mb-1.5">{children}</label>
   );
 
-  const CloseX = (
+  const CloseX = embedded ? null : (
     <button
       type="button"
       onClick={() => (embedded ? onDone?.() : (window.location.href = "/student-home"))}
