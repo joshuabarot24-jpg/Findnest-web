@@ -70,7 +70,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What if my claim gets rejected?",
-    a: "You can appeal a rejected claim from your Claim Status page. The appeal is reviewed by the Super Admin.",
+    a: "You can appeal a rejected claim from your Claim Status page. The appeal is reviewed by the Guidance Office.",
   },
   {
     q: "Where do I pick up my item once approved?",

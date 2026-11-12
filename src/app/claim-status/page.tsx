@@ -464,7 +464,7 @@ function ClaimStatusContent() {
                       <p className="font-black text-red-600">Claim Rejected</p>
                       {claim.admin_notes && <p className="text-red-500 text-sm mt-0.5">Reason: {claim.admin_notes}</p>}
                       {claim.appeal_status === "pending" && (
-                        <p className="text-orange-600 text-xs mt-2 font-semibold">Your appeal is under super-admin review.</p>
+                        <p className="text-orange-600 text-xs mt-2 font-semibold">The Guidance Office is reviewing your appeal.</p>
                       )}
                     </div>
                   ) : claim.claim_status === "abandoned" ? (
@@ -621,7 +621,7 @@ function ClaimStatusContent() {
             </button>
 
             <h2 className="text-xl font-black text-[#0E4D34] mb-1">Appeal Rejected Claim</h2>
-            <p className="text-gray-400 text-sm mb-6">This will be escalated to the Super Admin for final review</p>
+            <p className="text-gray-400 text-sm mb-6">The Guidance Office will review your appeal and make the final decision</p>
 
             <label className="block text-sm font-bold text-gray-600 mb-2">Additional Evidence or Explanation</label>
             <textarea
