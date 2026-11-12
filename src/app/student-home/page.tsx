@@ -182,7 +182,7 @@ function StudentHomeContent() {
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [chatbotInput, setChatbotInput] = useState("");
   const [chatbotThinking, setChatbotThinking] = useState(false);
-  const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot"; text: string }[]>([]);
+  const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot"; text: string; support?: boolean }[]>([]);
   const [showMessageBox, setShowMessageBox] = useState(false);
   const [isOverrideRequest, setIsOverrideRequest] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -190,6 +190,7 @@ function StudentHomeContent() {
   const [chatMessage, setChatMessage] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [chatSent, setChatSent] = useState(false);
+  const [faqSent, setFaqSent] = useState<number[]>([]);
   const [chatError, setChatError] = useState("");
 
   const markNotificationRead = async (id: number) => {
@@ -223,6 +224,23 @@ function StudentHomeContent() {
     }
   }
 
+  // Sends a FAQ question to the Guidance Office when the answer was not enough
+  async function askOfficeAboutFaq(idx: number, question: string) {
+    if (faqSent.includes(idx)) return;
+    setFaqSent((prev) => [...prev, idx]);
+    try {
+      await api.post("/support", { message: `Sent from the assistant: ${question}` });
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "user", text: question },
+        { role: "bot", text: "I sent your question to the Guidance Office. You will see their reply in Support and get a notification.", support: true },
+      ]);
+    } catch (err: any) {
+      setFaqSent((prev) => prev.filter((i) => i !== idx));
+      setChatHistory((prev) => [...prev, { role: "bot", text: err.response?.data?.message || "Could not send your question. Please try again." }]);
+    }
+  }
+
   async function handleAskChatbot() {
     const question = chatbotInput.trim();
     if (!question) return;
@@ -231,7 +249,7 @@ function StudentHomeContent() {
     setChatbotThinking(true);
     try {
       const res = await api.post("/support/ask", { question });
-      setChatHistory((prev) => [...prev, { role: "bot", text: res.data.answer }]);
+      setChatHistory((prev) => [...prev, { role: "bot", text: res.data.answer, support: !!res.data.escalated }]);
     } catch (err) {
       setChatHistory((prev) => [...prev, { role: "bot", text: "Sorry, something went wrong. Please try again or send us a message below." }]);
     } finally {
@@ -554,6 +572,18 @@ function StudentHomeContent() {
                       {openFaqIndex === idx && (
                         <div className="px-3 pb-2.5">
                           <p className="text-gray-500 text-[11px] leading-relaxed">{item.a}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[10px] text-gray-400">Did this answer your question?</span>
+                            <button type="button" onClick={() => setOpenFaqIndex(null)} className="text-[10px] font-bold text-[#0E4D34] hover:underline">Yes</button>
+                            <button
+                              type="button"
+                              disabled={faqSent.includes(idx)}
+                              onClick={() => askOfficeAboutFaq(idx, item.q)}
+                              className="text-[10px] font-bold text-[#0E4D34] hover:underline disabled:text-gray-400 disabled:no-underline"
+                            >
+                              {faqSent.includes(idx) ? "Sent to the office" : "No, ask the office"}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -570,6 +600,9 @@ function StudentHomeContent() {
                   msg.role === "user" ? "bg-[#0E4D34] text-white" : "bg-white text-gray-700 border border-gray-100"
                 }`}>
                   {msg.text}
+                  {msg.support && (
+                    <a href="/support" className="mt-2 block w-fit px-3 py-1.5 rounded-lg bg-[#0E4D34] text-white text-[11px] font-bold hover:bg-[#0C3D2E] transition">Open Support</a>
+                  )}
                 </div>
               </div>
             ))}
