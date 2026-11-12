@@ -390,7 +390,7 @@ const [reportMinimized, setReportMinimized] = useState(false);
         <section className="flex-1 flex flex-col">
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <span className="w-1.5 h-6 rounded-full bg-[#2FD18B]" />
-            <h2 className="text-xl font-black text-gray-800">{tab === "lost" ? "Reported Lost Items" : "Your Reported Found Items"}</h2>
+            <h2 className="text-xl font-black text-gray-800">{tab === "lost" ? "Reported Lost Items" : "My Reported Found Items"}</h2>
             <span className="text-gray-400 text-xs">
               {tab === "lost" ? `${publicReports.length} active` : `${myFoundReports.length} reported`}
             </span>
@@ -407,7 +407,7 @@ const [reportMinimized, setReportMinimized] = useState(false);
               onClick={() => { setTab("found"); setPage(1); }}
               className={`px-5 py-2 rounded-full text-sm font-bold transition ${tab === "found" ? "bg-[#0E4D34] text-white" : "bg-white text-gray-600 hover:bg-[#D9E8DF]"}`}
             >
-              Your Reported Found Items
+              My Reported Found Items
             </button>
           </div>
           <p className="text-gray-400 text-xs mb-6">
