@@ -5,7 +5,6 @@ import { useState } from "react";
 import { timeOptions } from "@/lib/reportTime";
 import api from "@/lib/api";
 import { uploadErrorInfo } from "@/lib/uploadError";
-import { useEffect } from "react";
 import StudentLayout from "@/components/StudentLayout";
 
 const categories = ["Electronics", "Personal Belongings", "ID/Cards", "Keys", "School Supplies", "Accessories", "Others"];
@@ -52,18 +51,6 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
   const [photoErrorMessage, setPhotoErrorMessage] = useState("");
   const [photoErrorTone, setPhotoErrorTone] = useState<"red" | "amber">("red");
   const [photoProhibited, setPhotoProhibited] = useState(false);
-  const [photoOverridable, setPhotoOverridable] = useState(false);
-  const [overrideSent, setOverrideSent] = useState(false);
-  const [overrideSending, setOverrideSending] = useState(false);
-  const [overrideError, setOverrideError] = useState("");
-  const [manualOverrideGranted, setManualOverrideGranted] = useState(false);
-
-  // A granted override skips the photo analysis for this student's uploads
-  useEffect(() => {
-    api.get("/profile")
-      .then((res) => setManualOverrideGranted(!!res.data.user?.manual_override_granted))
-      .catch(() => {});
-  }, []);
   const [submitted, setSubmitted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -77,24 +64,6 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
   const [aiData, setAiData] = useState({ name: "", category: "", color: "", brand: "" });
 
   const anyUploading = photos.some((p) => p.uploading);
-
-  // Asks the Guidance Office for a manual override: the administrator approves it in Support
-  const requestOverride = async () => {
-    if (overrideSending || overrideSent) return;
-    setOverrideSending(true);
-    setOverrideError("");
-    try {
-      await api.post("/support", {
-        message: `Manual AI override request from the Report Found form. The photo was refused: ${photoErrorMessage}`,
-        is_override_request: true,
-      });
-      setOverrideSent(true);
-    } catch (err: any) {
-      setOverrideError(err.response?.data?.message || "Could not send the request. Please try again.");
-    } finally {
-      setOverrideSending(false);
-    }
-  };
   const uploadedUrls = photos.filter((p) => p.url).map((p) => p.url as string);
 
   const applyAiFields = (data: any) => {
@@ -149,7 +118,6 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
     setPhotoErrorMessage("");
     setPhotoErrorTone("red");
     setPhotoProhibited(false);
-    setPhotoOverridable(false);
     const isFirstPhoto = photos.length === 0;
 
     const newEntries: PhotoItem[] = filesToAdd.map((file) => ({
@@ -167,7 +135,6 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
         const formData = new FormData();
         formData.append("image", file);
         formData.append("folder", "found-items");
-            if (manualOverrideGranted) formData.append("analyze", "false");
 
         const res = await api.post("/upload/image", formData, {
           headers: { "Content-Type": "multipart/form-data" },
@@ -195,7 +162,7 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
         }
         console.error("Photo upload failed:", err);
         setPhotos((prev) => prev.filter((_, i2) => i2 !== idx));
-        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); setPhotoProhibited(!!info.prohibited); setPhotoOverridable(!!info.overridable); }
+        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); setPhotoProhibited(!!info.prohibited); }
         setPhotoError(true);
       }
     }
@@ -457,23 +424,6 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
                           <p className="text-sm font-semibold leading-snug break-words">
                             {photoErrorMessage || "At least one photo is required before you can submit this report."}
                           </p>
-                          {photoOverridable && (
-                            overrideSent ? (
-                              <p className="text-sm font-bold mt-2">Request sent. The Guidance Office will review it. Reopen this form after you are notified.</p>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={requestOverride}
-                                  disabled={overrideSending}
-                                  className="mt-2 px-3 py-1.5 rounded-lg border border-current text-xs font-bold hover:bg-white/60 transition disabled:opacity-50"
-                                >
-                                  {overrideSending ? "Sending..." : "Request manual override"}
-                                </button>
-                                {overrideError && <p className="text-xs font-semibold mt-1">{overrideError}</p>}
-                              </>
-                            )
-                          )}
                         </div>
                       </div>
                     )}

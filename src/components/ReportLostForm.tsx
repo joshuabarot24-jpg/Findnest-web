@@ -52,10 +52,6 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
   const [photoErrorMessage, setPhotoErrorMessage] = useState("");
   const [photoErrorTone, setPhotoErrorTone] = useState<"red" | "amber">("red");
   const [photoProhibited, setPhotoProhibited] = useState(false);
-  const [photoOverridable, setPhotoOverridable] = useState(false);
-  const [overrideSent, setOverrideSent] = useState(false);
-  const [overrideSending, setOverrideSending] = useState(false);
-  const [overrideError, setOverrideError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -83,24 +79,6 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
   }, []);
 
   const anyUploading = photos.some((p) => p.uploading);
-
-  // Asks the Guidance Office for a manual override: the administrator approves it in Support
-  const requestOverride = async () => {
-    if (overrideSending || overrideSent) return;
-    setOverrideSending(true);
-    setOverrideError("");
-    try {
-      await api.post("/support", {
-        message: `Manual AI override request from the Report Lost form. The photo was refused: ${photoErrorMessage}`,
-        is_override_request: true,
-      });
-      setOverrideSent(true);
-    } catch (err: any) {
-      setOverrideError(err.response?.data?.message || "Could not send the request. Please try again.");
-    } finally {
-      setOverrideSending(false);
-    }
-  };
   const uploadedUrls = photos.filter((p) => p.url).map((p) => p.url as string);
 
   const applyAiFields = (data: any) => {
@@ -156,7 +134,6 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
     setPhotoErrorMessage("");
     setPhotoErrorTone("red");
     setPhotoProhibited(false);
-    setPhotoOverridable(false);
 
     const isFirstPhoto = photos.length === 0;
 
@@ -205,7 +182,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
         }
         console.error("Photo upload failed:", err);
         setPhotos((prev) => prev.filter((_, i2) => i2 !== idx));
-        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); setPhotoProhibited(!!info.prohibited); setPhotoOverridable(!!info.overridable); }
+        { const info = uploadErrorInfo(err); setPhotoErrorMessage(info.message); setPhotoErrorTone(info.tone); setPhotoProhibited(!!info.prohibited); }
         setPhotoError(true);
       }
     }
@@ -409,23 +386,6 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                             <p className="text-xs font-normal leading-relaxed break-words">
                               {photoErrorMessage || "At least one photo is required for better evidence before you can submit your report!"}
                             </p>
-                            {photoOverridable && (
-                              overrideSent ? (
-                                <p className="text-xs font-bold mt-2">Request sent. The Guidance Office will review it. Reopen this form after you are notified.</p>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={requestOverride}
-                                    disabled={overrideSending}
-                                    className="mt-2 px-3 py-1.5 rounded-lg border border-current text-xs font-bold hover:bg-white/60 transition disabled:opacity-50"
-                                  >
-                                    {overrideSending ? "Sending..." : "Request manual override"}
-                                  </button>
-                                  {overrideError && <p className="text-xs font-semibold mt-1">{overrideError}</p>}
-                                </>
-                              )
-                            )}
                           </div>
                         </div>
                       )}
