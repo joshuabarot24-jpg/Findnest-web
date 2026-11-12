@@ -141,7 +141,7 @@ function SupportInboxContent() {
   useEffect(() => {
     fetchMessages();
   }, []);
-  useAutoRefresh(fetchMessages);
+  useAutoRefresh(fetchMessages, 5000);
 
   // The open conversation reloads quietly whenever the list refreshes
   useEffect(() => {
