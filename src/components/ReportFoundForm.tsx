@@ -35,7 +35,7 @@ function AiTag({ aiValue, value, same = "(auto-detected, editable)" }: { aiValue
     : <span className="text-gray-400 font-normal">(edited)</span>;
 }
 
-export default function ReportFoundForm({ embedded = false, onDone }: { embedded?: boolean; onDone?: () => void }) {
+export default function ReportFoundForm({ embedded = false, onDone, onDirtyChange }: { embedded?: boolean; onDone?: () => void; onDirtyChange?: (dirty: boolean) => void }) {
   const [step, setStep] = useState<"form" | "review">("form");
 
   const [itemName, setItemName] = useState("");
@@ -88,6 +88,12 @@ export default function ReportFoundForm({ embedded = false, onDone }: { embedded
   const [aiDescription, setAiDescription] = useState("");
 
   const anyUploading = photos.some((p) => p.uploading);
+
+  // Tells the pop-up whether the student has entered anything yet
+  useEffect(() => {
+    if (!onDirtyChange) return;
+    onDirtyChange(!submitted && (photos.length > 0 || !!itemName.trim() || !!description.trim() || !!location.trim() || !!date || !!time || !!primaryColor.trim() || !!brandModel.trim()));
+  }, [submitted, photos.length, itemName, description, location, date, time, primaryColor, brandModel]);
 
   // Asks the Guidance Office for a manual override: the administrator approves it in Support
   const requestOverride = async () => {
