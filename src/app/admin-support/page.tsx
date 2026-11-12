@@ -223,7 +223,16 @@ function SupportInboxContent() {
     if (!replyText.trim()) return;
     setReplySending(true);
     try {
-      await api.post(`/support/${id}/reply`, { message: replyText.trim() });
+            const sentText = replyText.trim();
+      const nowIso = new Date().toISOString();
+      // The reply shows at once and the conversation moves to the top of the list
+      setStream((prev) => [...prev, { key: `tmp-${Date.now()}`, kind: "reply", sender: "admin", text: sentText, at: nowIso }]);
+      setMessages((prev) =>
+        prev
+          .map((m) => (m.id === id ? { ...m, status: "responded", message: `You: ${sentText.slice(0, 90)}`, created_at: nowIso } : m))
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      );
+      await api.post(`/support/${id}/reply`, { message: sentText });
       window.dispatchEvent(new Event("findnest:counts-changed"));
       setReplyText("");
       fetchThread(id);
