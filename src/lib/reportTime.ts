@@ -21,3 +21,17 @@ export function timeOptions(date: string): { value: string; label: string }[] {
   }
   return out;
 }
+
+// Exact-minute limits for a chosen date: 6:00 AM to 7:00 PM, and never later than now on today
+export function timeBounds(date: string): { min: string; max: string; empty: boolean } {
+  const now = manilaNow();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const maxMin = date === now.date ? Math.min(1140, now.minutes) : 1140;
+  return { min: "06:00", max: `${pad(Math.floor(maxMin / 60))}:${pad(maxMin % 60)}`, empty: maxMin < 360 };
+}
+
+export function timeAllowed(date: string, value: string): boolean {
+  if (!date || !/^\d{2}:\d{2}$/.test(value)) return false;
+  const b = timeBounds(date);
+  return !b.empty && value >= b.min && value <= b.max;
+}

@@ -8,7 +8,8 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import AuthGate from "@/components/AuthGate";
 import AdminLayout from "@/components/AdminLayout";
 import InventoryPanel from "@/components/InventoryPanel";
-import { timeOptions } from "@/lib/reportTime";
+import { timeAllowed } from "@/lib/reportTime";
+import TimeField from "@/components/TimeField";
 
 // Must match the categories in InventoryPanel
 const INVENTORY_CATEGORIES = ["Office Supplies", "Cleaning Supplies", "Equipment", "Sports & PE Equipment", "Documents", "Others"];
@@ -684,7 +685,7 @@ function ItemManagementContent() {
         setFormError("Choose the student who lost the item.");
         return;
       }
-      if (formTime && !timeOptions(formDateFound).some((o) => o.value === formTime)) {
+      if (formTime && !timeAllowed(formDateFound, formTime)) {
         setFormError("Choose a time between 6:00 AM and 7:00 PM that is not in the future.");
         return;
       }
@@ -725,7 +726,7 @@ function ItemManagementContent() {
       return;
     }
 
-    if (formTime && !timeOptions(formDateFound).some((o) => o.value === formTime)) {
+    if (formTime && !timeAllowed(formDateFound, formTime)) {
         setFormError("Choose a time between 6:00 AM and 7:00 PM that is not in the future.");
         return;
       }
@@ -1293,13 +1294,7 @@ function ItemManagementContent() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   {formIntakeType === "lost_item" ? "Approx. Time Lost" : formIntakeType === "confiscated" ? "Time Confiscated" : "Approx. Time Found"} <span className="text-red-500">*</span>
                 </label>
-                <select value={formTime} onChange={(e) => setFormTime(e.target.value)} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm">
-                    <option value="">Select time</option>
-                    {timeOptions(formDateFound).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                  {formDateFound && timeOptions(formDateFound).length === 0 && (
-                    <p className="text-xs text-red-500 font-medium mt-1">No time is available yet today. Choose an earlier date.</p>
-                  )}
+                <TimeField date={formDateFound} value={formTime} onChange={setFormTime} className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#4ADE80] text-gray-700 text-sm" />
               </div>
               {formIntakeType === "confiscated" && (
                 <div className="space-y-4">
@@ -1323,7 +1318,7 @@ function ItemManagementContent() {
                 <input
                   type="date"
                   value={formDateFound}
-                  onChange={(e) => { setFormDateFound(e.target.value); if (formTime && !timeOptions(e.target.value).some((o) => o.value === formTime)) setFormTime(""); }}
+                  onChange={(e) => { setFormDateFound(e.target.value); if (formTime && !timeAllowed(e.target.value, formTime)) setFormTime(""); }}
                   min={getManilaDate(21)}
                   max={ALLOWED_DATES[0].value}
                   className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a237e] text-gray-700 text-sm bg-gray-50"
