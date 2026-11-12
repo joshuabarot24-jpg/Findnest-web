@@ -217,6 +217,8 @@ function ItemManagementContent() {
   const [page, setPage] = useState(1);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addMinimized, setAddMinimized] = useState(false);
+  const [confirmAddDiscard, setConfirmAddDiscard] = useState(false);
   const [viewingFoundItem, setViewingFoundItem] = useState<FoundItem | null>(null);
   const [viewingLostItem, setViewingLostItem] = useState<LostItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<FoundItem | null>(null);
@@ -328,6 +330,18 @@ function ItemManagementContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
+    // Esc closes the Add Item window, but asks first when something was entered
+  useEffect(() => {
+    if (!showAddModal || addMinimized) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (confirmAddDiscard) setConfirmAddDiscard(false);
+      else requestAddClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   // Esc closes the removal window
   useEffect(() => {
     if (!deletingItem) return;
@@ -338,7 +352,7 @@ function ItemManagementContent() {
 
   // Locks page scroll while a popup is open
   useEffect(() => {
-    const anyModalOpen = showAddModal || !!viewingFoundItem || !!viewingLostItem || !!deletingItem;
+    const anyModalOpen = (showAddModal && !addMinimized) || !!viewingFoundItem || !!viewingLostItem || !!deletingItem;
     if (anyModalOpen) {
       const scrollY = window.scrollY;
       document.body.style.position = "fixed";
@@ -357,7 +371,7 @@ function ItemManagementContent() {
         window.scrollTo(0, parseInt(scrollY || "0") * -1);
       }
     }
-  }, [showAddModal, viewingFoundItem, viewingLostItem, deletingItem]);
+  }, [showAddModal, addMinimized, viewingFoundItem, viewingLostItem, deletingItem]);
 
   const fetchFoundItems = async () => {
     try {
@@ -570,6 +584,22 @@ function ItemManagementContent() {
     } finally {
       setInvSaving(false);
     }
+  }
+
+  // True when something was already entered in the Add Item window
+  const addDirty = !!(formPhotoPreview || formName.trim() || formDescription.trim() || formLocationFound.trim() || formDateFound || formTime || formColor.trim() || formBrand.trim() || formStudentName.trim() || formViolationNotes.trim() || formStorageLocation.trim() || formOwner || invName.trim() || invDescription.trim() || invLocation.trim());
+
+  function closeAdd() {
+    uploadCancelledRef.current = true;
+    setShowAddModal(false);
+    resetForm();
+    setAddMinimized(false);
+    setConfirmAddDiscard(false);
+  }
+
+  function requestAddClose() {
+    if (addDirty) setConfirmAddDiscard(true);
+    else closeAdd();
   }
 
   function resetForm() {
@@ -1101,14 +1131,35 @@ function ItemManagementContent() {
       </div>
 
       
+      {showAddModal && addMinimized && (
+        <button
+          type="button"
+          onClick={() => setAddMinimized(false)}
+          className="fixed bottom-4 right-4 z-[100] bg-[#1a237e] hover:bg-[#283593] text-white text-sm font-bold px-5 py-3 rounded-full shadow-xl transition"
+        >
+          Add Item in progress &middot; Resume
+        </button>
+      )}
+      {confirmAddDiscard && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4" onClick={() => setConfirmAddDiscard(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-slate-900 mb-2">Discard this item?</h2>
+            <p className="text-sm text-gray-500 mb-5">Everything you entered, including the photo, will be lost.</p>
+            <div className="flex gap-3 justify-center">
+              <button type="button" onClick={() => setConfirmAddDiscard(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">Keep editing</button>
+              <button type="button" onClick={closeAdd} className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm shadow-sm transition-all">Discard</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Add Item */}
       {showAddModal && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
-          onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }}
+          className={`fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md ${addMinimized ? "hidden" : ""}`}
         >
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
+            <button type="button" aria-label="Minimize" onClick={() => setAddMinimized(true)} className="absolute top-4 right-12 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&ndash;</button>
+            <button type="button" aria-label="Close" onClick={requestAddClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-2xl font-bold leading-none">&times;</button>
             <h2 className="text-2xl font-black text-[#1a237e] mb-1">Add Item</h2>
             <p className="text-gray-400 text-sm mb-6">Record an item that was physically received by the office</p>
             {/* [UX] While the photo is being analyzed, every field is locked */}
@@ -1342,7 +1393,7 @@ function ItemManagementContent() {
             </fieldset>
 
             <div className="flex gap-3 mt-8">
-              <button onClick={() => { uploadCancelledRef.current = true; setShowAddModal(false); resetForm(); }} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
+              <button onClick={requestAddClose} className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3 rounded-2xl hover:bg-gray-50 transition">Cancel</button>
               <button
                 onClick={inventoryMode ? handleInventorySave : handleAddSubmit}
                 disabled={inventoryMode ? invSaving : formLoading || formUploading}
