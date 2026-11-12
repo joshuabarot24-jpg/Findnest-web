@@ -25,6 +25,15 @@ function Shell({ embedded, children }: { embedded: boolean; children: any }) {
   return <StudentLayout active="/report-lost" hideHeader>{children}</StudentLayout>;
 }
 
+// "auto-detected" while the field still holds what the AI wrote, "edited" once the student changes it
+function AiTag({ aiValue, value, same = "(auto-detected, editable)" }: { aiValue: string; value: string; same?: string }) {
+  const norm = (t: string) => t.trim().replace(/\s+/g, " ").toLowerCase();
+  if (!aiValue.trim() || !value.trim()) return null;
+  return norm(aiValue) === norm(value)
+    ? <span className="text-green-600 font-normal">{same}</span>
+    : <span className="text-gray-400 font-normal">(edited)</span>;
+}
+
 export default function ReportLostForm({ embedded = false, onDone }: { embedded?: boolean; onDone?: () => void }) {
   const [manualOverrideGranted, setManualOverrideGranted] = useState(false);
 
@@ -69,6 +78,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
 
   // What the AI detected, shown next to the student's own entries in the review step
   const [aiData, setAiData] = useState({ name: "", category: "", color: "", brand: "" });
+  const [aiDescription, setAiDescription] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -120,6 +130,7 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
     if (data.ai_description) {
       setDescription(data.ai_description);
       setAiFilled(true);
+      setAiDescription(data.ai_description);
     }
     if (data.ai_details?.primary_color) {
       setPrimaryColor(data.ai_details.primary_color);
@@ -434,11 +445,11 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                     {/* Fields */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 content-between">
                       <div>
-                        <Label>Item Name {!itemName.trim() && <span className="text-red-500">*</span>} {itemNameAiFilled && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}</Label>
+                        <Label>Item Name <span className="text-red-500">*</span> <AiTag aiValue={aiData.name} value={itemName} /></Label>
                         <input type="text" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g. Red iPhone with clear case" className={FIELD} required />
                       </div>
                       <div>
-                        <Label>Category {uploadedUrls.length === 0 && <span className="text-red-500">*</span>} {uploadedUrls.length > 0 && !manualOverrideGranted && <span className="text-green-600 font-normal">(auto-detected, editable)</span>}</Label>
+                        <Label>Category <span className="text-red-500">*</span> <AiTag aiValue={categories.includes(aiData.category) ? aiData.category : ""} value={category} /></Label>
                         <select value={category} onChange={(e) => setCategory(e.target.value)} className={FIELD}>
                           {categories.map((cat) => (
                             <option key={cat}>{cat}</option>
@@ -454,21 +465,21 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                       )}
 
                       <div>
-                        <Label>Primary Colors {primaryColor ? <span className="text-green-600 font-normal">(auto-detected, editable)</span> : <span className="text-red-500">*</span>}</Label>
+                        <Label>Primary Colors <span className="text-red-500">*</span> <AiTag aiValue={aiData.color} value={primaryColor} /></Label>
                         <input type="text" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} placeholder="e.g. Black, Silver" className={FIELD} />
                       </div>
                       <div>
-                        <Label>Model and Brand {brandModel ? <span className="text-green-600 font-normal">(auto-detected, editable)</span> : <span className="text-red-500">*</span>}</Label>
+                        <Label>Model and Brand <span className="text-red-500">*</span> <AiTag aiValue={aiData.brand} value={brandModel} /></Label>
                         <input type="text" value={brandModel} onChange={(e) => setBrandModel(e.target.value)} placeholder="e.g. Apple iPhone 15, or None" className={FIELD} />
                       </div>
 
                       <div>
-                        <Label>Date Lost {!date && <span className="text-red-500">*</span>}</Label>
+                        <Label>Date Lost <span className="text-red-500">*</span></Label>
                         <input type="date" value={date} onChange={(e) => { setDate(e.target.value); if (time && !timeOptions(e.target.value).some((o) => o.value === time)) setTime(""); }} min={getManilaDate(21)} max={getManilaDate(0)} className={FIELD} required />
                         <p className="text-gray-400 text-[11px] mt-1">Today or up to 3 weeks ago.</p>
                       </div>
                       <div>
-                        <Label>Approx. Time {!time && <span className="text-red-500">*</span>}</Label>
+                        <Label>Approx. Time <span className="text-red-500">*</span></Label>
                         <select value={time} onChange={(e) => setTime(e.target.value)} className={FIELD}>
                           <option value="">Select time</option>
                           {timeOptions(date).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -479,12 +490,12 @@ export default function ReportLostForm({ embedded = false, onDone }: { embedded?
                       </div>
 
                       <div className="sm:col-span-2">
-                        <Label>Last Seen Location {!location.trim() && <span className="text-red-500">*</span>}</Label>
+                        <Label>Last Seen Location <span className="text-red-500">*</span></Label>
                         <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Science Lab, Canteen, Room 402" className={FIELD} required />
                       </div>
 
                       <div className="sm:col-span-2">
-                        <Label>Item Description {!description.trim() && <span className="text-red-500">*</span>} {aiFilled && description.trim() ? <span className="text-green-600 font-normal">(auto-filled by AI, editable)</span> : null}</Label>
+                        <Label>Item Description <span className="text-red-500">*</span> <AiTag aiValue={aiDescription} value={description} same="(auto-filled by AI, editable)" /></Label>
                         <textarea
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
