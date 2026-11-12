@@ -953,6 +953,7 @@ function AdminManagementContent() {
               >
                 User Privileges
               </button>
+              {editingAdmin?.role !== "super_admin" && (
               <button
                 onClick={() => setEditTab("restrictions")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
@@ -961,6 +962,7 @@ function AdminManagementContent() {
               >
                 Restrictions
               </button>
+              )}
             </div>
 
             {editTab === "credentials" && (
