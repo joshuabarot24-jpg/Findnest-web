@@ -869,14 +869,14 @@ function UserManagementContent() {
               <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 md:col-start-1 md:row-start-1 order-1">
                 <div className="col-span-2 md:col-span-3">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
+                    Last Name <span className="text-red-500">*</span>
                   </label>
                   <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Dela Cruz" autoComplete="off" className={fieldCls("last_name")} />
                   {fieldErr("last_name")}
                 </div>
                 <div className="col-span-2 md:col-span-3">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                    First Name <span className="text-red-500">*</span>
                   </label>
                   <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
                   {fieldErr("first_name")}
@@ -893,7 +893,7 @@ function UserManagementContent() {
 
               <div className="order-2 md:col-span-2 md:col-start-1 md:row-start-2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
+                  Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -909,7 +909,7 @@ function UserManagementContent() {
               <div className="order-5 md:order-none md:col-start-1 md:row-start-3 [&_label]:block">
                  <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Password {!formData.password && <span className="text-red-500">*</span>}
+                    Password <span className="text-red-500">*</span>
                   </label>
                   <button
                     type="button"
@@ -947,7 +947,7 @@ function UserManagementContent() {
 
               <div className="order-6 md:order-none md:col-start-1 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Confirm Password {!confirmCreatePassword && <span className="text-red-500">*</span>}
+                  Confirm Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type={showCreatePassword ? "text" : "password"}
@@ -964,7 +964,7 @@ function UserManagementContent() {
 
               <div className="order-4 md:order-none md:col-start-2 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Education Level {!formData.education_level && <span className="text-red-500">*</span>}
+                  Education Level <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.education_level}
@@ -978,7 +978,7 @@ function UserManagementContent() {
               </div>
               <div className="order-3 md:order-none md:col-start-2 md:row-start-3 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
+                  LRN <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1220,14 +1220,14 @@ function UserManagementContent() {
               <div className="grid grid-cols-2 md:grid-cols-10 gap-3 md:col-span-2 md:col-start-1 md:row-start-1 order-1">
                 <div className="col-span-2 md:col-span-3 order-2">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                    First Name <span className="text-red-500">*</span>
                   </label>
                   <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
                   {fieldErr("first_name")}
                 </div>
                 <div className="col-span-2 md:col-span-3 order-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
+                    Last Name <span className="text-red-500">*</span>
                   </label>
                   <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Dela Cruz" autoComplete="off" className={fieldCls("last_name")} />
                   {fieldErr("last_name")}
@@ -1244,7 +1244,7 @@ function UserManagementContent() {
 
               <div className="order-2 md:col-span-2 md:col-start-1 md:row-start-2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}
+                  Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -1309,7 +1309,7 @@ function UserManagementContent() {
               </div>
               <div className="order-6 md:order-none md:col-start-1 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Confirm Password {formData.password && !confirmEditPassword && <span className="text-red-500">*</span>}
+                  Confirm Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type={editPwVisible ? "text" : "password"}
@@ -1327,7 +1327,7 @@ function UserManagementContent() {
 
               <div className="order-4 md:order-none md:col-start-2 md:row-start-4 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Education Level {!formData.education_level && <span className="text-red-500">*</span>}
+                  Education Level <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.education_level}
@@ -1341,7 +1341,7 @@ function UserManagementContent() {
               </div>
               <div className="order-3 md:order-none md:col-start-2 md:row-start-3 [&_label]:block">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  LRN {!formData.lrn.trim() && <span className="text-red-500">*</span>}
+                  LRN <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"

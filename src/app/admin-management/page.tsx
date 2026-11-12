@@ -730,14 +730,14 @@ function AdminManagementContent() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
+                    Last Name <span className="text-red-500">*</span>
                   </label>
                   <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Dela Cruz" autoComplete="off" className={fieldCls("last_name")} />
                   {fieldErr("last_name")}
                 </div>
                 <div className="col-span-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                    First Name <span className="text-red-500">*</span>
                   </label>
                   <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} placeholder="e.g. Juan" autoComplete="off" className={fieldCls("first_name")} />
                   {fieldErr("first_name")}
@@ -753,7 +753,7 @@ function AdminManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email Address <span className="text-red-500">*</span></label>
                 <input
                   type="email"
                   value={formData.email}
@@ -766,7 +766,7 @@ function AdminManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Password {!formData.password && <span className="text-red-500">*</span>}</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Password <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <input
                     type={showAssignPassword ? "text" : "password"}
@@ -789,7 +789,7 @@ function AdminManagementContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Confirm Password {!confirmAssignPassword && <span className="text-red-500">*</span>}</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Confirm Password <span className="text-red-500">*</span></label>
                 <input
                   type={showAssignPassword ? "text" : "password"}
                   value={confirmAssignPassword}
@@ -968,14 +968,14 @@ function AdminManagementContent() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                      Last Name {!formData.last_name.trim() && <span className="text-red-500">*</span>}
+                      Last Name <span className="text-red-500">*</span>
                     </label>
                     <input type="text" value={formData.last_name} onChange={(e) => setNamePart({ last_name: filterLettersOnly(e.target.value) })} autoComplete="off" className={fieldCls("last_name")} />
                     {fieldErr("last_name")}
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                      First Name {!formData.first_name.trim() && <span className="text-red-500">*</span>}
+                      First Name <span className="text-red-500">*</span>
                     </label>
                     <input type="text" value={formData.first_name} onChange={(e) => setNamePart({ first_name: filterLettersOnly(e.target.value) })} autoComplete="off" className={fieldCls("first_name")} />
                     {fieldErr("first_name")}
@@ -991,7 +991,7 @@ function AdminManagementContent() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email Address {!formData.email.trim() && <span className="text-red-500">*</span>}</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Email Address <span className="text-red-500">*</span></label>
                   <input
                     type="email"
                     value={formData.email}
