@@ -171,10 +171,21 @@ function SystemManagementContent() {
     }
   }
 
-  function downloadBackup(filename: string) {
-    const token = localStorage.getItem("findnest_token");
-    const baseUrl = api.defaults.baseURL;
-    window.open(`${baseUrl}/system/backups/${filename}?token=${token}`, "_blank");
+  async function downloadBackup(filename: string) {
+    try {
+      const res = await api.get(`/system/backups/${encodeURIComponent(filename)}`, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Backup download failed:", err);
+      window.alert("Could not download the backup. Please try again.");
+    }
   }
 
   function requestMaintenanceToggle() {
