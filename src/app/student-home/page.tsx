@@ -166,7 +166,7 @@ const [reportMinimized, setReportMinimized] = useState(false);
     if (kind === "lost") setIsLostOpen(true); else setIsFoundOpen(true);
   };
   const reportWindowButtons = (
-    <div className="absolute top-5 right-6 z-50 flex items-center gap-2.5">
+    <div className="absolute top-2 right-3 z-50 flex items-center gap-2.5">
       <button type="button" aria-label="Minimize" onClick={() => setReportMinimized(true)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors text-xl font-bold leading-none">&ndash;</button>
       <button type="button" aria-label="Close" onClick={requestClose} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors text-xl font-bold leading-none">&times;</button>
     </div>
