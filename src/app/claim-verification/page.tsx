@@ -865,13 +865,14 @@ function ClaimVerificationContent() {
               )}
             </p>
             {viewingEvidence.proof_photo_urls && viewingEvidence.proof_photo_urls.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="grid grid-cols-3 gap-3 mb-4">
                 {viewingEvidence.proof_photo_urls.map((url, idx) => (
                   <img
                     key={idx}
                     src={url}
                     alt={`Claim evidence ${idx + 1}`}
-                    className="w-full max-h-[60vh] object-contain rounded-2xl border border-gray-100"
+                    className="w-full max-h-44 object-contain rounded-2xl border border-gray-100 cursor-pointer bg-gray-50"
+                    onClick={() => window.open(url, "_blank")}
                   />
                 ))}
               </div>
