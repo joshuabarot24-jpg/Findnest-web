@@ -116,7 +116,7 @@ export default function SuperAdminLayout({ active, children }: { active: string;
               }`}
             >
               <Icon name={item.icon} />
-              <span>{item.label}</span>
+                <span className="leading-none pt-0.5">{item.label}</span>
             </Link>
           ))}
         </nav>
@@ -131,7 +131,7 @@ export default function SuperAdminLayout({ active, children }: { active: string;
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#E2EFE9] hover:bg-white/10 transition font-medium w-full text-left"
           >
             <Icon name="logout" />
-            <span>Logout</span>
+            <span className="leading-none pt-0.5">Logout</span>
           </button>
         </div>
       </aside>
