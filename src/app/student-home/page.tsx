@@ -153,6 +153,7 @@ function StudentHomeContent() {
   const reportOpen = isLostOpen || isFoundOpen;
   const [refreshTick, setRefreshTick] = useState(0);
 const [reportMinimized, setReportMinimized] = useState(false);
+  const [lockMsg, setLockMsg] = useState("");
   const [reportDirty, setReportDirty] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const closeReport = () => {
@@ -162,13 +163,17 @@ const [reportMinimized, setReportMinimized] = useState(false);
   // Closing asks first when the student has already entered something
   const requestClose = () => { if (reportDirty) setConfirmDiscard(true); else closeReport(); };
   const openReport = (kind: "lost" | "found") => {
-    if (isLostOpen || isFoundOpen) { setReportMinimized(false); return; }
+    if (isLostOpen || isFoundOpen) {
+      if (kind === (isLostOpen ? "lost" : "found")) { setReportMinimized(false); }
+      else { setLockMsg(`A ${isLostOpen ? "lost" : "found"} report is still in progress. Resume or close it first.`); setTimeout(() => setLockMsg(""), 3500); }
+      return;
+    }
     if (kind === "lost") setIsLostOpen(true); else setIsFoundOpen(true);
   };
   const reportWindowButtons = (
-    <div className="absolute top-2 right-3 z-50 flex items-center gap-2.5">
-      <button type="button" aria-label="Minimize" onClick={() => setReportMinimized(true)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors text-xl font-bold leading-none">&ndash;</button>
-      <button type="button" aria-label="Close" onClick={requestClose} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors text-xl font-bold leading-none">&times;</button>
+    <div className="absolute -top-12 right-0 z-50 flex items-center gap-1 rounded-full bg-white border border-slate-200 shadow-lg px-1.5 py-1">
+      <button type="button" aria-label="Minimize" onClick={() => setReportMinimized(true)} className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors text-lg font-bold leading-none">&ndash;</button>
+      <button type="button" aria-label="Close" onClick={requestClose} className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors text-lg font-bold leading-none">&times;</button>
     </div>
   );
 
@@ -370,11 +375,11 @@ const [reportMinimized, setReportMinimized] = useState(false);
             </p>
 
             <div className="flex flex-wrap gap-2 mt-4">
-              <a href="/report-lost" onClick={(e) => { e.preventDefault(); openReport("lost"); }} className="flex items-center gap-2 bg-[#E11D48] hover:bg-[#BE123C] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
+              <a href="/report-lost" onClick={(e) => { e.preventDefault(); openReport("lost"); }} aria-disabled={isFoundOpen} title={isFoundOpen ? "Finish or close your Found report first" : undefined} className="aria-disabled:opacity-50 aria-disabled:cursor-not-allowed flex items-center gap-2 bg-[#E11D48] hover:bg-[#BE123C] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v5" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
                 Lost something
               </a>
-              <a href="/report-found" onClick={(e) => { e.preventDefault(); openReport("found"); }} className="flex items-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
+              <a href="/report-found" onClick={(e) => { e.preventDefault(); openReport("found"); }} aria-disabled={isLostOpen} title={isLostOpen ? "Finish or close your Lost report first" : undefined} className="aria-disabled:opacity-50 aria-disabled:cursor-not-allowed flex items-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /><path d="M11 8v6" /><path d="M8 11h6" /></svg>
                 Found Something
               </a>
@@ -383,6 +388,14 @@ const [reportMinimized, setReportMinimized] = useState(false);
                 Claim Status
               </a>
             </div>
+            {reportOpen && reportMinimized && (
+              <div className="mt-3 inline-flex flex-wrap items-center gap-3 bg-[#0E4D34] text-white text-xs sm:text-sm font-medium pl-4 pr-2 py-2 rounded-xl shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-[#2FD18B] animate-pulse" />
+                <span>{isLostOpen ? "Lost" : "Found"} report in progress</span>
+                <button type="button" onClick={() => setReportMinimized(false)} className="underline font-semibold hover:text-emerald-200">Resume</button>
+                <button type="button" aria-label="Discard draft" onClick={requestClose} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/15 text-base leading-none">&times;</button>
+              </div>
+            )}
           </div>
         </section>
 
@@ -838,10 +851,13 @@ const [reportMinimized, setReportMinimized] = useState(false);
         <button
           type="button"
           onClick={() => setReportMinimized(false)}
-          className="fixed bottom-4 right-4 z-[200] flex items-center gap-2 bg-[#0E4D34] hover:bg-[#0C3D2E] text-white text-sm font-bold px-5 py-3 rounded-full shadow-xl transition"
+          className="hidden bg-[#0E4D34] hover:bg-[#0C3D2E] text-white text-sm font-bold px-5 py-3 rounded-full shadow-xl transition"
         >
           {`${isLostOpen ? "Lost" : "Found"} report in progress · Resume`}
         </button>
+      )}
+      {lockMsg && (
+        <div className="fixed bottom-20 right-4 z-[220] max-w-xs rounded-xl bg-slate-900 text-white text-sm font-medium px-4 py-3 shadow-xl">{lockMsg}</div>
       )}
       {confirmDiscard && typeof document !== "undefined" && createPortal(
         <div
@@ -861,12 +877,12 @@ const [reportMinimized, setReportMinimized] = useState(false);
       )}
       {reportOpen && typeof document !== "undefined" && createPortal(
         <div
-          className={`fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 ${reportMinimized ? "hidden" : ""}`}
+          className={`fixed inset-0 z-[200] flex items-center justify-center overflow-hidden overscroll-contain bg-slate-900/50 backdrop-blur-sm px-4 pb-4 pt-14 ${reportMinimized ? "hidden" : ""}`}
           onClick={() => {}}
         >
           <div className="relative w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
             {reportWindowButtons}
-            <div className="max-h-[90vh] overflow-y-auto rounded-3xl bg-[#F2F8F5] shadow-2xl border border-slate-100 p-6 md:p-8 cursor-default">
+            <div className="max-h-[76vh] overflow-y-auto overscroll-contain rounded-3xl shadow-2xl cursor-default">
               {isLostOpen ? (
                 <ReportLostForm embedded onDone={requestClose} onDirtyChange={setReportDirty} />
               ) : (
