@@ -1083,7 +1083,7 @@ function UserManagementContent() {
             </div>
 
             {!isFormValid() && <p className="text-xs text-gray-400 mt-4 text-right">Fill in every required field and meet all the password requirements to continue.</p>}
-            <div className="flex justify-end items-center gap-3 pt-4 mt-5 border-t border-slate-100">
+            <div className="flex justify-end items-center gap-3 pt-4 pr-4 mt-6 border-t border-slate-100">
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all"
@@ -1094,7 +1094,7 @@ function UserManagementContent() {
                 onClick={handleReviewCreate}
                 disabled={!isFormValid()}
                 style={!isFormValid() ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
-                className="px-6 py-2.5 rounded-xl border border-[#0F4C3A] hover:border-[#0C3D2E] bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all"
+                className="px-5 py-2.5 rounded-xl border border-[#0F4C3A] hover:border-[#0C3D2E] bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all"
               >
                 Review & Create
               </button>
