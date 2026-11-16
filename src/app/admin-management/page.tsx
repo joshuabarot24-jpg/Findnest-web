@@ -1307,7 +1307,7 @@ function AdminManagementContent() {
               {revokingAdmin.name} will no longer be able to log in. The account is kept and can be restored later — use this when someone has left the school.
             </p>
             <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-6">
-              <p className="text-red-600 text-xs font-bold">The account can be restored later with a new temporary password.	</p>
+              <p className="text-red-600 text-xs font-bold">The account can be restored later, and they will log in again with their existing password.	</p>
             </div>
 
             <div className="flex gap-3">
