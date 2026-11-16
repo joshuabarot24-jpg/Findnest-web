@@ -1094,7 +1094,7 @@ function UserManagementContent() {
                 onClick={handleReviewCreate}
                 disabled={!isFormValid()}
                 style={!isFormValid() ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
-                className="px-6 py-2.5 rounded-xl bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all"
+                className="px-6 py-2.5 rounded-xl border border-[#0F4C3A] hover:border-[#0C3D2E] bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all"
               >
                 Review & Create
               </button>
@@ -1455,7 +1455,7 @@ function UserManagementContent() {
                 onClick={handleEditSubmit}
                 disabled={formLoading || !isFormValid()}
                 style={!isFormValid() ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
-                className="px-6 py-2.5 rounded-xl bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl border border-[#0F4C3A] hover:border-[#0C3D2E] bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50"
               >
                 {formLoading ? "Saving..." : "Save Changes"}
               </button>

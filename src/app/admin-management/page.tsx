@@ -829,7 +829,7 @@ function AdminManagementContent() {
                 onClick={handleReviewAssign}
                 disabled={!isAssignValid()}
                 style={!isAssignValid() ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
-                className="flex-1 bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
+                className="flex-1 border-2 border-[#1a237e] hover:border-[#283593] bg-[#1a237e] hover:bg-[#283593] text-white font-bold py-3 rounded-2xl transition"
               >
                 Review & Assign
               </button>
