@@ -845,8 +845,7 @@ function UserManagementContent() {
       
       {showCreateModal && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
-          onClick={() => setShowCreateModal(false)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md"
         >
           <div
             className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl md:max-w-3xl mx-4 overflow-hidden cursor-default"

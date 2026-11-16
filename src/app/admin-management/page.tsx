@@ -709,8 +709,7 @@ function AdminManagementContent() {
       
       {showAssignModal && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md cursor-pointer"
-          onClick={() => setShowAssignModal(false)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md"
         >
           <div
             className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto cursor-default"
