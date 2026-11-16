@@ -203,9 +203,9 @@ export default function AdminLayout({ active, children }: { active: string; chil
               }`}
             >
               <Icon name={item.icon} />
-              <span>{item.label}</span>
+              <span className="leading-none pt-0.5">{item.label}</span>
               {(badgeFor[item.href] ?? 0) > 0 && (
-                <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-[#DC2626] text-white text-xs font-bold flex items-center justify-center">
+                <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-[#DC2626] text-white text-[11px] font-bold leading-none tabular-nums pt-0.5 flex items-center justify-center">
                   {badgeFor[item.href] > 99 ? "99+" : badgeFor[item.href]}
                 </span>
               )}
@@ -223,7 +223,7 @@ export default function AdminLayout({ active, children }: { active: string; chil
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#E2EFE9] hover:bg-white/10 transition font-medium w-full text-left"
           >
             <Icon name="logout" />
-            <span>Logout</span>
+            <span className="leading-none pt-0.5">Logout</span>
           </button>
         </div>
       </aside>
