@@ -102,7 +102,7 @@ function ClaimStatusContent() {
   const [claimSubmitting, setClaimSubmitting] = useState(false);
   const [claimError, setClaimError] = useState("");
   const [claimPhotos, setClaimPhotos] = useState<{ preview: string; url: string | null; uploading: boolean }[]>([]);
-  const CLAIM_MAX_PHOTOS = 1;
+  const CLAIM_MAX_PHOTOS = 3;
 
   const [appealingClaim, setAppealingClaim] = useState<Claim | null>(null);
   const [appealMessage, setAppealMessage] = useState("");

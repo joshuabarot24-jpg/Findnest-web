@@ -40,7 +40,7 @@ export default function MatchedItemPage() {
   const [claimError, setClaimError] = useState("");
   const [showClaimForm, setShowClaimForm] = useState(false);
   const [claimPhotos, setClaimPhotos] = useState<{ preview: string; url: string | null; uploading: boolean }[]>([]);
-  const CLAIM_MAX_PHOTOS = 1;
+  const CLAIM_MAX_PHOTOS = 3;
 
   useEffect(() => {
     if (!matchId) {
