@@ -94,7 +94,7 @@ function SupportContent() {
             <p className="text-gray-400 text-xs">Ms. Shelly S. Durban &middot; Mon-Fri, 8AM - 5PM</p>
           </div>
 
-          <div className="p-5 flex flex-col gap-3 h-[55vh] overflow-y-auto">
+          <div className="p-5 flex flex-col gap-3 h-[55vh] overflow-y-auto overflow-x-hidden min-w-0">
             {loading ? (
               <p className="text-gray-400 text-xs">Loading conversation...</p>
             ) : shown.length === 0 ? (
@@ -107,18 +107,18 @@ function SupportContent() {
                 m.kind === "system" ? (
                   <p key={m.key} className="text-center text-gray-400 text-xs">{m.text}</p>
                 ) : m.is_override_request ? (
-                  <div key={m.key} className="self-end max-w-[85%] bg-amber-50/80 border border-amber-200 rounded-2xl p-4">
+                  <div key={m.key} className="self-end max-w-[85%] min-w-0 bg-amber-50/80 border border-amber-200 rounded-2xl p-4">
                     <p className="text-amber-800 text-xs font-bold">Manual AI override request</p>
-                    <p className="text-amber-700 text-xs mt-1 whitespace-pre-wrap break-words">{m.text}</p>
+                    <p className="text-amber-700 text-xs mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{m.text}</p>
                     <p className="text-amber-800 text-xs font-bold mt-2 capitalize">Status: {m.override_status || "pending"}</p>
                   </div>
                 ) : (
-                  <div key={m.key} className={`max-w-[75%] flex flex-col ${m.sender === "student" ? "self-end items-end" : "self-start items-start"}`}>
+                  <div key={m.key} className={`max-w-[75%] min-w-0 flex flex-col ${m.sender === "student" ? "self-end items-end" : "self-start items-start"}`}>
                     <p className="text-[11px] text-gray-500 mb-1">
                       {m.sender === "student" ? "You" : "Guidance Office"} &middot; {m.pending ? "Sending..." : formatTime(m.at)}
                     </p>
-                    <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap break-words ${m.sender === "student" ? "bg-[#0F4C3A] text-white rounded-tr-sm" : "bg-slate-100 text-slate-800 rounded-tl-sm"} ${m.pending ? "opacity-60" : ""}`}>
-                      {m.text}
+                    <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${m.sender === "student" ? "bg-[#0F4C3A] text-white rounded-tr-sm" : "bg-slate-100 text-slate-800 rounded-tl-sm"} ${m.pending ? "opacity-60" : ""}`}>
+                      <span style={{ overflowWrap: "anywhere" }}>{m.text}</span>
                     </div>
                     {m.failed && (
                       <button type="button" onClick={() => send(m)} className="text-[11px] font-bold text-red-500 mt-1 hover:underline">

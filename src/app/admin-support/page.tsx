@@ -387,7 +387,7 @@ function SupportInboxContent() {
       {/* Two panes: list + conversation. Below xl only one shows at a time. */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* LIST */}
-        <div className={`xl:col-span-2 min-w-0 ${showConversation ? "hidden xl:block" : ""}`}>
+        <div className={`xl:col-span-2 min-w-0 min-w-0 ${showConversation ? "hidden xl:block" : ""}`}>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 space-y-3">
               <button
@@ -438,7 +438,7 @@ function SupportInboxContent() {
                     <button
                       key={msg.id}
                       onClick={() => openMessage(msg)}
-                      className={`w-full flex items-start gap-3 px-4 py-4 text-left transition ${
+                      className={`w-full min-w-0 overflow-hidden flex items-start gap-3 px-4 py-4 text-left transition ${
                         selectedId === msg.id ? "bg-[#E8F5E9]" : "hover:bg-gray-50"
                       }`}
                     >
@@ -454,7 +454,7 @@ function SupportInboxContent() {
                           )}
                         </div>
                         <p className="text-gray-400 text-xs mt-0.5 truncate">{msg.email}</p>
-                        <p className="text-gray-500 text-xs mt-1 truncate">{msg.message}</p>
+                        <p className="text-gray-500 text-xs mt-1 block w-full truncate">{msg.message}</p>
                         <p className="text-gray-300 text-[10px] mt-1">{formatTime(msg.created_at)}</p>
                       </div>
                     </button>
@@ -529,7 +529,7 @@ function SupportInboxContent() {
                   <span className="text-gray-400 text-xs">{formatTime(selected.created_at)}</span>
                 </div>
 
-                <div ref={streamRef} className="p-5 flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
+                <div ref={streamRef} className="p-5 flex flex-col gap-3 max-h-[60vh] overflow-y-auto overflow-x-hidden min-w-0">
                   {threadLoading && stream.length === 0 ? (
                     <p className="text-gray-400 text-xs">Loading conversation...</p>
                   ) : (
@@ -537,9 +537,9 @@ function SupportInboxContent() {
                       item.kind === "system" ? (
                         <p key={item.key} className="text-center text-gray-400 text-xs">{item.text}</p>
                       ) : item.kind === "message" && item.is_override_request ? (
-                        <div key={item.key} className="self-start max-w-[85%] bg-amber-50/80 border border-amber-200 rounded-2xl p-4">
+                        <div key={item.key} className="self-start max-w-[85%] min-w-0 bg-amber-50/80 border border-amber-200 rounded-2xl p-4">
                           <p className="text-amber-800 text-xs font-bold">Manual AI override request</p>
-                          <p className="text-amber-700 text-xs mt-1 whitespace-pre-wrap break-words">{item.text}</p>
+                          <p className="text-amber-700 text-xs mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{item.text}</p>
                           <p className="text-[11px] text-amber-700/70 mt-1">{formatTime(item.at)}</p>
                           {item.override_status === "pending" ? (
                             <div className="flex flex-wrap gap-2 mt-3">
@@ -563,12 +563,12 @@ function SupportInboxContent() {
                           )}
                         </div>
                       ) : (
-                        <div key={item.key} className={`max-w-[75%] flex flex-col ${item.sender === "admin" ? "self-end items-end" : "self-start items-start"}`}>
+                        <div key={item.key} className={`max-w-[75%] min-w-0 flex flex-col ${item.sender === "admin" ? "self-end items-end" : "self-start items-start"}`}>
                           <p className="text-[11px] text-gray-500 mb-1">
                             {item.sender === "admin" ? "Guidance Office" : selected.name} &middot; {formatTime(item.at)}
                           </p>
-                          <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap break-words ${item.sender === "admin" ? "bg-[#0F4C3A] text-white rounded-tr-sm" : "bg-slate-100 text-slate-800 rounded-tl-sm"}`}>
-                            {item.text}
+                          <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${item.sender === "admin" ? "bg-[#0F4C3A] text-white rounded-tr-sm" : "bg-slate-100 text-slate-800 rounded-tl-sm"}`}>
+                            <span style={{ overflowWrap: "anywhere" }}>{item.text}</span>
                           </div>
                         </div>
                       )
