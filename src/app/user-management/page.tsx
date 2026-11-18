@@ -1082,8 +1082,9 @@ function UserManagementContent() {
               )}
             </div>
 
-            {!isFormValid() && <p className="text-xs text-gray-400 mt-4 text-right">Fill in every required field and meet all the password requirements to continue.</p>}
-            <div className="flex justify-end items-center gap-3 pt-4 pr-4 mt-6 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-4 pr-4 mt-6 border-t border-slate-100">
+              <p className="text-xs text-gray-400 sm:flex-1 min-w-0">{!isFormValid() ? "Fill in every required field and meet all the password requirements to continue." : ""}</p>
+              <div className="flex justify-end items-center gap-3 shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all"
@@ -1098,6 +1099,7 @@ function UserManagementContent() {
               >
                 Review & Create
               </button>
+              </div>
             </div>
           </div>
         </div>
