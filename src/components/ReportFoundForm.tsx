@@ -2,6 +2,7 @@
 // Student > Report Found (/report-found). Form, review, confirmation and success steps.
 // API: /upload/image, /upload/analyze-existing, /found-items
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { timeAllowed } from "@/lib/reportTime";
 import TimeField from "@/components/TimeField";
 import api from "@/lib/api";
@@ -330,9 +331,9 @@ export default function ReportFoundForm({ embedded = false, onDone, onDirtyChang
 
   return (
     <Shell embedded={embedded}>
-      <div className="w-full flex-1 flex flex-col justify-center pb-6">
+      <div className={`w-full flex-1 flex flex-col justify-center ${embedded ? "" : "pb-6"}`}>
         {step === "form" ? (
-          <div className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm overflow-hidden">
+          <div className={`bg-white rounded-3xl ${embedded ? "" : "border border-[#D9E8DF] shadow-sm"} overflow-hidden`}>
             <div className="px-6 sm:px-8 pt-5">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-400">Report Found Item</p>
@@ -530,7 +531,7 @@ export default function ReportFoundForm({ embedded = false, onDone, onDirtyChang
           </div>
         ) : (
           /* Review step */
-          <div className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm overflow-hidden">
+          <div className={`bg-white rounded-3xl ${embedded ? "" : "border border-[#D9E8DF] shadow-sm"} overflow-hidden`}>
             <div className="px-6 sm:px-8 pt-5">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-400">Report review</p>
@@ -635,8 +636,8 @@ export default function ReportFoundForm({ embedded = false, onDone, onDirtyChang
       )}
 
       {/* Confirmation */}
-      {showConfirm && !submitted && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
+      {showConfirm && !submitted && typeof document !== "undefined" && createPortal(
+        <div onClick={(e) => e.stopPropagation()} className="fixed inset-0 z-[300] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6">
             <div className="text-center">
               <h2 className="text-xl font-bold text-slate-900 mb-2">Submit Found-item Report?</h2>
@@ -661,7 +662,8 @@ export default function ReportFoundForm({ embedded = false, onDone, onDirtyChang
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Success */}

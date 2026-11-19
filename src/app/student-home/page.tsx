@@ -882,7 +882,7 @@ const [reportMinimized, setReportMinimized] = useState(false);
         >
           <div className="relative w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
             {reportWindowButtons}
-            <div className="max-h-[76vh] overflow-y-auto overscroll-contain rounded-3xl shadow-2xl cursor-default">
+            <div className="max-h-[76vh] overflow-y-auto overscroll-contain rounded-3xl shadow-2xl cursor-default outline-none focus:outline-none">
               {isLostOpen ? (
                 <ReportLostForm embedded onDone={requestClose} onDirtyChange={setReportDirty} />
               ) : (
