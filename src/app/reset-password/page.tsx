@@ -126,7 +126,7 @@ function ResetPasswordForm() {
               </div>
               <p className="font-black text-gray-700 text-lg">Password Reset!</p>
               <p className="text-[#64748B] text-sm mt-2">Your password has been changed. You can now log in with your new password.</p>
-              <a href="/" className="inline-block mt-6 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold px-8 py-3 rounded-xl transition shadow-md">
+              <a href="/" className="inline-block mt-6 bg-[#0F4C3A] hover:bg-[#0C3D2E] text-white font-bold px-8 py-3 rounded-xl transition shadow-md">
                 Go to Login
               </a>
             </div>
