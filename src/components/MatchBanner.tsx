@@ -38,7 +38,7 @@ export default function MatchBanner({
         </p>
         <p className="text-green-600 text-sm">{current.message}</p>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 translate-y-0.5">
         {total > 1 && (
           <>
             <button
@@ -62,14 +62,14 @@ export default function MatchBanner({
         <a
           href={current.match_id ? `/matched-item?matchId=${current.match_id}` : "/claim-status"}
           onClick={() => onView(current)}
-          className="text-sm font-bold text-[#0E4D34] hover:underline"
+          className="inline-flex items-center leading-none py-1 text-sm font-bold text-[#0E4D34] hover:underline"
         >
           View Match
         </a>
         <button
           type="button"
           onClick={() => onDismiss(current)}
-          className="text-green-400 hover:text-green-600 transition font-bold text-sm px-2"
+          className="inline-flex items-center leading-none py-1 text-green-400 hover:text-green-600 transition font-bold text-sm px-2"
         >
           Dismiss
         </button>
