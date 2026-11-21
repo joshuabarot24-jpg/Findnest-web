@@ -21,6 +21,7 @@ interface Notif {
   message: string;
   type: string;
   match_id: number | null;
+  report_type?: "lost" | "found" | null;
   is_read: boolean;
   created_at: string;
 }
@@ -154,6 +155,10 @@ export default function StudentLayout({
       });
         window.dispatchEvent(new Event("findnest:notifs-changed"));
       } catch {}
+    }
+    if (n.report_type === "found") {
+      window.location.href = "/claim-status?tab=found";
+      return;
     }
     const t = (n.type || "").toLowerCase();
     if (t.includes("match") && n.match_id) window.location.href = `/matched-item?matchId=${n.match_id}`;

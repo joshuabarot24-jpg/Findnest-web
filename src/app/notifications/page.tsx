@@ -15,6 +15,7 @@ interface NotificationItem {
   is_read: boolean;
   created_at: string;
   match_id: number | null;
+  report_type?: "lost" | "found" | null;
 }
 
 // "Just now", "6 Hrs ago", "2 Days ago"
@@ -93,6 +94,8 @@ function NotificationsContent() {
       window.location.href = "/student-home";
     } else if (t.includes("support")) {
       window.location.href = "/support";
+    } else if (n.report_type === "found") {
+      window.location.href = "/claim-status?tab=found";
     } else if (t.includes("match") && n.match_id) {
       window.location.href = `/matched-item?matchId=${n.match_id}`;
     } else if (t.includes("status") || t.includes("reminder") || t.includes("claim")) {
@@ -165,7 +168,18 @@ function NotificationsContent() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-[#0A2618]">{n.title}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-[#0A2618]">{n.title}</p>
+                        {n.report_type && (
+                          <span
+                            className={`text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full text-white ${
+                              n.report_type === "found" ? "bg-[#0E4D34]" : "bg-[#1D2A6B]"
+                            }`}
+                          >
+                            {n.report_type === "found" ? "Found Report" : "Lost Report"}
+                          </span>
+                        )}
+                      </div>
                       <p className="font-medium text-[#1E3F2E] text-sm mt-0.5">{n.message}</p>
                       <p className="text-[#1E3F2E]/80 text-xs mt-1.5">{formatTime(n.created_at)}</p>
                     </div>

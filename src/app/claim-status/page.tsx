@@ -384,6 +384,12 @@ export default function ClaimStatusPage() {
 function ClaimStatusContent() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [tab, setTab] = useState<"lost" | "found">("lost");
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "found") {
+      setTab("found");
+    }
+  }, []);
   const [loading, setLoading] = useState(true);
   const [openStep, setOpenStep] = useState<Record<number, number | null>>({});
 
