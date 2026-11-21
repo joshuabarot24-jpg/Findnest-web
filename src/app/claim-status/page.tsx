@@ -21,8 +21,10 @@ interface Claim {
   ownership_questions?: { student_answer: string | null }[];
   verification_skipped?: boolean;
   verification_skip_reason?: string | null;
+  timeline?: { action: string; at: string }[];
   match: {
-    lost_report: { item_name: string; location_lost: string } | null;
+    matched_at?: string | null;
+    lost_report: { item_name: string; location_lost: string; description?: string | null; created_at?: string } | null;
     found_record: { item_name: string; location_found: string } | null;
   } | null;
 }
@@ -76,6 +78,84 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
 }
 
+function formatDateTime(dateStr: string) {
+  return new Date(dateStr).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Math.max(0, Date.now() - new Date(dateStr).getTime());
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hr ago`;
+  const day = Math.floor(hr / 24);
+  return `${day} day${day === 1 ? "" : "s"} ago`;
+}
+
+function getStepDetail(claim: Claim, stepNum: number): { at: string | null; text: string } {
+  const lost = claim.match?.lost_report;
+  const found = claim.match?.found_record;
+  const logAt = (action: string) => claim.timeline?.find((t) => t.action === action)?.at ?? null;
+
+  switch (stepNum) {
+    case 1:
+      return {
+        at: lost?.created_at ?? claim.created_at,
+        text: lost
+          ? `You reported "${lost.item_name}" lost at ${lost.location_lost}.${lost.description ? ` Description: ${lost.description}` : ""}`
+          : "Your lost item report was submitted.",
+      };
+    case 2:
+      return {
+        at: lost?.created_at ?? claim.created_at,
+        text: "The AI checked your photo and description, then searched the found items for possible matches.",
+      };
+    case 3:
+      return {
+        at: claim.match?.matched_at ?? null,
+        text: found
+          ? `The AI found a possible match: "${found.item_name}"${found.location_found ? `, found at ${found.location_found}` : ""}.`
+          : "The AI found a possible match.",
+      };
+    case 4:
+      return {
+        at: claim.claimed_at ?? claim.created_at,
+        text: `You submitted your claim.${claim.proof_description ? ` Your note: ${claim.proof_description}` : ""}`,
+      };
+    case 5:
+      return {
+        at: logAt("Ownership Questions Answered"),
+        text: claim.verification_skipped
+          ? "The verification questions were skipped for this claim. The Guidance Office is reviewing your evidence."
+          : logAt("Ownership Questions Answered")
+            ? "You answered the verification questions. The Guidance Office is reviewing all of your evidence."
+            : "Waiting for you to answer the verification questions.",
+      };
+    case 6:
+      return {
+        at: logAt("Claim Approved"),
+        text:
+          claim.claim_status === "approved" || claim.collected_at
+            ? `Your claim was approved.${claim.pickup_deadline ? ` Collect your item at the Guidance Office by ${formatDate(claim.pickup_deadline)}.` : ""}`
+            : "Waiting for the Guidance Office's decision.",
+      };
+    case 7:
+      return {
+        at: claim.collected_at,
+        text: claim.collected_at ? "Your item was collected at the Guidance Office." : "Not collected yet.",
+      };
+    default:
+      return { at: null, text: "" };
+  }
+}
+
 function daysRemaining(deadline: string): number {
   const now = new Date();
   const end = new Date(deadline);
@@ -93,6 +173,7 @@ export default function ClaimStatusPage() {
 function ClaimStatusContent() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openStep, setOpenStep] = useState<Record<number, number | null>>({});
 
   const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(true);
@@ -411,7 +492,7 @@ function ClaimStatusContent() {
                   </div>
 
                   {!isTerminal && (
-                    <div className="overflow-x-auto pb-2 mb-4">
+                    <div className="overflow-x-auto pt-2 pb-2 mb-4">
                       <div className="flex items-start min-w-[34rem]">
                         {TIMELINE_STEPS.map((label, idx) => {
                           const stepNum = idx + 1;
@@ -420,13 +501,21 @@ function ClaimStatusContent() {
                             <div key={label} className={`flex items-start ${idx < last ? "flex-1" : ""}`}>
                               <div className="flex flex-col items-center w-16 sm:w-20 shrink-0">
                                 <div
-                                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                  onClick={() => setOpenStep((prev) => ({ ...prev, [claim.id]: prev[claim.id] === stepNum ? null : stepNum }))}
+                                  role="button"
+                                  tabIndex={0}
+                                  className={`cursor-pointer w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${openStep[claim.id] === stepNum ? "ring-2 ring-offset-2 ring-[#1D2A6B]" : ""} ${
                                     done ? "bg-[#1D2A6B] text-white" : "bg-gray-200 text-gray-400"
                                   }`}
                                 >
                                   {stepNum}
                                 </div>
-                                <span className={`mt-1 text-[10px] sm:text-xs font-bold text-center leading-tight ${done ? "text-[#1D2A6B]" : "text-gray-400"}`}>
+                                <span className={`mt-1 flex flex-col items-center text-[10px] sm:text-xs font-bold text-center leading-tight ${done ? "text-[#1D2A6B]" : "text-gray-400"}`}>
+                                  {done && getStepDetail(claim, stepNum).at && (
+                                    <span className="order-last mt-0.5 text-[9px] font-normal text-gray-400">
+                                      {timeAgo(getStepDetail(claim, stepNum).at as string)}
+                                    </span>
+                                  )}
                                   {label}
                                 </span>
                               </div>
@@ -440,6 +529,20 @@ function ClaimStatusContent() {
                     </div>
                   )}
 
+                  {!isTerminal && openStep[claim.id] && (() => {
+                    const n = openStep[claim.id] as number;
+                    const detail = getStepDetail(claim, n);
+                    const reached = n <= step;
+                    return (
+                      <div className="bg-[#F4F7FB] border border-[#D6DCEF] rounded-xl p-4 mb-4">
+                        <p className="font-black text-[#1D2A6B] text-sm">{n}. {TIMELINE_STEPS[n - 1]}</p>
+                        <p className="text-gray-600 text-sm mt-1">{reached ? detail.text : "This step has not happened yet."}</p>
+                        {reached && detail.at && (
+                          <p className="text-gray-400 text-xs mt-2">{formatDateTime(detail.at)} · {timeAgo(detail.at)}</p>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {/* Status banner */}
                   {claim.collected_at ? (
                     <div className="bg-[#B9CBBF] rounded-xl p-4 my-4">
