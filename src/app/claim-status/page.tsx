@@ -156,6 +156,217 @@ function getStepDetail(claim: Claim, stepNum: number): { at: string | null; text
   }
 }
 
+interface FoundRecord {
+  id: number;
+  item_name: string;
+  location_found: string | null;
+  status: string;
+  created_at: string;
+  surrender_deadline: string | null;
+  receipt_confirmed: boolean;
+  receipt_confirmed_at: string | null;
+  progress?: {
+    matched_at: string | null;
+    claim_status: string | null;
+    claimed_at: string | null;
+    collected_at: string | null;
+  };
+}
+
+const FOUND_STEPS = ["Submitted", "Waiting for Surrender", "Surrendered", "Matched", "Claimed", "Returned"];
+
+function foundStepIndex(r: FoundRecord): number {
+  const p = r.progress;
+  if (p?.collected_at) return 6;
+  if (p?.claimed_at) return 5;
+  if (p?.matched_at) return 4;
+  if (r.receipt_confirmed) return 3;
+  return 2;
+}
+
+function getFoundStepDetail(r: FoundRecord, stepNum: number): { at: string | null; text: string } {
+  const p = r.progress;
+  switch (stepNum) {
+    case 1:
+      return {
+        at: r.created_at,
+        text: `You reported finding "${r.item_name}"${r.location_found ? ` at ${r.location_found}` : ""}.`,
+      };
+    case 2:
+      return {
+        at: r.created_at,
+        text:
+          !r.receipt_confirmed && r.surrender_deadline
+            ? `Hand the item to the Guidance Office by ${formatDate(r.surrender_deadline)} (within 2 school days).`
+            : "You were asked to hand the item to the Guidance Office within 2 school days.",
+      };
+    case 3:
+      return {
+        at: r.receipt_confirmed_at,
+        text: r.receipt_confirmed
+          ? "The Guidance Office confirmed receipt of your item. AI matching has started."
+          : "Waiting for the Guidance Office to confirm they received the item.",
+      };
+    case 4:
+      return {
+        at: p?.matched_at ?? null,
+        text: "The AI found a possible owner for your item. The Guidance Office will verify who it belongs to.",
+      };
+    case 5:
+      return {
+        at: p?.claimed_at ?? null,
+        text:
+          p?.claim_status === "approved"
+            ? "A claim for your item was approved. The owner will collect it at the Guidance Office."
+            : p?.claim_status === "rejected"
+              ? "A claim for your item was rejected. The item is waiting for its real owner."
+              : "Someone claimed your item. The Guidance Office is verifying the claim.",
+      };
+    case 6:
+      return {
+        at: p?.collected_at ?? null,
+        text: p?.collected_at ? "The item was returned to its owner. Thank you for helping!" : "Not returned yet.",
+      };
+    default:
+      return { at: null, text: "" };
+  }
+}
+
+function FoundReportsPanel() {
+  const [records, setRecords] = useState<FoundRecord[]>([]);
+  const [foundLoading, setFoundLoading] = useState(true);
+  const [openFoundStep, setOpenFoundStep] = useState<Record<number, number | null>>({});
+
+  const fetchRecords = async () => {
+    try {
+      const response = await api.get("/found-items/mine");
+      setRecords(response.data.records || []);
+    } catch (err) {
+      console.error("Error fetching found reports:", err);
+    } finally {
+      setFoundLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecords();
+  }, []);
+
+  useAutoRefresh(() => {
+    fetchRecords();
+  });
+
+  if (foundLoading) {
+    return <div className="text-center py-20 text-gray-400 text-sm">Loading found reports...</div>;
+  }
+
+  if (records.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl text-center py-16 text-gray-400">
+        <p className="font-bold">No found item reports yet</p>
+        <p className="text-sm mt-1">Items you report as found will appear here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {records.map((record) => {
+        const expired = record.status === "unsurrendered_expired";
+        const step = expired ? 2 : foundStepIndex(record);
+        const last = FOUND_STEPS.length - 1;
+        const open = openFoundStep[record.id];
+
+        return (
+          <div key={record.id} className="bg-white rounded-3xl border border-[#D9E8DF] shadow-sm p-6 sm:p-8">
+            <div className="mb-6">
+              <p className="font-black text-gray-800 text-xl capitalize">{record.item_name}</p>
+              <p className="text-gray-400 text-xs mt-1">Submitted {formatDate(record.created_at)}</p>
+            </div>
+
+            <div className="overflow-x-auto pt-2 pb-2 mb-4">
+              <div className="flex items-start min-w-[30rem]">
+                {FOUND_STEPS.map((label, idx) => {
+                  const stepNum = idx + 1;
+                  const done = stepNum <= step;
+                  const at = done ? getFoundStepDetail(record, stepNum).at : null;
+                  return (
+                    <div key={label} className={`flex items-start ${idx < last ? "flex-1" : ""}`}>
+                      <div className="flex flex-col items-center w-16 sm:w-20 shrink-0">
+                        <div
+                          onClick={() => setOpenFoundStep((prev) => ({ ...prev, [record.id]: prev[record.id] === stepNum ? null : stepNum }))}
+                          role="button"
+                          tabIndex={0}
+                          className={`cursor-pointer w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            open === stepNum ? "ring-2 ring-offset-2 ring-[#1D2A6B]" : ""
+                          } ${done ? "bg-[#1D2A6B] text-white" : "bg-gray-200 text-gray-400"}`}
+                        >
+                          {stepNum}
+                        </div>
+                        <span className={`mt-1 flex flex-col items-center text-[10px] sm:text-xs font-bold text-center leading-tight ${done ? "text-[#1D2A6B]" : "text-gray-400"}`}>
+                          {at && (
+                            <span className="order-last mt-0.5 text-[9px] font-normal text-gray-400">{timeAgo(at)}</span>
+                          )}
+                          {label}
+                        </span>
+                      </div>
+                      {idx < last && (
+                        <div className={`flex-1 h-0.5 mt-[13px] ${stepNum < step ? "bg-[#1D2A6B]" : "bg-gray-200"}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {open && (() => {
+              const detail = getFoundStepDetail(record, open);
+              const reached = open <= step;
+              return (
+                <div className="bg-[#F4F7FB] border border-[#D6DCEF] rounded-xl p-4 mb-4">
+                  <p className="font-black text-[#1D2A6B] text-sm">{open}. {FOUND_STEPS[open - 1]}</p>
+                  <p className="text-gray-600 text-sm mt-1">{reached ? detail.text : "This step has not happened yet."}</p>
+                  {reached && detail.at && (
+                    <p className="text-gray-400 text-xs mt-2">{formatDateTime(detail.at)} · {timeAgo(detail.at)}</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {expired ? (
+              <div className="bg-red-50 border border-red-100 rounded-xl p-4 my-4">
+                <p className="font-black text-red-600">Report Expired</p>
+                <p className="text-red-500 text-sm mt-0.5">
+                  The item was not handed to the Guidance Office within 2 school days, so the report expired and your trust score dropped by 5 points.
+                </p>
+              </div>
+            ) : record.progress?.collected_at ? (
+              <div className="bg-[#B9CBBF] rounded-xl p-4 my-4">
+                <p className="font-black text-[#0A2618]">Item Returned to Owner</p>
+                <p className="text-[#1E3F2E] text-sm mt-0.5">Thank you for helping. Returned on {formatDate(record.progress.collected_at)}.</p>
+              </div>
+            ) : !record.receipt_confirmed ? (
+              <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 my-4">
+                <p className="font-black text-orange-600">Waiting for Surrender</p>
+                <p className="text-orange-500 text-sm mt-0.5">
+                  {record.surrender_deadline
+                    ? `Hand the item to the Guidance Office by ${formatDate(record.surrender_deadline)}.`
+                    : "Hand the item to the Guidance Office."}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-[#B9CBBF] rounded-xl p-4 my-4">
+                <p className="font-black text-[#0A2618]">Item Received</p>
+                <p className="text-[#1E3F2E] text-sm mt-0.5">The Guidance Office has your item. We will notify you when the AI finds its owner.</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function daysRemaining(deadline: string): number {
   const now = new Date();
   const end = new Date(deadline);
@@ -172,6 +383,7 @@ export default function ClaimStatusPage() {
 
 function ClaimStatusContent() {
   const [claims, setClaims] = useState<Claim[]>([]);
+  const [tab, setTab] = useState<"lost" | "found">("lost");
   const [loading, setLoading] = useState(true);
   const [openStep, setOpenStep] = useState<Record<number, number | null>>({});
 
@@ -439,7 +651,28 @@ function ClaimStatusContent() {
           <p className="text-gray-500 text-sm mt-1">Track the progress of your ownership claims</p>
         </div>
 
-        {!matchesLoading && pendingMatches.length > 0 && (
+        <div className="flex gap-2 mb-6">
+          {([["lost", "Lost Reports"], ["found", "Found Reports"]] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`px-5 py-2.5 rounded-full text-sm font-bold transition ${
+                tab === key
+                  ? "bg-[#0E4D34] text-white"
+                  : "bg-white border border-[#B9CBBF] text-[#0E4D34] hover:bg-[#F1F7F3]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className={tab === "found" ? "" : "hidden"}>
+          <FoundReportsPanel />
+        </div>
+
+        {tab === "lost" && !matchesLoading && pendingMatches.length > 0 && (
           <div className="mb-8">
             <h2 className="text-sm font-black text-[#0E4D34] uppercase tracking-wide mb-3">
               Possible Matches for Your Lost Items
@@ -467,8 +700,10 @@ function ClaimStatusContent() {
           </div>
         )}
 
-        {loading ? (
-          <div className="text-center py-20 text-gray-400 text-sm">Loading claims...</div>
+        {tab === "found" ? (
+          null
+        ) : loading ? (
+          <div className="text-center py-20 text-gray-400 text-sm">Loading lost reports...</div>
         ) : claims.length === 0 ? (
           <div className="bg-white rounded-3xl text-center py-16 text-gray-400">
             <p className="font-bold text-lg">No claims submitted yet</p>
