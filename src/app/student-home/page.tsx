@@ -763,8 +763,14 @@ const [reportMinimized, setReportMinimized] = useState(false);
       )}
 
       {selectedMyFoundReport && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm">
+        <div
+          onClick={() => setSelectedMyFoundReport(null)}
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-[#111424]/75 backdrop-blur-md px-4 cursor-zoom-out"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm cursor-default"
+          >
             <button onClick={() => setSelectedMyFoundReport(null)} className="absolute -top-4 -right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition text-2xl font-bold leading-none shadow-lg border border-gray-200 z-20">&times;</button>
             <div className="p-6 max-h-[90vh] overflow-y-auto">
             <div className="w-full rounded-2xl overflow-hidden bg-gray-100 mb-4 flex items-center justify-center">
