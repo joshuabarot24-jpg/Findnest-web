@@ -896,13 +896,13 @@ export default function Home() {
       {/* Last call to action and footer share one deep green gradient */}
       <div className="bg-gradient-to-b from-[#09301B] to-[#0A1E12]">
         <section className="relative px-4 sm:px-8 xl:px-20 py-16 md:py-24 overflow-hidden">
-          <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full bg-[#22C55E]/20 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full bg-[#22C55E]/20 blur-3xl opacity-0 transition-opacity duration-700 [section:has(.cta-btn:hover)_&]:opacity-100" />
           <div className="relative text-center">
             <h2 className="text-3xl md:text-4xl font-black text-white mb-4 drop-shadow-[0_0_24px_rgba(74,222,128,0.45)]">Lost Something on Campus?</h2>
             <p className="text-emerald-100/80 text-lg mb-10">Report it now and let our AI do the work for you.</p>
             <button
               onClick={openLogin}
-              className="inline-flex items-center gap-2 bg-[#FACC15] hover:bg-[#EAB308] text-black font-black px-10 py-4 rounded-full shadow-xl hover:-translate-y-0.5 text-lg transition-all duration-300 cursor-pointer"
+              className="cta-btn inline-flex items-center gap-2 bg-[#FACC15] hover:bg-[#EAB308] text-black font-black px-10 py-4 rounded-full shadow-xl hover:-translate-y-0.5 text-lg transition-all duration-300 cursor-pointer"
             >
               Get Started Now <span aria-hidden="true">&#10140;</span>
             </button>
