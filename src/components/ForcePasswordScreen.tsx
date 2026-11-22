@@ -155,6 +155,13 @@ export default function ForcePasswordScreen({ onDone }: { onDone: () => void }) 
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                   placeholder="000000"
+                  onPaste={(e) => {
+                    const d = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+                    if (d) {
+                      e.preventDefault();
+                      setCode(d);
+                    }
+                  }}
                   className="flex-1 min-w-0 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none text-lg text-gray-800 tracking-[0.5em] text-center font-bold"
                 />
                 <button

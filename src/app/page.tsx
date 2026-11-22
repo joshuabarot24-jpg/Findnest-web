@@ -349,6 +349,18 @@ export default function Home() {
     }
   };
 
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!digits) return;
+    e.preventDefault();
+    const newOtp = ["", "", "", "", "", ""];
+    digits.split("").forEach((d, i) => {
+      newOtp[i] = d;
+    });
+    setOtp(newOtp);
+    document.getElementById(`landing-otp-${Math.min(digits.length, 5)}`)?.focus();
+  };
+
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       document.getElementById(`landing-otp-${index - 1}`)?.focus();
@@ -580,6 +592,7 @@ export default function Home() {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    onPaste={handleOtpPaste}
                     className="w-11 h-13 text-center text-xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none transition text-gray-700"
                   />
                 ))}

@@ -97,6 +97,18 @@ export default function StudentLoginPage() {
     }
   };
 
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!digits) return;
+    e.preventDefault();
+    const newOtp = ["", "", "", "", "", ""];
+    digits.split("").forEach((d, i) => {
+      newOtp[i] = d;
+    });
+    setOtp(newOtp);
+    document.getElementById(`otp-${Math.min(digits.length, 5)}`)?.focus();
+  };
+
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       document.getElementById(`otp-${index - 1}`)?.focus();
@@ -275,6 +287,7 @@ export default function StudentLoginPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      onPaste={handleOtpPaste}
                       className="w-12 h-14 text-center text-xl font-black border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition text-gray-700"
                     />
                   ))}
