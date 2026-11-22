@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthGuard from "@/components/AuthGuard";
 import LogoutConfirmHost from "@/components/LogoutConfirmHost";
+import OfflineBanner from "@/components/OfflineBanner";
 import { Inter, Kanit, Baloo_Tamma_2 } from "next/font/google";
 
 const balooTamma = Baloo_Tamma_2({
@@ -56,6 +57,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${kanit.variable} ${balooTamma.variable} antialiased`}>
         <AuthGuard />
         <LogoutConfirmHost />
+        <OfflineBanner />
         {children}
       </body>
     </html>
