@@ -512,8 +512,8 @@ export default function Home() {
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="you@email.com or 00000001"
-                  autoComplete="off"
-                  name="fnd-user-field"
+                  autoComplete="username"
+                  name="username"
                   maxLength={50}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none transition text-gray-700"
                   required
@@ -527,8 +527,8 @@ export default function Home() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    autoComplete="new-password"
-                    name="fnd-pass-field"
+                    autoComplete="current-password"
+                    name="password"
                     maxLength={50}
                     className="w-full pl-4 pr-12 py-3 font-[family-name:var(--font-inter)] border-2 border-gray-200 rounded-xl focus:border-[#4ADE80]focus:outline-none transition text-gray-700"
                     required
