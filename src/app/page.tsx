@@ -349,6 +349,11 @@ export default function Home() {
     }
   };
 
+  const handleOtpFieldChange = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 6);
+    setOtp(Array.from({ length: 6 }, (_, i) => digits[i] ?? ""));
+  };
+
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (!digits) return;
@@ -588,12 +593,15 @@ export default function Home() {
                     id={`landing-otp-${index}`}
                     type="text"
                     inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    maxLength={6}
+                    value={index === 0 ? otp.join("") : ""}
+                    onChange={(e) => handleOtpFieldChange(e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
                     onPaste={handleOtpPaste}
-                    className="w-11 h-13 text-center text-xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none transition text-gray-700"
+                    style={index === 0 ? undefined : { display: "none" }}
+                    placeholder="Enter 6-digit code"
+                    autoComplete="one-time-code"
+                    className="w-full h-13 text-center text-xl font-black tracking-[0.3em] placeholder:tracking-normal placeholder:text-sm placeholder:font-semibold border-2 border-gray-200 rounded-xl focus:border-[#4ADE80] focus:outline-none transition text-gray-700"
                   />
                 ))}
               </div>
