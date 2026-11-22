@@ -190,7 +190,12 @@ export default function StudentLayout({
         <div className="flex items-center justify-between px-5 pt-12 pb-6 min-h-[120px]">
           <Link
             href="/student-home"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            onClick={(e) => {
+              if (window.location.pathname === "/student-home") {
+                e.preventDefault();
+                window.location.reload();
+              }
+            }}
             className="flex items-center gap-1.5"
           >
             <img src="/images/findnest-logo.png" alt="FindNest" className="w-12 h-12 object-contain shrink-0" />
